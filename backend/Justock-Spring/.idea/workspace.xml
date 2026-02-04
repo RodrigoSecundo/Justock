@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="81ed5992-f29d-41ea-b2a6-3d063c0f5217" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/Justock-Spring.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/.gitattributes" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/.mvn/wrapper/maven-wrapper.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/mvnw" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/mvnw.cmd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/JustockApiApplication.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/config/CorsConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/controller/FinishOrderController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/controller/OrderController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/controller/ProductController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/controller/UserController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/dto/ApiResponseDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/dto/FinishOrderDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/dto/LoginResponseDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/dto/OrderResponseDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/dto/ProductResponseDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/dto/UserResponseDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/model/FinishOrder.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/model/Order.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/model/Product.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/model/User.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/repository/FinishOrderRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/repository/OrderRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/repository/ProductRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/repository/UserRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/request/FinishOrderCreateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/request/LoginRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/request/OrderCreateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/request/ProductCreateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/request/ProductUpdateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/request/UserCreateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/request/UserUpdateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/service/FinishOrderService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/service/OrderService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/service/ProductService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/service/UserService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/validation/passwordMatches.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/java/com/justeam/justock_api/validation/passwordMatchesValidator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/resources/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/main/resources/db/migration/V1__create_user_table.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/justock-api/src/test/java/com/justeam/justock_api/JustockApiApplicationTests.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="34D0BXzP4jQatQexYduT0EuEBX5" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/fabri/Documents/Justock/Justock-Spring&quot;
+  }
+}</component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="81ed5992-f29d-41ea-b2a6-3d063c0f5217" name="Changes" comment="" />
+      <created>1760732699118</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1760732699118</updated>
+    </task>
+    <servers />
+  </component>
+</project>
