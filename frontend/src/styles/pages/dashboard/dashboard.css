@@ -1,0 +1,171 @@
+.painel-container {
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  background-color: #f5f9fa;
+}
+
+.painel-principal {
+  flex-grow: 1;
+  padding: 0 20px 20px 20px;
+  overflow-y: auto;
+}
+
+.main-content {
+  padding-top: 20px;
+}
+
+.caixas-info {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.caixa-info {
+  flex: 1;
+  padding: 15px;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+  font-size: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.caixa-info .valor-info {
+  font-size: 2rem;
+  margin-top: 5px;
+}
+
+.caixa-info.azul {
+  background-color: #005bff;
+}
+
+.caixa-info.laranja {
+  background-color: #f97316;
+}
+
+.caixa-info.teal-escuro {
+  background-color: #0a3b3b;
+}
+
+.caixa-info.verde-claro {
+  background-color: #a4d037;
+}
+
+.conteudo-painel {
+  display: flex;
+  gap: 20px;
+}
+
+.visao-inventario {
+  flex: 2;
+  background: white;
+  border-radius: 6px;
+  padding: 15px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.cabecalho-secao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.cabecalho-secao h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #1a3a3a;
+}
+
+.cabecalho-secao a {
+  font-size: 0.9rem;
+  color: #007bff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.secoes-lateral {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.caixa-secao {
+  background: white;
+  border-radius: 6px;
+  padding: 15px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.caixa-secao h3 {
+  margin-top: 0;
+  color: #1a3a3a;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.atividade-recente ul,
+.alertas ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item-atividade,
+.item-alerta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.icone-atividade,
+.icone-alerta {
+  margin-right: 8px;
+}
+
+.texto-atividade,
+.texto-alerta {
+  flex-grow: 1;
+}
+
+.tempo-atividade,
+.tempo-alerta {
+  color: #999;
+  font-size: 0.8rem;
+  margin-left: 10px;
+}
+
+.item-atividade.validado {
+  color: #4caf50;
+}
+
+.item-atividade.reembolsado {
+  color: #f44336;
+}
+
+.item-atividade.novo {
+  color: #4caf50;
+}
+
+.item-atividade.sincronizado {
+  color: #4caf50;
+}
+
+.item-alerta.baixo {
+  color: #f44336;
+}
+
+.item-alerta.fora-estoque {
+  color: #f44336;
+}
+
+.item-alerta.atualizado {
+  color: #4caf50;
+}

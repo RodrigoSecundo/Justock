@@ -1,0 +1,252 @@
+{
+  "dashboard": {
+    "totalProducts": 1350,
+    "lowStockProducts": 21,
+    "connectedMarketplaces": 3,
+    "syncStatus": "ON",
+    "inventoryOverview": {
+      "labels": ["Placas-mãe", "Processadores", "Fontes", "Placas de vídeo"],
+      "values": [170, 130, 70, 20]
+    },
+    "recentActivity": [
+      { "id": 1, "type": "validado", "icon": "✔️", "text": "Pagamento validado (#878)", "time": "15m" },
+      { "id": 2, "type": "reembolsado", "icon": "❗", "text": "Pedido reembolsado (#845)", "time": "1h" },
+      { "id": 3, "type": "novo", "icon": "✔️", "text": "Pedido novo (#897)", "time": "2h" },
+      { "id": 4, "type": "sincronizado", "icon": "✔️", "text": "Inventário sincronizado", "time": "3h" }
+    ],
+    "alerts": [
+      { "id": 1, "type": "baixo", "icon": "❗", "text": "Item #78 - Em baixa", "time": "1h" },
+      { "id": 2, "type": "fora-estoque", "icon": "❌", "text": "Item #124 - Esgotado", "time": "2h" },
+      { "id": 3, "type": "baixo", "icon": "❗", "text": "Item #124 - Em baixa", "time": "3h" },
+      { "id": 4, "type": "atualizado", "icon": "✔️", "text": "Estoque atualizado", "time": "4h" }
+    ]
+  },
+  "conexoes": [
+    {
+      "id": "mercado_livre",
+      "name": "Mercado Livre",
+      "totalVendas": 148,
+      "pedidosAtivos": 58,
+      "totalInventario": 104,
+      "connected": true
+    },
+    {
+      "id": "shopee",
+      "name": "Shopee",
+      "connected": false
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon",
+      "totalVendas": 215,
+      "pedidosAtivos": 49,
+      "totalInventario": 121,
+      "connected": true
+    }
+  ],
+  "produtos": [
+    { "id": 1, "categoria": "Placas-mãe", "marca": "ASUS", "nome": "ROG Strix B550-F Gaming", "estoque": 8, "preco": "R$ 1.200,00", "codigoBarras": "123456789" },
+    { "id": 2, "categoria": "Placas de vídeo", "marca": "NVIDIA", "nome": "RTX 3080 Founders Edition", "estoque": 12, "preco": "R$ 5.500,00", "codigoBarras": "987654321" },
+    { "id": 3, "categoria": "Processadores", "marca": "AMD", "nome": "Ryzen 7 5800X", "estoque": 15, "preco": "R$ 2.800,00", "codigoBarras": "456789123" },
+    { "id": 4, "categoria": "Placas-mãe", "marca": "MSI", "nome": "B450 Tomahawk Max", "estoque": 5, "preco": "R$ 900,00", "codigoBarras": "111222333" },
+    { "id": 5, "categoria": "Placas de vídeo", "marca": "AMD", "nome": "Radeon RX 6800 XT", "estoque": 10, "preco": "R$ 4.200,00", "codigoBarras": "444555666" },
+    { "id": 6, "categoria": "Processadores", "marca": "Intel", "nome": "Core i9-13900K", "estoque": 6, "preco": "R$ 3.500,00", "codigoBarras": "777888999" },
+    { "id": 7, "categoria": "Memórias RAM", "marca": "Corsair", "nome": "Vengeance RGB Pro 16GB (2x8GB) 3200MHz", "estoque": 20, "preco": "R$ 650,00", "codigoBarras": "000111222" },
+    { "id": 8, "categoria": "Armazenamento", "marca": "Samsung", "nome": "970 EVO Plus 1TB NVMe SSD", "estoque": 18, "preco": "R$ 800,00", "codigoBarras": "333444555" },
+    { "id": 9, "categoria": "Placas de vídeo", "marca": "NVIDIA", "nome": "RTX 4070 Ti", "estoque": 7, "preco": "R$ 6.800,00", "codigoBarras": "666777888" },
+    { "id": 10, "categoria": "Placas-mãe", "marca": "Gigabyte", "nome": "Z790 Aorus Elite AX", "estoque": 9, "preco": "R$ 1.500,00", "codigoBarras": "999000111" },
+    { "id": 11, "categoria": "Processadores", "marca": "AMD", "nome": "Ryzen 5 5600X", "estoque": 14, "preco": "R$ 1.600,00", "codigoBarras": "222333444" },
+    { "id": 12, "categoria": "Memórias RAM", "marca": "Kingston", "nome": "HyperX Fury 32GB (2x16GB) 3600MHz", "estoque": 11, "preco": "R$ 1.100,00", "codigoBarras": "555666777" },
+    { "id": 13, "categoria": "Armazenamento", "marca": "WD", "nome": "Black SN850X 2TB NVMe SSD", "estoque": 13, "preco": "R$ 1.400,00", "codigoBarras": "888999000" },
+    { "id": 14, "categoria": "Placas de vídeo", "marca": "AMD", "nome": "Radeon RX 7900 XTX", "estoque": 4, "preco": "R$ 8.500,00", "codigoBarras": "112233445" },
+    { "id": 15, "categoria": "Placas-mãe", "marca": "ASUS", "nome": "Prime Z690-P", "estoque": 16, "preco": "R$ 1.100,00", "codigoBarras": "556677889" },
+    { "id": 16, "categoria": "Processadores", "marca": "Intel", "nome": "Core i7-13700K", "estoque": 10, "preco": "R$ 2.900,00", "codigoBarras": "990011122" },
+    { "id": 17, "categoria": "Memórias RAM", "marca": "G.Skill", "nome": "Trident Z RGB 16GB (2x8GB) 4000MHz", "estoque": 19, "preco": "R$ 750,00", "codigoBarras": "334455667" },
+    { "id": 18, "categoria": "Armazenamento", "marca": "Seagate", "nome": "FireCuda 530 1TB SSD", "estoque": 12, "preco": "R$ 950,00", "codigoBarras": "778899001" },
+    { "id": 19, "categoria": "Placas de vídeo", "marca": "NVIDIA", "nome": "RTX 3060 Ti", "estoque": 22, "preco": "R$ 3.200,00", "codigoBarras": "223344556" },
+    { "id": 20, "categoria": "Placas-mãe", "marca": "MSI", "nome": "MAG B660M Mortar WiFi", "estoque": 17, "preco": "R$ 950,00", "codigoBarras": "667788990" }
+  ],
+  "pedidos": [
+    { "id": 1001, "dataEmissao": "01/10/2025", "dataEntrega": "05/10/2025", "marketplace": "Mercado Livre", "pagamento": "Cartão de Crédito", "status": "Pendente" },
+    { "id": 1002, "dataEmissao": "02/10/2025", "dataEntrega": "07/10/2025", "marketplace": "Amazon", "pagamento": "Boleto", "status": "Enviado" },
+    { "id": 1003, "dataEmissao": "03/10/2025", "dataEntrega": "08/10/2025", "marketplace": "Shopee", "pagamento": "Pix", "status": "Entregue" },
+    { "id": 1004, "dataEmissao": "04/10/2025", "dataEntrega": "", "marketplace": "Mercado Livre", "pagamento": "Cartão de Crédito", "status": "Cancelado" },
+    { "id": 1005, "dataEmissao": "05/10/2025", "dataEntrega": "10/10/2025", "marketplace": "Amazon", "pagamento": "Boleto", "status": "Pendente" },
+    { "id": 1006, "dataEmissao": "06/10/2025", "dataEntrega": "11/10/2025", "marketplace": "Shopee", "pagamento": "Pix", "status": "Enviado" },
+    { "id": 1007, "dataEmissao": "07/10/2025", "dataEntrega": "12/10/2025", "marketplace": "Mercado Livre", "pagamento": "Cartão de Crédito", "status": "Entregue" },
+    { "id": 1008, "dataEmissao": "08/10/2025", "dataEntrega": "", "marketplace": "Amazon", "pagamento": "Boleto", "status": "Pendente" },
+    { "id": 1009, "dataEmissao": "09/10/2025", "dataEntrega": "14/10/2025", "marketplace": "Shopee", "pagamento": "Pix", "status": "Cancelado" },
+    { "id": 1010, "dataEmissao": "10/10/2025", "dataEntrega": "15/10/2025", "marketplace": "Mercado Livre", "pagamento": "Cartão de Crédito", "status": "Enviado" },
+    { "id": 1011, "dataEmissao": "11/10/2025", "dataEntrega": "16/10/2025", "marketplace": "Amazon", "pagamento": "Boleto", "status": "Entregue" },
+    { "id": 1012, "dataEmissao": "12/10/2025", "dataEntrega": "", "marketplace": "Shopee", "pagamento": "Pix", "status": "Pendente" },
+    { "id": 1013, "dataEmissao": "13/10/2025", "dataEntrega": "18/10/2025", "marketplace": "Mercado Livre", "pagamento": "Cartão de Crédito", "status": "Enviado" },
+    { "id": 1014, "dataEmissao": "14/10/2025", "dataEntrega": "19/10/2025", "marketplace": "Amazon", "pagamento": "Boleto", "status": "Entregue" },
+    { "id": 1015, "dataEmissao": "15/10/2025", "dataEntrega": "", "marketplace": "Shopee", "pagamento": "Pix", "status": "Cancelado" },
+    { "id": 1016, "dataEmissao": "16/10/2025", "dataEntrega": "21/10/2025", "marketplace": "Mercado Livre", "pagamento": "Cartão de Crédito", "status": "Pendente" },
+    { "id": 1017, "dataEmissao": "17/10/2025", "dataEntrega": "22/10/2025", "marketplace": "Amazon", "pagamento": "Boleto", "status": "Enviado" },
+    { "id": 1018, "dataEmissao": "18/10/2025", "dataEntrega": "23/10/2025", "marketplace": "Shopee", "pagamento": "Pix", "status": "Entregue" },
+    { "id": 1019, "dataEmissao": "19/10/2025", "dataEntrega": "", "marketplace": "Mercado Livre", "pagamento": "Cartão de Crédito", "status": "Pendente" },
+    { "id": 1020, "dataEmissao": "20/10/2025", "dataEntrega": "25/10/2025", "marketplace": "Amazon", "pagamento": "Boleto", "status": "Enviado" }
+  ],
+  "relatorios": [
+    {
+      "id": 2025,
+      "ano": 2025,
+      "months": ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
+      "marketplaces": {
+        "Amazon": {
+          "completed": [820, 780, 810, 860, 905, 880, 940, 990, 910, 770, 751, 0],
+          "canceled": [230, 281, 178, 155, 272, 352, 226, 198, 319, 354, 143, 0],
+          "revenue": [172200, 148200, 166050, 150500, 167425, 193600, 186120, 184140, 209300, 130900, 135180, 0]
+        },
+        "Shopee": {
+          "completed": [980, 795, 870, 885, 965, 905, 1120, 1005, 1065, 785, 1513, 0],
+          "canceled": [412, 159, 331, 142, 425, 235, 392, 181, 533, 518, 333, 0],
+          "revenue": [147000, 95400, 120060, 110625, 136930, 142, 151200, 128640, 170400, 90275, 257210, 0]
+        },
+        "Mercado Livre": {
+          "completed": [840, 1050, 835, 920, 920, 1040, 955, 1180, 930, 870, 611, 0],
+          "canceled": [286, 252, 334, 166, 331, 291, 287, 189, 419, 287, 128, 0],
+          "revenue": [151200, 210000, 141950, 174800, 193200, 182000, 176, 241900, 167400, 143550, 116090, 0]
+        }
+      },
+      "categories": [
+        { "name": "Processadores", "percent": 27 },
+        { "name": "Placas de vídeo", "percent": 23 },
+        { "name": "Placas-mãe", "percent": 17 },
+        { "name": "Memórias RAM", "percent": 12 },
+        { "name": "Armazenamento", "percent": 9 },
+        { "name": "Fontes", "percent": 6 },
+        { "name": "Coolers", "percent": 4 },
+        { "name": "Outros", "percent": 2 }
+      ]
+    },
+    {
+      "id": 2024,
+      "ano": 2024,
+      "months": ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
+      "marketplaces": {
+        "Amazon": {
+          "completed": [690, 720, 865, 730, 740, 940, 790, 710, 975, 745, 685, 743],
+          "canceled": [248, 202, 190, 336, 178, 188, 269, 270, 176, 224, 171, 201],
+          "revenue": [141450, 129600, 168675, 116800, 129500, 197400, 148, 120700, 214500, 122925, 117, 135226]
+        },
+        "Shopee": {
+          "completed": [830, 740, 760, 905, 790, 800, 980, 840, 810, 940, 770, 656],
+          "canceled": [249, 488, 198, 199, 316, 232, 235, 168, 284, 254, 177, 210],
+          "revenue": [103750, 85100, 106400, 122175, 102700, 120000, 142100, 107520, 111780, 142, 101640, 78720]
+        },
+        "Mercado Livre": {
+          "completed": [720, 915, 705, 780, 920, 760, 820, 1010, 720, 780, 980, 692],
+          "canceled": [303, 220, 338, 156, 313, 334, 180, 182, 288, 257, 206, 249],
+          "revenue": [122400, 173850, 112800, 136500, 184000, 125400, 147600, 207050, 123840, 138840, 194040, 107260]
+        }
+      },
+      "categories": [
+        { "name": "Processadores", "percent": 24 },
+        { "name": "Placas de vídeo", "percent": 22 },
+        { "name": "Placas-mãe", "percent": 18 },
+        { "name": "Memórias RAM", "percent": 13 },
+        { "name": "Armazenamento", "percent": 9 },
+        { "name": "Fontes", "percent": 7 },
+        { "name": "Coolers", "percent": 4 },
+        { "name": "Outros", "percent": 3 }
+      ]
+    },
+    {
+      "id": 2023,
+      "ano": 2023,
+      "months": ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
+      "marketplaces": {
+        "Amazon": {
+          "completed": [700, 700, 820, 720, 730, 900, 760, 780, 930, 710, 720, 790],
+          "canceled": [315, 280, 213, 144, 248, 216, 289, 250, 167, 298, 202, 237],
+          "revenue": [138600, 122500, 155800, 118800, 124100, 184500, 136800, 144300, 195300, 119280, 123840, 148520]
+        },
+        "Shopee": {
+          "completed": [680, 870, 740, 860, 770, 780, 940, 820, 790, 900, 740, 516],
+          "canceled": [231, 191, 370, 155, 231, 320, 226, 164, 324, 297, 185, 196],
+          "revenue": [81600, 121800, 92500, 116100, 100100, 124800, 136300, 113160, 118500, 127800, 947, 60888]
+        },
+        "Mercado Livre": {
+          "completed": [800, 720, 690, 760, 880, 740, 800, 970, 750, 760, 940, 420],
+          "canceled": [176, 259, 235, 365, 229, 333, 240, 233, 240, 418, 197, 164],
+          "revenue": [148000, 115200, 106950, 129200, 171600, 124320, 142400, 194000, 129000, 133760, 180480, 58800]
+        }
+      },
+      "categories": [
+        { "name": "Processadores", "percent": 23 },
+        { "name": "Placas de vídeo", "percent": 21 },
+        { "name": "Placas-mãe", "percent": 17 },
+        { "name": "Memórias RAM", "percent": 13 },
+        { "name": "Armazenamento", "percent": 10 },
+        { "name": "Fontes", "percent": 7 },
+        { "name": "Coolers", "percent": 5 },
+        { "name": "Outros", "percent": 4 }
+      ]
+    }
+  ],
+  "assinatura": {
+    "planoAtual": {
+      "id": "empresarial",
+      "nome": "EMPRESARIAL",
+      "nivel": "PLANO ATUAL",
+      "usuarios": "Usuários ilimitados",
+      "integracoes": "Integrações ilimitadas",
+      "produtos": "Produtos ilimitados",
+      "suporte": "Suporte 24/7",
+      "precoMensal": 109.99,
+      "moeda": "BRL",
+      "proximaCobranca": "2025-12-15"
+    },
+    "metodoPagamento": {
+      "tipo": "Cartão de Crédito",
+      "bandeira": "Mastercard",
+      "final": "1289",
+      "validade": "2028-09-01",
+      "titular": "Rodrigo Secundo Araújo"
+    },
+    "historicoCobrancas": [
+      {
+        "id": 1,
+        "data": "15/11/2025",
+        "descricao": "Assinatura Justock - Empresarial",
+        "valor": 109.99,
+        "status": "Paga",
+        "metodo": "Cartão de Crédito"
+      },
+      {
+        "id": 2,
+        "data": "15/10/2025",
+        "descricao": "Assinatura Justock - Empresarial",
+        "valor": 109.99,
+        "status": "Paga",
+        "metodo": "Cartão de Crédito"
+      },
+      {
+        "id": 3,
+        "data": "15/09/2025",
+        "descricao": "Assinatura Justock - Empresarial",
+        "valor": 109.99,
+        "status": "Paga",
+        "metodo": "Cartão de Crédito"
+      }
+    ]
+  },
+  "usuarios": [
+    {
+      "id": 1,
+      "nome": "Rodrigo Secundo Araújo",
+      "email": "admin@justock.com",
+      "senha": "123456",
+      "role": "ADMIN"
+    },
+    {
+      "id": 2,
+      "nome": "Administrador Padrão",
+      "email": "admin@admin.com",
+      "senha": "admin123",
+      "role": "ADMIN"
+    }
+  ]
+}

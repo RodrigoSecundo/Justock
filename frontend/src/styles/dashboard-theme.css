@@ -1,0 +1,564 @@
+html.painel-fonte-pequena { font-size: 90%; }
+html.painel-fonte-media { font-size: 100%; }
+html.painel-fonte-grande { font-size: 112.5%; }
+
+.painel-fonte-pequena .painel-container { font-size: inherit; }
+.painel-fonte-media .painel-container { font-size: inherit; }
+.painel-fonte-grande .painel-container { font-size: inherit; }
+
+.painel-fonte-pequena .painel-container input,
+.painel-fonte-pequena .painel-container select,
+.painel-fonte-pequena .painel-container button,
+.painel-fonte-pequena .painel-container textarea,
+.painel-fonte-media .painel-container input,
+.painel-fonte-media .painel-container select,
+.painel-fonte-media .painel-container button,
+.painel-fonte-media .painel-container textarea,
+.painel-fonte-grande .painel-container input,
+.painel-fonte-grande .painel-container select,
+.painel-fonte-grande .painel-container button,
+.painel-fonte-grande .painel-container textarea {
+  font-size: 1em;
+}
+
+.sidebar-detalhada .barra_lateral,
+.sidebar-mista-expandida .barra_lateral {
+  width: 184px !important;
+  flex: 0 0 184px !important;
+  align-items: stretch;
+  transition: width .54s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
+.sidebar-detalhada .barra_lateral-item,
+.sidebar-mista-expandida .barra_lateral-item {
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 20px 12px 20px 18px;
+  line-height: 1;
+}
+
+.sidebar-detalhada .barra_lateral-item img,
+.sidebar-mista-expandida .barra_lateral-item img {
+  width: 40px;
+  height: 40px;
+}
+
+.barra_lateral-texto {
+  color: #c9d7d7; font-weight: 600; white-space: nowrap;
+  opacity: 0; max-width: 0; overflow: hidden; pointer-events: none;
+  transform: translateX(-2px);
+  transition:
+    opacity .40s cubic-bezier(0.22, 1, 0.36, 1) .08s,
+    max-width .54s cubic-bezier(0.22, 1, 0.36, 1) .04s,
+    transform .54s cubic-bezier(0.22, 1, 0.36, 1) .04s;
+  will-change: opacity, max-width, transform;
+}
+.sidebar-detalhada .barra_lateral-texto,
+.sidebar-mista-expandida .barra_lateral-texto {
+  opacity: 1; max-width: 160px; pointer-events: auto; transform: translateX(0);
+}
+.sidebar-detalhada .barra_lateral-item.active .barra_lateral-texto,
+.sidebar-mista-expandida .barra_lateral-item.active .barra_lateral-texto { color: #ffffff; }
+
+body.sidebar-no-transition .barra_lateral {
+  transition: none !important;
+}
+body.sidebar-no-transition .barra_lateral-texto {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barra_lateral,
+  .sidebar-detalhada .barra_lateral,
+  .barra_lateral-texto {
+    transition: none !important;
+  }
+}
+
+:root {
+  --jt-bg: #f5f9fa;
+  --jt-surface: #ffffff;
+  --jt-text: #1a3a3a;
+  --jt-text-muted: #7b8a8a;
+  --jt-border: #e5eeee;
+  --jt-surface-2: #f8fbfc;
+  --jt-accent: #2563eb;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --jt-bg: #0b0f14;
+  --jt-surface: #0f1620;
+  --jt-surface-2: #0d1a26;
+  --jt-text: #e5eef7;
+  --jt-text-muted: #9db2c0;
+  --jt-border: #223244;
+  --jt-accent: #3b82f6;
+}
+
+[data-theme="dark"] .painel-container {
+  background-color: var(--jt-bg) !important;
+  color: var(--jt-text) !important;
+}
+
+[data-theme="dark"] .visao-inventario,
+[data-theme="dark"] .caixa-secao,
+[data-theme="dark"] .conf-cartao,
+[data-theme="dark"] .barra-superior,
+[data-theme="dark"] .dropdown-notificacoes,
+[data-theme="dark"] .dropdown-perfil,
+[data-theme="dark"] .modal-conteudo,
+[data-theme="dark"] .conf-toast {
+  background: var(--jt-surface) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35) !important;
+}
+
+[data-theme="dark"] .cabecalho-secao h2,
+[data-theme="dark"] .caixa-secao h3,
+[data-theme="dark"] .conf-cartao-titulo,
+[data-theme="dark"] .conf-titulo,
+[data-theme="dark"] .conf-linha-rotulo,
+[data-theme="dark"] .conf-rotulo,
+[data-theme="dark"] .conf-check-rotulo {
+  color: var(--jt-text) !important;
+}
+[data-theme="dark"] .conf-hint { color: var(--jt-text-muted) !important; }
+[data-theme="dark"] .conf-hint-inline { color: var(--jt-text-muted) !important; }
+
+[data-theme="dark"] .tempo-atividade,
+[data-theme="dark"] .tempo-alerta,
+[data-theme="dark"] .dropdown-notificacoes p,
+[data-theme="dark"] .dropdown-perfil a { color: var(--jt-text-muted) !important; }
+
+[data-theme="dark"] .item-atividade.validado,
+[data-theme="dark"] .item-atividade.sincronizado,
+[data-theme="dark"] .item-atividade.novo,
+[data-theme="dark"] .item-alerta.atualizado { color: #9db2c0 !important; }
+[data-theme="dark"] .item-atividade.reembolsado,
+[data-theme="dark"] .item-alerta.baixo,
+[data-theme="dark"] .item-alerta.fora-estoque { color: #cbd5e1 !important; }
+
+[data-theme="dark"] a { color: #8ab4ff; }
+[data-theme="dark"] a:hover { color: #a3c1ff; }
+
+[data-theme="dark"] .barra-superior { border-bottom-color: var(--jt-border) !important; }
+[data-theme="dark"] .secao-pesquisa {
+  background: var(--jt-surface-2) !important;
+  border: 2px solid #2b425a !important;
+}
+[data-theme="dark"] .entrada-pesquisa { color: var(--jt-text) !important; }
+[data-theme="dark"] .entrada-pesquisa::placeholder { color: #9db2c0 !important; }
+[data-theme="dark"] .icone-pesquisa { color: #b3c5d7 !important; }
+[data-theme="dark"] .icone-pesquisa:hover { color: var(--jt-accent) !important; }
+[data-theme="dark"] .icone-suporte { color: #b3c5d7 !important; }
+[data-theme="dark"] .icone-suporte:hover { color: var(--jt-accent) !important; }
+[data-theme="dark"] .icone-sino svg { color: #b3c5d7; }
+[data-theme="dark"] .icone-sino.has-unread svg { color: #8ab4ff; }
+
+[data-theme="dark"] .dropdown-notificacoes,
+[data-theme="dark"] .dropdown-perfil {
+  border-color: var(--jt-border) !important;
+}
+[data-theme="dark"] .dropdown-perfil a:hover { background: rgba(255,255,255,0.06) !important; }
+
+[data-theme="dark"] .conf-select {
+  background: var(--jt-surface-2) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+[data-theme="dark"] .pagina-configuracoes .conf-select option {
+  background: var(--jt-surface) !important;
+  color: var(--jt-text) !important;
+}
+[data-theme="dark"] .conf-check-visual { background: var(--jt-surface-2) !important; border-color: var(--jt-border) !important; }
+[data-theme="dark"] .conf-divisor { background: var(--jt-border) !important; }
+
+[data-theme="dark"] .modal-conteudo p { color: var(--jt-text) !important; }
+[data-theme="dark"] .modal-content {
+  background: var(--jt-surface) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45) !important;
+}
+[data-theme="dark"] .modal-content h2,
+[data-theme="dark"] .modal-content h3 { color: var(--jt-text) !important; }
+[data-theme="dark"] .form-group label { color: var(--jt-text) !important; }
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] textarea {
+  background: var(--jt-surface-2) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+[data-theme="dark"] select option { background: var(--jt-surface) !important; color: var(--jt-text) !important; }
+[data-theme="dark"] .botao-cancelar { background: #64748b !important; }
+
+[data-theme="dark"] .caixa-info { color: var(--jt-text) !important; }
+[data-theme="dark"] .caixa-info.azul,
+[data-theme="dark"] .caixa-info.laranja,
+[data-theme="dark"] .caixa-info.teal-escuro,
+[data-theme="dark"] .caixa-info.verde-claro {
+  background: #374151 !important;
+  color: var(--jt-text) !important;
+}
+
+[data-theme="dark"] .barra_lateral { background-color: #0b1f28 !important; }
+[data-theme="dark"] .barra_lateral-ico { color: #c9d7e3 !important; }
+[data-theme="dark"] .barra_lateral-item:hover,
+[data-theme="dark"] .barra_lateral-item.active { background-color: rgba(138, 180, 255, 0.14) !important; }
+
+[data-theme="dark"] .produtos-table-container,
+[data-theme="dark"] .pedidos-table-container {
+  background: var(--jt-surface) !important;
+  border-color: var(--jt-border) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35) !important;
+}
+[data-theme="dark"] .produtos-table th,
+[data-theme="dark"] .pedidos-table th {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #eaf2ff !important;
+}
+[data-theme="dark"] .produtos-table td,
+[data-theme="dark"] .pedidos-table td {
+  background: transparent !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+[data-theme="dark"] .produtos-table tr:hover,
+[data-theme="dark"] .pedidos-table tr:hover {
+  background: rgba(138, 180, 255, 0.08) !important;
+}
+[data-theme="dark"] .grupo-filtro label,
+[data-theme="dark"] .filter-group label { color: var(--jt-text) !important; }
+[data-theme="dark"] .selecao-filtro,
+[data-theme="dark"] .filter-select,
+[data-theme="dark"] .filter-search,
+[data-theme="dark"] .filter-date-range {
+  background: var(--jt-surface-2) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+[data-theme="dark"] .page-info { color: var(--jt-text-muted) !important; }
+[data-theme="dark"] .add-button,
+[data-theme="dark"] .botao-adicionar {
+  background: #334155 !important;
+  color: var(--jt-text) !important;
+  border: 1px solid #3b4a5e !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35) !important;
+}
+[data-theme="dark"] .page-button {
+  background: var(--jt-surface-2) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+[data-theme="dark"] .page-button:hover:not(:disabled) { background: rgba(255,255,255,0.06) !important; }
+[data-theme="dark"] .filter-button { background: #334155 !important; color: var(--jt-text) !important; border-color: #3b4a5e !important; }
+[data-theme="dark"] .clear-filter-button { background: #44586a !important; }
+
+[data-theme="dark"] .card-plano-atual,
+[data-theme="dark"] .card-metodo-pagamento,
+[data-theme="dark"] .card-historico {
+  background: var(--jt-surface) !important;
+  border-color: var(--jt-border) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35) !important;
+}
+
+[data-theme="dark"] .card-plano-atual,
+[data-theme="dark"] .card-plano-atual .plano-nome,
+[data-theme="dark"] .card-plano-atual .plano-beneficios,
+[data-theme="dark"] .card-metodo-pagamento,
+[data-theme="dark"] .card-metodo-pagamento h3,
+[data-theme="dark"] .card-metodo-pagamento .proxima-cobranca,
+[data-theme="dark"] .card-historico,
+[data-theme="dark"] .card-historico .titulo-historico {
+  color: var(--jt-text) !important;
+}
+
+[data-theme="dark"] .tabela-historico .p-datatable-thead > tr > th {
+  background: #1e293b !important;
+  color: #e5eef7 !important;
+}
+
+[data-theme="dark"] .tabela-historico .p-datatable-tbody > tr > td {
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+
+[data-theme="dark"] .btn-alterar-plano,
+[data-theme="dark"] .btn-alterar-metodo {
+  background: #334155 !important;
+  border-color: #3b4a5e !important;
+  color: var(--jt-text) !important;
+}
+
+[data-theme="dark"] .btn-alterar-plano,
+[data-theme="dark"] .btn-metodo-alternativo {
+  background: #334155 !important;
+  border-color: #3b4a5e !important;
+  color: var(--jt-text) !important;
+}
+
+[data-theme="dark"] .btn-filtrar { background: #334155 !important; color: var(--jt-text) !important; border: 1px solid #3b4a5e !important; }
+[data-theme="dark"] .botao-filtro { background: #334155 !important; color: var(--jt-text) !important; border: 1px solid #3b4a5e !important; }
+[data-theme="dark"] .botao-filtro:hover { background: #3b4a5e !important; }
+[data-theme="dark"] .botao-limpar-filtro { background: #44586a !important; color: var(--jt-text) !important; border: 1px solid #3b4a5e !important; }
+[data-theme="dark"] .botao-limpar-filtro:hover { background: #50657c !important; }
+[data-theme="dark"] .btn-exportar { background: #374151 !important; color: var(--jt-text) !important; border-color: #3b4a5e !important; }
+[data-theme="dark"] .btn-excel, [data-theme="dark"] .btn-csv { background: #334155 !important; color: var(--jt-text) !important; }
+[data-theme="dark"] .kpi-box.azul { background: #374151 !important; color: var(--jt-text) !important; }
+
+[data-theme="dark"] .btn-sim, [data-theme="dark"] .btn-nao { background: #334155 !important; color: var(--jt-text) !important; }
+[data-theme="dark"] .btn-sim:hover, [data-theme="dark"] .btn-nao:hover { background: #3f4b5e !important; }
+
+[data-theme="dark"] .relatorios-filtros label { color: var(--jt-text) !important; }
+[data-theme="dark"] .relatorios-filtros select,
+[data-theme="dark"] .line-metric {
+  background: var(--jt-surface-2) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+[data-theme="dark"] .grafico { background: var(--jt-surface) !important; box-shadow: 0 1px 2px rgba(0,0,0,0.35) !important; }
+[data-theme="dark"] .section-header h3 { color: var(--jt-text) !important; }
+[data-theme="dark"] .modal-conteudo.export-modal { background: var(--jt-surface) !important; color: var(--jt-text) !important; }
+[data-theme="dark"] .modal-conteudo.export-modal p { color: var(--jt-text) !important; }
+
+[data-theme="dark"] .conexoes_cabecalho h2 { color: var(--jt-text) !important; }
+[data-theme="dark"] .conexoes_card { background: var(--jt-surface) !important; border-color: var(--jt-border) !important; }
+[data-theme="dark"] .conexoes_logo_text { color: var(--jt-text) !important; }
+[data-theme="dark"] .conexoes_dados,
+[data-theme="dark"] .conexoes_dados p { color: var(--jt-text) !important; }
+[data-theme="dark"] .conexoes_dados_vazio { color: var(--jt-text-muted) !important; }
+
+/* ====== Dialogos PrimeReact (Pedidos/Produtos) - Light & Dark ====== */
+
+/* --- Tema claro: mais suave e alinhado ao painel --- */
+
+/* Base para todos os dialogs reutilizáveis */
+.jt-dialog.p-dialog {
+  background: var(--jt-surface);
+  border-radius: 10px;
+}
+
+.jt-dialog .p-dialog-header {
+  background: #e8f1ff;
+  border-bottom: 1px solid #d5e3ff;
+  padding: 0.85rem 1.1rem;
+}
+
+.jt-dialog .p-dialog-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--jt-text);
+}
+
+.jt-dialog .p-dialog-content {
+  padding: 1rem 1.1rem 1.1rem;
+  background: #f5f9ff;
+}
+
+.jt-dialog .p-dialog-footer {
+  padding: 0.8rem 1.1rem 1rem;
+  border-top: 1px solid #d5e3ff;
+  background: #eef4ff;
+}
+
+.jt-dialog .p-dialog-header-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.jt-dialog .p-dialog-header-icon:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.jt-dialog .p-dialog-header-icon:focus-visible {
+  outline: 2px solid var(--jt-accent);
+  outline-offset: 1px;
+}
+
+/* Lateral (Pedidos/Produtos) */
+.jt-dialog-side.p-dialog {
+  border-radius: 0;
+  box-shadow: 0 0 0 1px rgba(148,163,184,0.25), 0 18px 45px rgba(15,23,42,0.16);
+}
+
+.jt-dialog-center.p-dialog {
+  box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+}
+
+/* Conteúdo interno de formulários */
+.jt-dialog .p-dialog-content label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--jt-text-muted);
+}
+
+.jt-dialog .p-inputtext,
+.jt-dialog .p-inputnumber-input,
+.jt-dialog .p-dropdown,
+.jt-dialog .p-calendar,
+.jt-dialog .p-calendar input {
+  background: #ffffff;
+  border-color: #d1e0ee;
+  color: var(--jt-text);
+}
+
+.jt-dialog .p-inputtext::placeholder,
+.jt-dialog .p-inputnumber-input::placeholder {
+  color: var(--jt-text-muted);
+}
+
+.jt-dialog .p-inputtext:focus,
+.jt-dialog .p-inputnumber-input:focus,
+.jt-dialog .p-dropdown:not(.p-disabled).p-focus,
+.jt-dialog .p-calendar input:focus {
+  border-color: var(--jt-accent);
+  box-shadow: 0 0 0 1px rgba(37,99,235,0.10);
+}
+
+/* Rodapé de ações em dialogs de formulário */
+.jt-dialog .p-dialog-footer .p-button {
+  min-width: 7rem;
+}
+
+/* Botões principais e secundários nos dialogs (tema claro) */
+.jt-dialog .p-button {
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* Botão primário (Salvar/Adicionar) – azul padrão do painel */
+.jt-dialog .p-button:not(.p-button-secondary):not(.p-button-text):not(.p-button-outlined) {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.jt-dialog .p-button:not(.p-button-secondary):not(.p-button-text):not(.p-button-outlined):hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+/* Botão secundário (Cancelar) */
+.jt-dialog .p-button.p-button-secondary {
+  background: #e5edf7;
+  border-color: #d1e0ee;
+  color: #1f2937;
+}
+
+.jt-dialog .p-button.p-button-secondary:hover {
+  background: #d6e3f5;
+}
+
+/* Ícones de ação (calendário, dropdown, etc.) no tema claro */
+.jt-dialog .p-inputtext + .p-datepicker-trigger,
+.jt-dialog .p-calendar .p-datepicker-trigger,
+.jt-dialog .p-dropdown .p-dropdown-trigger {
+  display: none;
+}
+
+.jt-dialog .p-calendar .p-datepicker-trigger:hover,
+.jt-dialog .p-dropdown .p-dropdown-trigger:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* Tema escuro – refinando dialogs dentro do data-theme=dark */
+[data-theme="dark"] .jt-dialog.p-dialog {
+  background: var(--jt-surface) !important;
+  border: 1px solid var(--jt-border) !important;
+}
+
+[data-theme="dark"] .jt-dialog .p-dialog-header {
+  background: #111827;
+  border-bottom-color: var(--jt-border);
+}
+
+[data-theme="dark"] .jt-dialog .p-dialog-title {
+  color: var(--jt-text) !important;
+}
+
+[data-theme="dark"] .jt-dialog .p-dialog-content {
+  background: var(--jt-surface-2) !important;
+}
+
+[data-theme="dark"] .jt-dialog .p-dialog-footer {
+  background: #0b1220;
+}
+
+[data-theme="dark"] .jt-dialog .p-inputtext,
+[data-theme="dark"] .jt-dialog .p-inputnumber-input,
+[data-theme="dark"] .jt-dialog .p-dropdown,
+[data-theme="dark"] .jt-dialog .p-calendar,
+[data-theme="dark"] .jt-dialog .p-calendar input {
+  background: #020617;
+  border-color: var(--jt-border);
+  color: var(--jt-text);
+}
+
+[data-theme="dark"] .jt-dialog .p-inputtext::placeholder,
+[data-theme="dark"] .jt-dialog .p-inputnumber-input::placeholder {
+  color: var(--jt-text-muted);
+}
+
+[data-theme="dark"] .jt-dialog .p-dialog-header-icon {
+  background: transparent;
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .jt-dialog .p-dialog-header-icon:hover {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+[data-theme="dark"] .jt-dialog .p-dialog-mask {
+  background: radial-gradient(circle at top, rgba(15,23,42,0.8), rgba(3,7,18,0.9));
+}
+
+/* Botões nos dialogs quando o tema é escuro: seguem a paleta dark */
+[data-theme="dark"] .jt-dialog .p-button:not(.p-button-secondary):not(.p-button-text):not(.p-button-outlined) {
+  background: #111827;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .jt-dialog .p-button:not(.p-button-secondary):not(.p-button-text):not(.p-button-outlined):hover {
+  background: #1f2937;
+  border-color: #6b7280;
+}
+
+[data-theme="dark"] .jt-dialog .p-button.p-button-secondary {
+  background: transparent;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .jt-dialog .p-button.p-button-secondary:hover {
+  background: #111827;
+}
+
+/* Ajuste de dropdown de calendário usado em campos "Data de entrega" nos modais
+   para evitar que o painel suba para fora da viewport quando o input
+   está próximo do rodapé do dialog lateral. */
+.jt-calendar-dropdown.p-datepicker {
+  transform-origin: top center !important;
+}
+
+/* PrimeReact Calendar dentro dos dialogs (tema claro): mês/ano mais visíveis */
+.jt-calendar-dropdown .p-datepicker-title select {
+  color: #ffffff;
+}
+
+.jt-calendar-dropdown .p-datepicker-title select option {
+  color: #000000;
+}
+

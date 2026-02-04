@@ -1,0 +1,37 @@
+.sobre-nos {
+  max-width: 860px;
+  margin: 2rem auto 3rem;
+  padding: 0 1.5rem;
+  text-align: center;
+  scroll-margin-top: 5rem;
+}
+
+.sobre-nos h2 {
+  font-size: 3.25rem;
+  font-weight: 800;
+  color: #0f3d3e;
+  margin-bottom: 1rem;
+}
+
+.sobre-nos p {
+  font-size: 1.2rem;
+  line-height: 1.7;
+  color: #1f2933;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .sobre-nos {
+    margin: 1.5rem 1rem 2.5rem;
+    padding: 0 1rem;
+  }
+
+  .sobre-nos h2 {
+    font-size: 2.4rem;
+  }
+
+  .sobre-nos p {
+    font-size: 1.05rem;
+  }
+}

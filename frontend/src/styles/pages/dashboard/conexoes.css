@@ -1,0 +1,101 @@
+
+.conexoes_pagina {
+  padding: 20px;
+}
+.conexoes_cabecalho h2 {
+  margin: 10px 0 20px 0;
+  font-weight: 600;
+  color: #0D3B3F;
+}
+.conexoes_cards {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+}
+.conexoes_card {
+  flex: 1 1 0;
+  background: #fff;
+  border: 2px solid #e6e6e6;
+  border-radius: 8px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 390px;
+}
+.conexoes_logo {
+  width: 187px;
+  height: 125px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 12px auto;
+}
+.conexoes_logo_text {
+  display: block;
+  margin: 22px auto 36px auto;
+  color: #0D3B3F;
+  font-family: 'Lexend', 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 2.1rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: .3px;
+  text-align: center;
+}
+.conexoes_card_corpo {
+  width: 100%;
+  text-align: left;
+  flex: 1 1 auto;
+}
+.conexoes_status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  border-radius: 4px;
+  font-weight: 600;
+  margin: 20px auto 20px auto;
+  min-width: 156px;
+  max-width: 234px;
+  text-align: center;
+  font-size: 1.69rem;
+}
+.conexoes_status_conectado {
+  background: #bfea6b;
+  color: #153e2e;
+}
+.conexoes_status_conectar {
+  background: #0e3b39;
+  color: #fff;
+}
+.conexoes_dados {
+  color: #111;
+  text-align: left;
+}
+.conexoes_dados p {
+  margin: 8px 0;
+  color: #111;
+  font-size: 1.3rem;
+}
+.conexoes_dados_vazio {
+  color: #666;
+  padding: 20px 0;
+  text-align: center;
+  font-size: 1.3rem;
+}
+.conexoes_btn_gerenciar {
+  background: #0a5bff;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+@media (max-width: 900px) {
+  .conexoes_cards { flex-direction: column; }
+}

@@ -1,0 +1,57 @@
+.jt-notify-container {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 3000;
+}
+
+.jt-notify {
+  min-width: 260px;
+  max-width: 420px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 2px solid transparent;
+}
+
+.jt-notify-success {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.15);
+}
+
+.jt-notify-error {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.18);
+}
+
+.jt-notify-text { font-size: 14px; font-weight: 600; }
+
+.jt-notify-close {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 12px;
+}
+
+[data-theme="dark"] .jt-notify-container { filter: none; }
+[data-theme="dark"] .jt-notify-success {
+  background: #1f2937;
+  color: #e5eef7;
+  border-color: #374151;
+}
+[data-theme="dark"] .jt-notify-error {
+  background: #475569;
+  color: #e5eef7;
+  border-color: #64748b;
+}

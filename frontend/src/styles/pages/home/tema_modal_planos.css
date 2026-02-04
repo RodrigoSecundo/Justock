@@ -1,0 +1,95 @@
+.dialogo-planos.p-dialog {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  border-radius: 14px;
+  animation: slideDownCenter .45s cubic-bezier(.22,.61,.36,1);
+  max-width: 1040px;
+}
+
+.mascara-dialogo-planos.p-dialog-mask {
+  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.35);
+  animation: fadeInBg .25s ease-out;
+}
+
+@keyframes fadeInBg { from { background: rgba(0,0,0,0); } to { background: rgba(0,0,0,0.35); } }
+@keyframes slideDownCenter { from { transform: translateY(-40vh); opacity:0; } to { transform: translateY(0); opacity:1; } }
+
+/* Cabeçalho central absoluto */
+.dialogo-planos .p-dialog-header {
+  background:#f7fafc;
+  padding:18px 54px 16px 54px;
+  border-bottom:none;
+  display:flex;
+  justify-content:flex-end;
+  position:relative;
+}
+.dialogo-planos .p-dialog-header .p-dialog-title {
+  font-size:2.3rem;
+  font-weight:700;
+  color:#18413a;
+  margin:0;
+  position:absolute;
+  left:50%; top:50%; transform:translate(-50%,-52%);
+  pointer-events:none;
+}
+.dialogo-planos .p-dialog-header .p-dialog-header-icon { margin-top:4px; }
+.dialogo-planos .p-dialog-header .p-dialog-header-icon.p-dialog-header-close {
+  background:transparent !important;
+  border:none; box-shadow:none; width:auto; height:auto; padding:4px 4px; margin-right:-8px;
+  display:flex; align-items:center; justify-content:center; transition:none;
+}
+.dialogo-planos .p-dialog-header .p-dialog-header-icon.p-dialog-header-close:hover,
+.dialogo-planos .p-dialog-header .p-dialog-header-icon.p-dialog-header-close:focus-visible,
+.dialogo-planos .p-dialog-header .p-dialog-header-icon.p-dialog-header-close:active { background:transparent !important; box-shadow:none; outline:none; }
+.dialogo-planos .p-dialog-header .p-dialog-header-close-icon { font-size:1.25rem; color:#111; }
+
+.dialogo-planos .p-dialog-content { padding:10px 38px 14px; background:#f7fafc; }
+
+/* Cartões de plano */
+.grade-planos .cartao-plano.p-card {
+  border:2px solid #e5e5e5;
+  border-radius:16px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+  transition:border .2s, box-shadow .2s, transform .25s;
+  display:flex; flex-direction:column; position:relative;
+}
+.grade-planos .cartao-plano.p-card:hover:not(.recomendado){ border-color:#cfcfcf; transform:translateY(-2px); }
+
+.cartao-plano.recomendado.p-card {
+  background:linear-gradient(180deg,#0e3c3a 0%, #0a2e2c 100%);
+  color:#fff; border:2px solid #1ed760; box-shadow:0 6px 26px rgba(30,215,96,0.13); position:relative;
+}
+
+.cabecalho-plano { display:flex; align-items:center; justify-content:center; gap:8px; margin:10px 0 6px; position:relative; }
+.nome-plano { font-size:1.42rem; font-weight:700; margin:0; width:100%; text-align:center; }
+.cartao-plano.recomendado .nome-plano { color:#fff; }
+.cartao-plano .badge-recomendado.p-tag { position:absolute; top:8px; right:16px; padding:6px 14px; font-size:.68rem; box-shadow:0 3px 8px rgba(0,0,0,.12); letter-spacing:.5px; border-radius:6px; background:#1ed760; color:#fff; font-weight:600; }
+
+/* Preço e teste grátis */
+.preco-plano { font-size:2.15rem; font-weight:700; color:#ff6d3d; margin:2px 0 8px; text-align:center; }
+.preco-plano .periodo-preco { font-size:1.05rem; color:#444; font-weight:500; }
+.cartao-plano.recomendado .preco-plano span { color:#fff; }
+.texto-teste-gratis { text-align:center; font-size:.8rem; font-weight:600; color:#0e8f63; margin:0 0 12px; letter-spacing:.3px; }
+.cartao-plano.recomendado .texto-teste-gratis { color:#1ed760; }
+
+/* Lista de benefícios */
+.beneficios-plano { list-style:none; padding:0; margin:0 0 18px 0; font-size:.95rem; color:#222; line-height:1.5; }
+.cartao-plano.recomendado .beneficios-plano { color:#fff; }
+.beneficios-plano li { margin:0 0 6px 0; display:flex; gap:8px; }
+.icone-check { color:#0e8f63; font-weight:700; }
+.cartao-plano.recomendado .icone-check { color:#1ed760; }
+
+/* Botão escolher */
+.botao-plano.p-button {
+  background:#0057ff; border:none; font-weight:600; height:46px; font-size:0.95rem; letter-spacing:.3px;
+}
+.botao-plano.p-button:hover { background:#0049d6; }
+.botao-plano.p-button:focus-visible { box-shadow:0 0 0 3px #a9c9ff; }
+.cartao-plano.recomendado .botao-plano.p-button { box-shadow:0 0 0 2px #1ed76044; }
+
+.acoes-plano { margin-top:auto; padding-top:2px; }
+.grade-planos .cartao-plano.p-card .p-card-body { padding:20px 24px 8px; }
+
+@media (max-width:1100px){ .grade-planos .col-12.md\:col-4 { flex:0 0 50%; max-width:50%; } }
+@media (max-width:780px){ .dialogo-planos .p-dialog-header .p-dialog-title { font-size:2.0rem; } }
+@media (max-width:720px){ .grade-planos .col-12.md\:col-4 { flex:0 0 100%; max-width:100%; } .dialogo-planos .p-dialog-content { padding:28px 24px 34px; } }

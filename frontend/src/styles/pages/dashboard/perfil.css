@@ -1,0 +1,208 @@
+.dialogo-perfil .p-dialog-header {
+  border-bottom: 1px solid var(--jt-border, #e0e0e0);
+}
+
+.conteudo-dialogo-perfil {
+  padding: 1.5rem !important;
+  background: var(--jt-surface-2, #f3f8fb);
+}
+
+.perfil-container {
+  display: flex;
+  justify-content: center;
+}
+
+.perfil-formulario {
+  background: var(--jt-surface, #ffffff);
+  border-radius: 10px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+  padding: 20px 24px 18px;
+  width: min(780px, 100%);
+}
+
+.perfil-topo {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.perfil-foto-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 30px;
+}
+
+.perfil-foto {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.perfil-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.perfil-foto-inicial {
+  font-size: 20px;
+  font-weight: bold;
+  color: #666;
+}
+
+.perfil-botao-foto {
+  background: #f59e0b !important; /* laranja mais intenso no tema claro */
+  border-color: #f59e0b !important;
+  color: #123 !important;
+  font-weight: 600;
+}
+
+.perfil-foto-hint {
+  font-size: 0.8rem;
+  color: var(--jt-text-muted, #555);
+}
+
+/* tema escuro: botão de alterar foto em cinza claro */
+[data-theme="dark"] .perfil-botao-foto {
+  background: #e5e7eb !important;
+  border-color: #e5e7eb !important;
+  color: #111827 !important;
+}
+
+.perfil-dados-basicos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.perfil-campo-linha {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 24px;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+}
+
+.perfil-rotulo {
+  font-weight: 600;
+  color: var(--jt-text, #1a3a3a);
+  text-align: right;
+}
+
+.perfil-campo {
+  width: 100%;
+}
+
+/* garantir mesma altura para todos os campos de texto e senha */
+.perfil-campo,
+.perfil-campo-wrapper .p-inputtext,
+.perfil-campo-senha .p-password-input {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.perfil-input-curto {
+  max-width: 220px;
+}
+
+.perfil-campo-senha .p-password-input {
+  width: 100%;
+}
+
+.perfil-obrigatorio {
+  color: #d12f2f;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.perfil-campo-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+
+.perfil-campo-wrapper .perfil-campo,
+.perfil-campo-wrapper .p-inputtext,
+.perfil-campo-wrapper .p-password-input {
+  width: 100%;
+  padding-right: 2.2rem;
+}
+
+.perfil-campo-wrapper--bloqueado .perfil-campo {
+  color: var(--jt-text, #1a3a3a);
+}
+
+.perfil-icone-cadeado {
+  position: absolute;
+  right: 0.6rem;
+  font-size: 1.1rem;
+}
+
+.perfil-icone-senha {
+  position: absolute;
+  right: 0.6rem;
+  font-size: 1.2rem;
+}
+
+.perfil-hint-opcional {
+  font-size: 0.8rem;
+  color: var(--jt-text-muted, #555);
+}
+
+.perfil-rodape {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.perfil-botao-salvar {
+  background: #007bff !important;
+  border-color: #007bff !important;
+  padding: 0.5rem 2.5rem;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .perfil-topo {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .perfil-campo-linha {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+
+  .perfil-rotulo {
+    text-align: left;
+  }
+}
+
+/* Ajustes finos para ícones alinhados dentro dos campos */
+.perfil-campo-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+
+.perfil-campo-wrapper .perfil-campo,
+.perfil-campo-wrapper .p-inputtext,
+.perfil-campo-wrapper .p-password-input {
+  width: 100%;
+  padding-right: 2.2rem;
+}
+
+.perfil-campo-wrapper--clicavel {
+  cursor: text;
+}

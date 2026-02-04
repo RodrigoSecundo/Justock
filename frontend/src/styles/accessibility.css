@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;700&display=swap');
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local('OpenDyslexic3 Regular'),
+    local('OpenDyslexic Regular'),
+    url('/fonts/opendyslexic/OpenDyslexic3-Regular.ttf') format('truetype'),
+    url('https://cdn.jsdelivr.net/gh/antijingoist/open-dyslexic/ttf/OpenDyslexic3-Regular.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  font-style: normal;
+  font-weight: 700;
+  src:
+    local('OpenDyslexic3 Bold'),
+    local('OpenDyslexic Bold'),
+    url('/fonts/opendyslexic/OpenDyslexic3-Bold.ttf') format('truetype'),
+    url('https://cdn.jsdelivr.net/gh/antijingoist/open-dyslexic/ttf/OpenDyslexic3-Bold.ttf') format('truetype');
+  font-display: swap;
+}
+
+body.dyslexic-font,
+body.dyslexic-font * {
+  font-family: 'Atkinson Hyperlegible', 'Lexend', 'OpenDyslexic', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
+}
+
+body.dyslexic-font :where(p, li, label, span, input, textarea, select, button) {
+  letter-spacing: 0.035em;
+  word-spacing: 0.12em;
+  line-height: 1.65;
+}
+body.dyslexic-font a { text-decoration: underline; text-underline-offset: 2px; }
+body.dyslexic-font :where(p, li) { text-align: left; hyphens: manual; }
+
+body.high-contrast { color: #000; }
+body.high-contrast a { color: #004aad; text-decoration: underline; text-underline-offset: 2px; }
+
+body.high-contrast, body.high-contrast * {
+  font-weight: 700 !important;
+}
+
+body.high-contrast .painel-principal,
+body.high-contrast .barra-superior,
+body.high-contrast .barra_lateral,
+body.high-contrast .conf-cartao,
+body.high-contrast .dropdown-notificacoes,
+body.high-contrast .dropdown-perfil,
+body.high-contrast .modal-sobreposicao .modal-conteudo,
+body.high-contrast .suporte-janela {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+body.high-contrast input,
+body.high-contrast select,
+body.high-contrast textarea,
+body.high-contrast button {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+}
+body.high-contrast .barra_lateral-item.active,
+body.high-contrast .conf-btn-primario { background:#ffffff !important; color:#000 !important; border-color:#000 !important; }
+
+body.high-contrast .barra_lateral { border-right: 3px solid #000 !important; }
+body.high-contrast .barra_lateral-item img { filter: none !important; }
+body.high-contrast .barra_lateral-ico { color: #000 !important; }
+
+body.high-contrast .icone-suporte { color:#000 !important; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+body.high-contrast .icone-sino { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+body.high-contrast .icone-sino svg { color:#000 !important; }
+body.high-contrast .avatar-usuario { background:#fff !important; color:#000 !important; border:2px solid #000 !important; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+body.high-contrast .barra_lateral-item:hover,
+body.high-contrast .barra_lateral-item.active { background-color: #e6e6e6 !important; }
+body.high-contrast .barra_lateral-texto { color: #000 !important; font-weight: 700; }
+body.high-contrast .barra_lateral a:focus-visible { outline: 3px solid #000 !important; outline-offset: -3px; background-color: #e6e6e6 !important; }
+
+body.focus-visible-mode :where(a,button,input,select,textarea,[tabindex]):focus-visible {
+  outline: 3px solid #00e0ff !important;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
+.sr-only{ position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+body.sr-optimized *, body.sr-optimized *::before, body.sr-optimized *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

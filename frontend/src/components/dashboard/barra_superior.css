@@ -1,0 +1,243 @@
+.barra-superior {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  height: 60px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+  border-radius: 6px;
+}
+
+.secao-pesquisa {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 6px 12px;
+  border: 1px solid #0f3d3e;
+  min-height: 34px;
+}
+
+.icone-pesquisa { margin-right: 8px; font-size: 20px; color: #0f3d3e; }
+
+.entrada-pesquisa {
+  border: none;
+  background: none;
+  outline: none;
+  color: #333;
+  width: 600px;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.entrada-pesquisa::placeholder { color: #666; }
+
+.secao-direita {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+}
+
+.icone-suporte {
+  color: #0f3d3e;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.icone-sino {
+  position: relative;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 0;
+}
+
+.icone-sino svg {
+  width: 30px;
+  height: 30px;
+  color: #999999;
+}
+
+.icone-sino.has-unread svg {
+  color: #0f3d3e;
+  animation: ring 1.2s ease-in-out infinite;
+}
+
+.icone-sino::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: #ffffff;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  display: none;
+}
+
+.icone-sino.has-unread::after {
+  display: inline-block;
+}
+
+@keyframes ring {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(15deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(9deg); }
+  60% { transform: rotate(-6deg); }
+  75% { transform: rotate(3deg); }
+  100% { transform: rotate(0); }
+}
+
+.dropdown-notificacoes {
+  position: absolute;
+  top: 60px;
+  right: 30px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: scale(0);
+  transform-origin: top right;
+  transition: transform 0.3s ease;
+  min-width: 200px;
+  z-index: 1000;
+}
+
+.dropdown-notificacoes.show {
+  transform: scale(1);
+}
+
+.dropdown-notificacoes p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+}
+
+.avatar-usuario {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #666;
+  cursor: pointer;
+  position: relative;
+}
+
+.dropdown-perfil {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: scale(0);
+  transform-origin: top right;
+  transition: transform 0.3s ease;
+  min-width: 120px;
+  z-index: 1000;
+}
+
+.dropdown-perfil.show {
+  transform: scale(1);
+}
+
+.dropdown-perfil a,
+.dropdown-perfil-link,
+.dropdown-perfil .dropdown-perfil-link {
+  display: block;
+  padding: 10px 15px;
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.dropdown-perfil a:hover,
+.dropdown-perfil-link:hover,
+.dropdown-perfil .dropdown-perfil-link:hover {
+  background: #f5f5f5;
+}
+
+.modal-sobreposicao {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-conteudo {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  max-width: 250px;
+  width: 100%;
+}
+
+.modal-conteudo p {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.modal-botoes {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-nao {
+  background: rgb(238, 119, 8);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-nao:hover {
+  background: darkorange;
+}
+
+.btn-sim {
+  background: green;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-sim:hover {
+  background: darkgreen;
+}

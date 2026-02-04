@@ -1,0 +1,106 @@
+.barra_lateral {
+  width: 68px;
+  flex: 0 0 68px;
+  background-color: #0a2a2a;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 20px;
+  transition: width .54s cubic-bezier(0.22, 1, 0.36, 1), flex-basis .54s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+  box-sizing: border-box;
+  will-change: width, flex-basis;
+}
+
+.barra_lateral-logo-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 12px;
+  /* altura fixa para estabilizar a área da logo na transição */
+  height: 90px;
+  padding: 0;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.barra_lateral-logo-area:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.barra_lateral-logo-img {
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+  transition:
+    transform .54s cubic-bezier(0.22, 1, 0.36, 1),
+    width .54s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.barra_lateral-logo-img[src*="logo_sem.png"],
+.barra_lateral-logo-img[src*="logo_sem_contraste.png"] {
+  width: 112px;
+  transform: translateX(-1px) translateY(1px);
+}
+
+.barra_lateral-logo-img[src*="logo_sem_titulo.png"],
+.barra_lateral-logo-img[src*="logo_sem_titulo_contraste.png"] {
+  width: 60px; /* ligeiramente maior que antes para compensar ausência do texto */
+  transform: translateX(4px) translateY(3px);
+}
+
+.sidebar-detalhada .barra_lateral-logo-area,
+.sidebar-mista-expandida .barra_lateral-logo-area {
+  justify-content: center;
+  padding: 0;
+}
+
+
+.barra_lateral-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.barra_lateral-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.barra_lateral-item img {
+  width: 40px;
+  height: 40px;
+  filter: brightness(0) invert(1);
+}
+
+.barra_lateral-ico {
+  font-size: 26px;
+  color: #ffffff;
+  flex-shrink: 0;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.barra_lateral-item.active,
+.barra_lateral-item:hover {
+  background-color: #005f73;
+}
+
+body.sidebar-no-transition .barra_lateral {
+  transition: none !important;
+}

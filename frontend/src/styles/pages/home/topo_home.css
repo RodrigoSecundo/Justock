@@ -1,0 +1,132 @@
+.topo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 2rem auto 0 auto;
+  padding: 5rem 2rem;
+  background: #0f3d3e;
+  color: white;
+  border-radius: 1rem;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  scroll-margin-top: 5rem;
+}
+
+.topo-conteudo {
+  max-width: 600px;
+  width: 50%;
+  text-align: center;
+  margin-left: 0;
+}
+
+.topo-conteudo h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+}
+
+.topo-conteudo p {
+  font-size: 1.25rem;
+  color: #34d399;
+  font-weight: 600;
+  margin-bottom: 2rem;
+}
+
+.topo-conteudo button {
+  background: #2563eb;
+  color: white;
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.topo-conteudo button:hover {
+  background: #1d4ed8;
+}
+
+.topo-direita {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.topo-banner {
+  background: #2563eb;
+  width: 30rem;
+  height: 18rem;
+  border-radius: 1rem;
+  margin-top: 0;
+  position: relative;
+  margin-right: 0;
+  overflow: hidden;
+}
+
+.topo-slider-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
+.topo-slide {
+  flex: 0 0 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.topo-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 35%;
+  transform: scale(1.18);
+  border-radius: inherit;
+  transition: opacity 400ms ease;
+}
+
+.topo-carrossel {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.indicador-carrossel {
+  width: 6rem;
+  height: 1.5rem;
+  background-color: #7cc04c;
+  border-radius: 1rem;
+  opacity: 0.6;
+  transition: opacity 0.3s, box-shadow 0.3s;
+}
+
+.indicador-carrossel.ativo {
+  opacity: 1;
+  box-shadow: 0 0 10px 3px #7cc04c;
+}
+
+@media (max-width: 768px) {
+  .topo {
+    flex-direction: column;
+    padding: 3rem 1rem;
+    gap: 1.5rem;
+  }
+
+  .topo-conteudo {
+    width: 100%;
+    max-width: none;
+  }
+
+  .topo-banner {
+    width: 100%;
+    height: 14rem;
+  }
+}

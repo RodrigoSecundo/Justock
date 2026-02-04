@@ -1,0 +1,207 @@
+.pagina-assinatura {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.linha-superior-assinatura {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.card-plano-atual,
+.card-metodo-pagamento,
+.card-historico {
+  border-radius: 14px;
+  background: var(--jt-surface);
+  border: 1px solid var(--jt-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.card-plano-header {
+  display: flex;
+  justify-content: center;
+}
+
+.tag-plano-atual {
+  background: #007bff;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 999px;
+  padding-inline: 2.1rem;
+  font-size: 1rem;
+}
+
+.card-plano-body {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.plano-nome {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.9rem;
+}
+
+.plano-beneficios {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.plano-beneficios li::before {
+  content: "\2713";
+  margin-right: 0.35rem;
+}
+
+.card-plano-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-alterar-plano {
+  background: #1d4ed8;
+  border: none;
+}
+
+.btn-alterar-metodo {
+  background: #1d4ed8;
+  border: none;
+  color: #ffffff;
+}
+
+.card-metodo-pagamento {
+  display: flex;
+  flex-direction: column;
+}
+
+.metodo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.metodo-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.metodo-body {
+  display: grid;
+  grid-template-columns: 1.5fr auto;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.metodo-cartao-mock {
+  background: linear-gradient(135deg, #6a11cb, #2575fc);
+  border-radius: 18px;
+  padding: 1.8rem 2rem;
+  color: #fff;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cartao-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.6rem;
+}
+
+.cartao-chip {
+  width: 36px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.cartao-logo {
+  height: 34px;
+}
+
+.cartao-numero {
+  letter-spacing: 0.24em;
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-top: auto;
+  margin-bottom: 1.4rem;
+}
+
+.cartao-rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 1rem;
+}
+
+.cartao-label {
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
+
+.cartao-validade {
+  font-weight: 700;
+}
+
+.metodo-info-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.proxima-cobranca {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+}
+
+.btn-metodo-alternativo {
+  background: #ff7a3c;
+  border: none;
+  color: #ffffff;
+}
+
+.btn-cancelar-assinatura {
+  background: transparent;
+  border: none;
+  color: #e53935;
+  font-weight: 500;
+  padding: 0;
+  cursor: pointer;
+}
+
+.card-historico {
+  padding: 0.75rem 1rem 1.25rem 1rem;
+}
+
+.titulo-historico {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.tabela-historico .p-datatable-thead > tr > th {
+  background: var(--jt-surface-2);
+  color: var(--jt-text);
+}
+
+.tabela-historico .p-datatable-tbody > tr > td {
+  color: var(--jt-text);
+}
+
+@media (max-width: 1024px) {
+  .linha-superior-assinatura {
+    grid-template-columns: 1fr;
+  }
+}

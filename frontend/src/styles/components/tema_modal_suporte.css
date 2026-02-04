@@ -1,0 +1,166 @@
+:root{
+  --justock-green-dark: #0e3c3a;
+  --justock-green-dark-2: #0a2e2c;
+}
+
+.mascara-dialogo-suporte {
+  background: rgba(0,0,0,0.26);
+}
+
+.dialogo-suporte {
+  --p-dialog-border-radius: 12px;
+}
+
+.dialogo-suporte .p-dialog {
+  box-shadow: 0 10px 30px rgba(2,10,10,0.25);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.dialogo-suporte .p-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.75rem;
+  background: linear-gradient(90deg, var(--justock-green-dark), var(--justock-green-dark-2));
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.dialogo-suporte .p-dialog-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dialogo-suporte .p-dialog-header .p-dialog-header-icons {
+  margin-left: 1rem;
+}
+.dialogo-suporte .p-dialog-header .p-dialog-header-icon,
+.dialogo-suporte .p-dialog-header .p-dialog-header-close {
+  color: #ffffff;
+  background: transparent;
+  border: none;
+}
+.dialogo-suporte .p-dialog-header .font-bold {
+  font-weight: 700;
+  color: #ffffff;
+}
+.dialogo-suporte .p-dialog-header small {
+  color: #cfeae7;
+}
+
+.dialogo-suporte .p-dialog-content {
+  background: #ffffff;
+  color: #1f2933;
+  padding: 1rem;
+  max-height: 70vh;
+  overflow: auto;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.dialogo-suporte .p-dialog-content .p-button {
+  border-radius: 8px;
+}
+
+.dialogo-suporte .p-dialog-footer {
+  padding: 0.75rem 1rem 1rem 1rem;
+  background: transparent;
+}
+
+.divisor-top.p-divider {
+  margin: 0.75rem 0 1rem 0;
+}
+
+.cabecalho-suporte { text-align: center; }
+.cabecalho-suporte .titulo-suporte { color: var(--justock-green-dark); }
+.cabecalho-suporte .subtitulo-suporte { color: #4b5c5b; }
+
+.corpo-chat-suporte {
+  padding-top: 0.75rem;
+}
+.linha-anexar {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.botao-anexar.p-button.p-button-outlined {
+  color: #ffffff;
+}
+.botao-anexar.p-button {
+  min-width: 96px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+.textarea-suporte.p-inputtextarea {
+  flex: 1 1 auto;
+  min-height: 110px;
+  max-height: 160px;
+  overflow-y: auto;
+  border-width: 2px;
+  border-color: var(--justock-green-dark);
+}
+.textarea-suporte.p-inputtextarea:focus {
+  box-shadow: 0 0 0 2px rgba(14,60,58,0.18);
+  border-color: var(--justock-green-dark);
+}
+.acoes-chat { margin-top: 0.5rem; }
+.acoes-chat .p-button {
+  min-width: 96px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .dialogo-suporte .p-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* ——— Modo escuro do Dashboard ——— */
+/* Essas regras só entram em páginas que definem [data-theme="dark"],
+   não afetando a Home. */
+[data-theme="dark"] .dialogo-suporte .p-dialog {
+  box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+}
+[data-theme="dark"] .dialogo-suporte .p-dialog-content {
+  background: var(--jt-surface);
+  color: var(--jt-text);
+  border-top: 1px solid var(--jt-border);
+}
+[data-theme="dark"] .cabecalho-suporte .titulo-suporte { color: #cfeae7; }
+[data-theme="dark"] .cabecalho-suporte .subtitulo-suporte { color: var(--jt-text-muted); }
+[data-theme="dark"] .linha-anexar { border-bottom-color: var(--jt-border); }
+[data-theme="dark"] .textarea-suporte.p-inputtextarea {
+  background: var(--jt-surface-2);
+  color: var(--jt-text);
+  border-color: var(--jt-border);
+  border-width: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+[data-theme="dark"] .textarea-suporte.p-inputtextarea::placeholder {
+  color: var(--jt-text-muted);
+}
+[data-theme="dark"] .textarea-suporte.p-inputtextarea:focus {
+  border-color: var(--jt-accent);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.25);
+}
+[data-theme="dark"] .acoes-chat .p-button {
+  background: #334155;
+  color: var(--jt-text);
+  border: 1px solid #3b4a5e;
+}
+[data-theme="dark"] .acoes-chat .p-button:hover {
+  background: #3b4a5e;
+}
+[data-theme="dark"] .botao-anexar.p-button.p-button-outlined {
+  color: var(--jt-text);
+  border-color: var(--jt-border);
+}
+[data-theme="dark"] .botao-anexar.p-button {
+  min-width: 96px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}

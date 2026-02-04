@@ -1,0 +1,263 @@
+/* Tema para DataTables e filtros PrimeReact no Dashboard */
+/* Usa variáveis definidas em dashboard-theme.css */
+
+/* Base ajustes claro */
+.p-datatable {
+  font-size: 14px;
+}
+.p-datatable .p-datatable-header { background: #ffffff; border-bottom: 1px solid #e5eeee; }
+.p-datatable .p-datatable-thead > tr > th { background: #005bff; color: #ffffff; padding: 0.75rem; }
+.p-datatable .p-datatable-tbody > tr > td { padding: 0.65rem 0.75rem; }
+.p-datatable .p-datatable-tbody > tr:hover { background: #f8fafc; }
+
+/* Centralizar textos nas tabelas de produtos e pedidos */
+.tabela-produtos .p-datatable-thead > tr > th,
+.tabela-produtos .p-datatable-tbody > tr > td,
+.tabela-pedidos .p-datatable-thead > tr > th,
+.tabela-pedidos .p-datatable-tbody > tr > td {
+  text-align: center;
+}
+
+/* Força alinhamento central de headers sem ícone (ex.: Código de Barras) */
+.tabela-produtos .p-datatable-thead > tr > th .p-column-header-content,
+.tabela-pedidos .p-datatable-thead > tr > th .p-column-header-content {
+  justify-content: center;
+}
+
+/* Filtros (inputs / dropdown / calendar) */
+.prime-filtro .p-dropdown,
+.prime-filtro .p-inputtext,
+.prime-filtro .p-calendar .p-inputtext { border: 1px solid #d0d9db; }
+
+/* Botão de ação (editar) em tabelas de produtos */
+.btn-acao-editar {
+  background: #e5e7eb !important; /* cinza claro no tema claro */
+  border-radius: 999px !important;
+  border: 1px solid #d1d5db !important;
+  color: #1d4ed8 !important; /* azul para o ícone */
+}
+.btn-acao-editar .p-button-icon {
+  color: #1d4ed8 !important;
+}
+.btn-acao-editar:hover {
+  background: #d1d5db !important;
+}
+
+[data-theme="dark"] .btn-acao-editar {
+  background: #020617 !important; /* quase preto no dark */
+  border-color: #1f2937 !important;
+  color: #f9fafb !important; /* ícone branco */
+}
+[data-theme="dark"] .btn-acao-editar .p-button-icon {
+  color: #f9fafb !important;
+}
+[data-theme="dark"] .btn-acao-editar:hover {
+  background: #111827 !important;
+}
+
+/* (removidos estilos específicos de marcador que não são mais usados) */
+
+/* Dark theme overrides (Dashboard) */
+[data-theme="dark"] .p-datatable .p-datatable-header { background: var(--jt-surface) !important; border-bottom:1px solid var(--jt-border) !important; }
+[data-theme="dark"] .p-datatable .p-datatable-thead > tr > th { background: var(--jt-surface-2) !important; border-color: var(--jt-border) !important; color: var(--jt-text) !important; }
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr > td { background: var(--jt-surface) !important; color: var(--jt-text) !important; border-color: var(--jt-border) !important; }
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr:nth-child(even) > td { background: var(--jt-surface-2) !important; }
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr:hover > td { background: rgba(255,255,255,0.06) !important; }
+/* Evita que o hover do tema do PrimeReact pinte o <tr> de branco no tema escuro */
+[data-theme="dark"] .p-datatable.p-datatable-hoverable-rows .p-datatable-tbody > tr:not(.p-highlight):hover { background: transparent !important; }
+/* PrimeReact adiciona classe p-row-hover em alguns temas */
+[data-theme="dark"] .p-datatable.p-datatable-hoverable-rows .p-datatable-tbody > tr.p-row-hover { background: transparent !important; }
+/* Cobertura adicional caso a classe acima não esteja presente */
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr:hover { background: transparent !important; }
+
+[data-theme="dark"] .prime-filtro .p-dropdown,
+[data-theme="dark"] .prime-filtro .p-inputtext,
+[data-theme="dark"] .prime-filtro .p-calendar .p-inputtext { background: var(--jt-surface-2); color: var(--jt-text); border:1px solid var(--jt-border); }
+[data-theme="dark"] .prime-filtro .p-inputtext::placeholder { color: var(--jt-text-muted); }
+[data-theme="dark"] .prime-filtro .p-dropdown .p-dropdown-label { color: var(--jt-text); }
+/* Estados ativos/hover no dark não devem ficar brancos */
+[data-theme="dark"] .prime-filtro .p-inputtext:focus,
+[data-theme="dark"] .prime-filtro .p-inputtext:hover,
+[data-theme="dark"] .prime-filtro .p-dropdown.p-focus,
+[data-theme="dark"] .prime-filtro .p-dropdown:hover,
+[data-theme="dark"] .prime-filtro .p-calendar .p-inputtext.p-focus,
+[data-theme="dark"] .prime-filtro .p-calendar .p-inputtext:focus { background: var(--jt-surface-2) !important; color: var(--jt-text) !important; border-color: var(--jt-border) !important; box-shadow: none; }
+
+/* Hardening global (cobre qualquer filtro mesmo fora de .prime-filtro) */
+[data-theme="dark"] .p-inputtext,
+[data-theme="dark"] .p-dropdown,
+[data-theme="dark"] .p-calendar .p-inputtext,
+[data-theme="dark"] .p-inputnumber .p-inputtext { background: var(--jt-surface-2) !important; color: var(--jt-text) !important; border: 1px solid var(--jt-border) !important; }
+[data-theme="dark"] .p-inputtext:enabled:hover,
+[data-theme="dark"] .p-inputtext:enabled:focus,
+[data-theme="dark"] .p-dropdown:not(.p-disabled):hover,
+[data-theme="dark"] .p-dropdown.p-focus,
+[data-theme="dark"] .p-inputwrapper-focus > .p-inputtext,
+[data-theme="dark"] .p-calendar .p-inputtext:enabled:hover,
+[data-theme="dark"] .p-calendar .p-inputtext:enabled:focus,
+[data-theme="dark"] .p-inputnumber .p-inputtext:enabled:hover,
+[data-theme="dark"] .p-inputnumber .p-inputtext:enabled:focus { background: var(--jt-surface-2) !important; color: var(--jt-text) !important; border-color: var(--jt-border) !important; outline: none !important; box-shadow: none !important; }
+
+/* Datepicker em tema escuro */
+[data-theme="dark"] .p-datepicker { background: var(--jt-surface-2) !important; color: var(--jt-text) !important; border: 1px solid var(--jt-border) !important; }
+[data-theme="dark"] .p-datepicker .p-datepicker-header { background: var(--jt-surface-2) !important; color: var(--jt-text) !important; border-bottom: 1px solid var(--jt-border) !important; }
+[data-theme="dark"] .p-calendar .p-datepicker { box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+[data-theme="dark"] .p-datepicker table td > span { color: var(--jt-text) !important; }
+[data-theme="dark"] .p-datepicker .p-highlight { background: rgba(138, 180, 255, 0.18) !important; color: var(--jt-text) !important; }
+[data-theme="dark"] .p-datepicker .p-disabled { opacity: .45; }
+
+
+/* Compact paginator */
+.p-paginator { font-size:12px; }
+[data-theme="dark"] .p-paginator { background: var(--jt-surface); border:1px solid var(--jt-border); }
+[data-theme="dark"] .p-paginator .p-paginator-page,
+[data-theme="dark"] .p-paginator .p-paginator-prev,
+[data-theme="dark"] .p-paginator .p-paginator-next,
+[data-theme="dark"] .p-paginator .p-paginator-first,
+[data-theme="dark"] .p-paginator .p-paginator-last { background: var(--jt-surface-2) !important; color: var(--jt-text) !important; border: 1px solid var(--jt-border) !important; }
+[data-theme="dark"] .p-paginator .p-paginator-page.p-highlight { background: rgba(138,180,255,0.24) !important; color: var(--jt-text) !important; border-color: var(--jt-border) !important; }
+[data-theme="dark"] .p-paginator .p-paginator-page:not(.p-highlight):hover,
+[data-theme="dark"] .p-paginator .p-paginator-prev:hover,
+[data-theme="dark"] .p-paginator .p-paginator-next:hover,
+[data-theme="dark"] .p-paginator .p-paginator-first:hover,
+[data-theme="dark"] .p-paginator .p-paginator-last:hover { background: rgba(255,255,255,0.06) !important; }
+
+/* Paginator (tema claro) seguindo a paleta */
+.p-paginator { background: var(--jt-surface); border: 1px solid var(--jt-border); }
+.p-paginator .p-paginator-page,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-last { background: var(--jt-surface-2); color: var(--jt-text); border: 1px solid var(--jt-border); }
+.p-paginator .p-paginator-page.p-highlight { background: var(--jt-accent); color: #ffffff; border-color: var(--jt-accent); }
+.p-paginator .p-paginator-page:not(.p-highlight):hover,
+.p-paginator .p-paginator-prev:hover,
+.p-paginator .p-paginator-next:hover,
+.p-paginator .p-paginator-first:hover,
+.p-paginator .p-paginator-last:hover { background: #eef6ff; }
+
+/* Controles do header do calendário (prev/next/mês/ano) */
+.p-datepicker .p-datepicker-header .p-link { background: var(--jt-surface-2); color: var(--jt-text); border: 1px solid var(--jt-border); border-radius: 8px; padding: .35rem .75rem; }
+.p-datepicker .p-datepicker-header .p-link:hover { background: #eef6ff; }
+[data-theme="dark"] .p-datepicker .p-datepicker-header .p-link { background: var(--jt-surface-2) !important; color: #ffffff !important; border: 1px solid var(--jt-border) !important; }
+[data-theme="dark"] .p-datepicker .p-datepicker-header .p-link:hover { background: rgba(255,255,255,0.06) !important; }
+
+/* Botões de navegação (prev/next) com setas visíveis em ambos os temas */
+.p-datepicker .p-datepicker-prev,
+.p-datepicker .p-datepicker-next {
+  margin: 0 .25rem;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--jt-accent);
+  border: 1px solid var(--jt-accent);
+  color: #fff;
+  transition: background .2s ease;
+  position: relative;
+}
+
+/* Esconde o ícone interno caso exista (PrimeIcons), usaremos SVG via ::before */
+.p-datepicker .p-datepicker-prev .pi,
+.p-datepicker .p-datepicker-next .pi { display: none; }
+
+.p-datepicker .p-datepicker-prev::before,
+.p-datepicker .p-datepicker-next::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.p-datepicker .p-datepicker-prev::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23ffffff' d='M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z'/></svg>"); }
+.p-datepicker .p-datepicker-next::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23ffffff' d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z'/></svg>"); }
+
+.p-datepicker .p-datepicker-prev .p-link:hover,
+.p-datepicker .p-datepicker-next .p-link:hover { background: #1f4db8; }
+
+/* Tema escuro: fundo escuro, mas setas continuam brancas */
+[data-theme="dark"] .p-datepicker .p-datepicker-prev,
+[data-theme="dark"] .p-datepicker .p-datepicker-next {
+  background: #0f172a !important;
+  border-color: var(--jt-border) !important;
+}
+[data-theme="dark"] .p-datepicker .p-datepicker-prev:hover,
+[data-theme="dark"] .p-datepicker .p-datepicker-next:hover { background: rgba(255,255,255,0.08) !important; }
+[data-theme="dark"] .p-datepicker .p-datepicker-prev::before,
+[data-theme="dark"] .p-datepicker .p-datepicker-next::before {
+  filter: none;
+}
+
+.p-datepicker .p-datepicker-prev:hover,
+.p-datepicker .p-datepicker-next:hover {
+  background: #1f4db8 !important;
+  border-color: #1f4db8 !important;
+}
+
+[data-theme="dark"] .p-dropdown-panel { background: var(--jt-surface-2) !important; color: var(--jt-text) !important; border: 1px solid var(--jt-border) !important; }
+[data-theme="dark"] .p-dropdown-panel .p-dropdown-items { background: transparent !important; }
+[data-theme="dark"] .p-dropdown-panel .p-dropdown-item { color: var(--jt-text) !important; background: transparent !important; }
+[data-theme="dark"] .p-dropdown-panel .p-dropdown-item.p-highlight,
+[data-theme="dark"] .p-dropdown-panel .p-dropdown-item:not(.p-disabled):hover,
+[data-theme="dark"] .p-dropdown-panel .p-dropdown-item:not(.p-disabled).p-focus,
+[data-theme="dark"] .p-dropdown-panel .p-dropdown-item:not(.p-disabled):active { background: rgba(255,255,255,0.06) !important; color: var(--jt-text) !important; }
+[data-theme="dark"] .p-dropdown-panel .p-dropdown-item.p-disabled { opacity: .5; }
+[data-theme="dark"] .p-datepicker table td > span { background: transparent !important; transition: none !important; }
+[data-theme="dark"] .p-datepicker table td > span:not(.p-highlight):hover,
+[data-theme="dark"] .p-datepicker table td > span:not(.p-highlight).p-focus { background: rgba(255,255,255,0.06) !important; color: var(--jt-text) !important; }
+
+.p-dialog button[aria-label="close"],
+.p-dialog .p-dialog-header .p-button,
+.p-dialog .p-dialog-header .p-dialog-header-icon {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.p-dialog button[aria-label="close"]:focus:not(:focus-visible),
+.p-dialog .p-dialog-header .p-button:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr.p-highlight > td { background: rgba(138, 180, 255, 0.14) !important; color: var(--jt-text) !important; }
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr:focus > td { outline: none; box-shadow: inset 0 0 0 1px var(--jt-border); }
+
+.tabela-pedidos .p-datatable-tbody > tr { cursor: pointer; }
+.tabela-pedidos .p-datatable-tbody > tr.p-highlight > td { background: #eef6ff; }
+
+.prime-filtro .p-dropdown,
+.prime-filtro .p-inputtext,
+.prime-filtro .p-calendar { font-size: 0.875rem; }
+.prime-filtro .p-dropdown .p-dropdown-label, .prime-filtro .p-inputtext { padding: 0.375rem 0.5rem; }
+.prime-filtro .p-dropdown .p-dropdown-trigger .p-icon, .prime-filtro .p-calendar .p-datepicker-trigger .p-icon { width: .85rem; height: .85rem; }
+.prime-filtro .p-button { padding: 0.45rem 0.8rem; font-size: 0.875rem; }
+
+.p-datatable .p-datatable-thead > tr > th,
+.p-datatable .p-datatable-tbody > tr > td { border-right: 1px solid #e5eeee; }
+.p-datatable .p-datatable-thead > tr > th:last-child,
+.p-datatable .p-datatable-tbody > tr > td:last-child { border-right: 0; }
+
+[data-theme="dark"] .p-datatable .p-datatable-thead > tr > th,
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr > td { border-right: 1px solid var(--jt-border) !important; }
+[data-theme="dark"] .p-datatable .p-datatable-thead > tr > th:last-child,
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr > td:last-child { border-right: 0 !important; }
+
+.p-datatable .p-sortable-column .p-column-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.p-datatable .p-sortable-column .p-column-title {
+  display: inline-flex;
+  justify-content: center;
+  width: auto;
+}
+
+.p-datatable .p-sortable-column .p-sortable-column-icon {
+  margin-left: .35rem;
+}
