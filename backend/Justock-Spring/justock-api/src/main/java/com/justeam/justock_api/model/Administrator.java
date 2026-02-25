@@ -19,4 +19,7 @@ public class Administrator {
     @Column(nullable = false)
     private String senha;
 
+    @Column(nullable = false)
+    private String role = "ADMIN";
+
 }

@@ -10,6 +10,7 @@ import com.justeam.justock_api.service.AdministratorService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class AdministratorController {
 
     // GET /api/Administrator
     @GetMapping("/")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<AdministratorResponseDTO>> index() {
         List<AdministratorResponseDTO> administrators = administratorService.listAllAdministrators()
                 .stream()
@@ -35,6 +37,7 @@ public class AdministratorController {
 
     // GET /api/Administrator/visualizar/{id}
     @GetMapping("/visualizar/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<AdministratorResponseDTO> show(@PathVariable int id) {
         Administrator administrator = administratorService.findAdministrator(id);
         if (administrator == null) {
@@ -46,6 +49,7 @@ public class AdministratorController {
 
     // POST /api/Administrator/cadastrar
     @PostMapping("/cadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<AdministratorResponseDTO> store(@Valid @RequestBody AdministratorCreateRequest request) {
         Administrator administrator = administratorService.createAdministrator(request);
         AdministratorResponseDTO dto = new AdministratorResponseDTO(administrator.getIdAdministrador(), administrator.getEmailCorporativo(), administrator.getSenha());
@@ -54,6 +58,7 @@ public class AdministratorController {
 
     // PUT /api/Administrator/atualizar/{id}
     @PutMapping("/atualizar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<AdministratorResponseDTO> update(@PathVariable int id, @Valid @RequestBody AdministratorUpdateRequest request) {
         Administrator administrator = administratorService.updateAdministrator(id, request);
         if (administrator == null) {
@@ -65,6 +70,7 @@ public class AdministratorController {
 
     // DELETE /api/Administrator/deletar/{id}
     @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable int id) {
         boolean deleted = administratorService.deleteAdministrator(id);
         if (!deleted) {

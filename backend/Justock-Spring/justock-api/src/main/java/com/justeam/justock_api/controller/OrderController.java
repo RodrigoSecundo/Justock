@@ -10,6 +10,7 @@ import com.justeam.justock_api.service.OrderService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class OrderController {
 
     // GET /api/Order
     @GetMapping("/")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<OrderResponseDTO>> index() {
         List<OrderResponseDTO> orders = orderService.listAllOrders()
                 .stream()
@@ -35,6 +37,7 @@ public class OrderController {
 
     // GET /api/Order/visualizar/{id}
     @GetMapping("/visualizar/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<OrderResponseDTO> show(@PathVariable int id) {
         Order order = orderService.findOrder(id);
         if (order == null) {
@@ -46,6 +49,7 @@ public class OrderController {
 
     // POST /api/Order/cadastrar
     @PostMapping("/cadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<OrderResponseDTO> store(@Valid @RequestBody OrderCreateRequest request) {
         Order order = orderService.createOrder(request);
         OrderResponseDTO dto = new OrderResponseDTO(order.getIdPedido(), order.getIdPedidoMarketplace(), order.getUsuarioMarketplaceId(), order.getDataEntrega(), order.getDataEmissao(), order.getStatusPagamento(), order.getStatusPedido());
@@ -54,6 +58,7 @@ public class OrderController {
 
     // PUT /api/Order/atualizar/{id}
     @PutMapping("/atualizar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<OrderResponseDTO> update(@PathVariable int id, @Valid @RequestBody OrderUpdateRequest request) {
         Order order = orderService.updateOrder(id, request);
         if (order == null) {
@@ -65,6 +70,7 @@ public class OrderController {
 
     // DELETE /api/Order/deletar/{id}
     @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable int id) {
         boolean deleted = orderService.deleteOrder(id);
         if (!deleted) {

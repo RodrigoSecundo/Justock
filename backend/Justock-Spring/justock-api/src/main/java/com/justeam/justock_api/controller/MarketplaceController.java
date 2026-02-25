@@ -10,6 +10,7 @@ import com.justeam.justock_api.service.MarketplaceService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class MarketplaceController {
 
     // GET /api/Marketplace
     @GetMapping("/")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<MarketplaceResponseDTO>> index() {
         List<MarketplaceResponseDTO> marketplaces = marketplaceService.listAllMarketplaces()
                 .stream()
@@ -35,6 +37,7 @@ public class MarketplaceController {
 
     // GET /api/Marketplace/visualizar/{id}
     @GetMapping("/visualizar/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<MarketplaceResponseDTO> show(@PathVariable int id) {
         Marketplace marketplace = marketplaceService.findMarketplace(id);
         if (marketplace == null) {
@@ -46,6 +49,7 @@ public class MarketplaceController {
 
     // POST /api/Marketplace/cadastrar
     @PostMapping("/cadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<MarketplaceResponseDTO> store(@Valid @RequestBody MarketplaceCreateRequest request) {
         Marketplace marketplace = marketplaceService.createMarketplace(request);
         MarketplaceResponseDTO dto = new MarketplaceResponseDTO(marketplace.getMarketplaceId(), marketplace.getNomeMarketplace(), marketplace.getApiUrl(), marketplace.getCreatedAt(), marketplace.getUpdatedAt());
@@ -54,6 +58,7 @@ public class MarketplaceController {
 
     // PUT /api/Marketplace/atualizar/{id}
     @PutMapping("/atualizar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<MarketplaceResponseDTO> update(@PathVariable int id, @Valid @RequestBody MarketplaceUpdateRequest request) {
         Marketplace marketplace = marketplaceService.updateMarketplace(id, request);
         if (marketplace == null) {
@@ -65,6 +70,7 @@ public class MarketplaceController {
 
     // DELETE /api/Marketplace/deletar/{id}
     @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable int id) {
         boolean deleted = marketplaceService.deleteMarketplace(id);
         if (!deleted) {

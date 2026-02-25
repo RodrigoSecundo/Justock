@@ -10,6 +10,7 @@ import com.justeam.justock_api.service.UserMarketplaceService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class UserMarketplaceController {
 
     // GET /api/UserMarketplace
     @GetMapping("/")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<UserMarketplaceResponseDTO>> index() {
         List<UserMarketplaceResponseDTO> userMarketplaces = userMarketplaceService.listAllUserMarketplaces()
                 .stream()
@@ -35,6 +37,7 @@ public class UserMarketplaceController {
 
     // GET /api/UserMarketplace/visualizar/{id}
     @GetMapping("/visualizar/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<UserMarketplaceResponseDTO> show(@PathVariable int id) {
         UserMarketplace userMarketplace = userMarketplaceService.findUserMarketplace(id);
         if (userMarketplace == null) {
@@ -46,6 +49,7 @@ public class UserMarketplaceController {
 
     // POST /api/UserMarketplace/cadastrar
     @PostMapping("/cadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<UserMarketplaceResponseDTO> store(@Valid @RequestBody UserMarketplaceCreateRequest request) {
         UserMarketplace userMarketplace = userMarketplaceService.createUserMarketplace(request);
         UserMarketplaceResponseDTO dto = new UserMarketplaceResponseDTO(userMarketplace.getUsuarioMarketplaceId(), userMarketplace.getUsuario(), userMarketplace.getMarketplaceId(), userMarketplace.getIdLoja(), userMarketplace.getNomeLoja(), userMarketplace.getClienteId(), userMarketplace.getClienteSecret(), userMarketplace.getAccessToken(), userMarketplace.getRefreshToken(), userMarketplace.getTokenExpiration(), userMarketplace.getStatusIntegracao());
@@ -54,6 +58,7 @@ public class UserMarketplaceController {
 
     // PUT /api/UserMarketplace/atualizar/{id}
     @PutMapping("/atualizar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<UserMarketplaceResponseDTO> update(@PathVariable int id, @Valid @RequestBody UserMarketplaceUpdateRequest request) {
         UserMarketplace userMarketplace = userMarketplaceService.updateUserMarketplace(id, request);
         if (userMarketplace == null) {
@@ -65,6 +70,7 @@ public class UserMarketplaceController {
 
     // DELETE /api/UserMarketplace/deletar/{id}
     @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable int id) {
         boolean deleted = userMarketplaceService.deleteUserMarketplace(id);
         if (!deleted) {

@@ -10,6 +10,7 @@ import com.justeam.justock_api.service.WebhookEventService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class WebhookEventController {
 
     // GET /api/WebhookEvent
     @GetMapping("/")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<WebhookEventResponseDTO>> index() {
         List<WebhookEventResponseDTO> webhookEvents = webhookEventService.listAllWebhookEvents()
                 .stream()
@@ -35,6 +37,7 @@ public class WebhookEventController {
 
     // GET /api/WebhookEvent/visualizar/{id}
     @GetMapping("/visualizar/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<WebhookEventResponseDTO> show(@PathVariable int id) {
         WebhookEvent webhookEvent = webhookEventService.findWebhookEvent(id);
         if (webhookEvent == null) {
@@ -46,6 +49,7 @@ public class WebhookEventController {
 
     // POST /api/WebhookEvent/cadastrar
     @PostMapping("/cadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<WebhookEventResponseDTO> store(@Valid @RequestBody WebhookEventCreateRequest request) {
         WebhookEvent webhookEvent = webhookEventService.createWebhookEvent(request);
         WebhookEventResponseDTO dto = new WebhookEventResponseDTO(webhookEvent.getId(), webhookEvent.getUsuarioMarketplaceId(), webhookEvent.getMarketplaceId(), webhookEvent.getTipoEvento(), webhookEvent.getPayload(), webhookEvent.getReceivedAt(), webhookEvent.getProcessed(), webhookEvent.getProcessedAt(), webhookEvent.getError());
@@ -54,6 +58,7 @@ public class WebhookEventController {
 
     // PUT /api/WebhookEvent/atualizar/{id}
     @PutMapping("/atualizar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<WebhookEventResponseDTO> update(@PathVariable int id, @Valid @RequestBody WebhookEventUpdateRequest request) {
         WebhookEvent webhookEvent = webhookEventService.updateWebhookEvent(id, request);
         if (webhookEvent == null) {
@@ -65,6 +70,7 @@ public class WebhookEventController {
 
     // DELETE /api/WebhookEvent/deletar/{id}
     @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable int id) {
         boolean deleted = webhookEventService.deleteWebhookEvent(id);
         if (!deleted) {

@@ -10,6 +10,7 @@ import com.justeam.justock_api.service.StockOrderService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class StockOrderController {
 
     // GET /api/StockOrder
     @GetMapping("/")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<StockOrderResponseDTO>> index() {
         List<StockOrderResponseDTO> stockOrders = stockOrderService.listAllStockOrders()
                 .stream()
@@ -35,6 +37,7 @@ public class StockOrderController {
 
     // GET /api/StockOrder/visualizar/{id}
     @GetMapping("/visualizar/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<StockOrderResponseDTO> show(@PathVariable int id) {
         StockOrder stockOrder = stockOrderService.findStockOrder(id);
         if (stockOrder == null) {
@@ -46,6 +49,7 @@ public class StockOrderController {
 
     // POST /api/StockOrder/cadastrar
     @PostMapping("/cadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<StockOrderResponseDTO> store(@Valid @RequestBody StockOrderCreateRequest request) {
         StockOrder stockOrder = stockOrderService.createStockOrder(request);
         StockOrderResponseDTO dto = new StockOrderResponseDTO(stockOrder.getIdProduto(), stockOrder.getIdPedido(), stockOrder.getQuantidade(), stockOrder.getPrecoUnitario(), stockOrder.getSubtotal(), stockOrder.getIdItemMarketplace(), stockOrder.getItemStatus());
@@ -54,6 +58,7 @@ public class StockOrderController {
 
     // PUT /api/StockOrder/atualizar/{id}
     @PutMapping("/atualizar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<StockOrderResponseDTO> update(@PathVariable int id, @Valid @RequestBody StockOrderUpdateRequest request) {
         StockOrder stockOrder = stockOrderService.updateStockOrder(id, request);
         if (stockOrder == null) {
@@ -65,6 +70,7 @@ public class StockOrderController {
 
     // DELETE /api/StockOrder/deletar/{id}
     @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable int id) {
         boolean deleted = stockOrderService.deleteStockOrder(id);
         if (!deleted) {

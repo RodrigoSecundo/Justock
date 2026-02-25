@@ -10,6 +10,7 @@ import com.justeam.justock_api.service.ProductService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class ProductController {
 
     // GET /api/products
     @GetMapping("/")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<ProductResponseDTO>> index() {
         List<ProductResponseDTO> products = productService.listAllProducts()
                 .stream()
@@ -35,6 +37,7 @@ public class ProductController {
 
     // GET /api/products/visualizar/{id}
     @GetMapping("/visualizar/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<ProductResponseDTO> show(@PathVariable Integer id) {
         Product product = productService.findProduct(id);
         if (product == null) {
@@ -46,6 +49,7 @@ public class ProductController {
 
     // POST /api/products/cadastrar
     @PostMapping("/cadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<ProductResponseDTO> store(@Valid @RequestBody ProductCreateRequest request) {
         Product product = productService.createProduct(request);
         ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario());
@@ -54,6 +58,7 @@ public class ProductController {
 
     // PUT /api/products/atualizar/{id}
     @PutMapping("/atualizar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<ProductResponseDTO> update(@PathVariable Integer id, @Valid @RequestBody ProductUpdateRequest request) {
         Product product = productService.updateProduct(id, request);
         if (product == null) {
@@ -65,6 +70,7 @@ public class ProductController {
 
     // DELETE /api/products/deletar/{id}
     @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable Integer id) {
         boolean deleted = productService.deleteProduct(id);
         if (!deleted) {

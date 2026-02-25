@@ -10,6 +10,7 @@ import com.justeam.justock_api.service.UserService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class UserController {
 
     // GET /api/User
     @GetMapping("/")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<UserResponseDTO>> index() {
         List<UserResponseDTO> users = userService.listAllusers()
                 .stream()
@@ -35,6 +37,7 @@ public class UserController {
 
     // GET /api/User/visualizar/{id}
     @GetMapping("/visualizar/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<UserResponseDTO> show(@PathVariable int id) {
         User user = userService.finduser(id);
         if (user == null) {
@@ -46,6 +49,7 @@ public class UserController {
 
     // POST /api/User/cadastrar
     @PostMapping("/cadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<UserResponseDTO> store(@Valid @RequestBody UserCreateRequest request) {
         User user = userService.createuser(request);
         UserResponseDTO dto = new UserResponseDTO(user.getIdUsuario(), user.getNomeUsuario(), user.getEmailCorporativo(), user.getNumero(), user.getSenha());
@@ -54,6 +58,7 @@ public class UserController {
 
     // PUT /api/User/atualizar/{id}
     @PutMapping("/atualizar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<UserResponseDTO> update(@PathVariable int id, @Valid @RequestBody UserUpdateRequest request) {
         User user = userService.updateuser(id, request);
         if (user == null) {
@@ -65,6 +70,7 @@ public class UserController {
 
     // DELETE /api/User/deletar/{id}
     @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable int id) {
         boolean deleted = userService.deleteuser(id);
         if (!deleted) {

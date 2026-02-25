@@ -1,10 +1,12 @@
 package com.justeam.justock_api.request;
 
+import com.justeam.justock_api.validation.passwordMatches;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
 
+@passwordMatches
 public class UserCreateRequest {
 
     @NotBlank(message = "O campo nome é obrigatório.")
