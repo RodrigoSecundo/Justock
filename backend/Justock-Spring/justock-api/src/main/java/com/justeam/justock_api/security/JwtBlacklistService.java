@@ -9,7 +9,7 @@ public class JwtBlacklistService {
 
     private final ConcurrentHashMap<String, Long> blacklist = new ConcurrentHashMap<>();
 
-    private static final long TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+    private static final long TTL_MS = 24 * 60 * 60 * 1000; // 24H
 
     public void addToBlacklist(String token, long expirationTime) {
         long expiryTime = expirationTime > System.currentTimeMillis() 
