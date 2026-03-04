@@ -59,6 +59,59 @@ function formatISOToBR(isoDate) {
   return `${day}/${month}/${year}`;
 }
 
+function formatDateToISO(dateValue) {
+  if (!dateValue) return null;
+
+  if (typeof dateValue === "string") {
+    const brDateMatch = dateValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (brDateMatch) {
+      const [, day, month, year] = brDateMatch;
+      return `${year}-${month}-${day}`;
+    }
+
+    const isoDateMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoDateMatch) {
+      return `${isoDateMatch[1]}-${isoDateMatch[2]}-${isoDateMatch[3]}`;
+    }
+  }
+
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function mapOrderMarketplace(idPedidoMarketplace) {
+  if (idPedidoMarketplace == null || idPedidoMarketplace === "") return "-";
+
+  const code = Number(idPedidoMarketplace);
+  if (Number.isNaN(code)) return String(idPedidoMarketplace);
+
+  if (code === 1) return "Mercado Livre";
+  if (code === 2) return "Amazon";
+  if (code === 3) return "Shopee";
+  if (code === 4) return "Manual";
+  return `Marketplace #${code}`;
+}
+
+function mapMarketplaceToCode(marketplaceValue) {
+  if (marketplaceValue == null || marketplaceValue === "") return null;
+
+  if (typeof marketplaceValue === "number" && !Number.isNaN(marketplaceValue)) {
+    return marketplaceValue;
+  }
+
+  const normalized = String(marketplaceValue).trim().toLowerCase();
+  if (normalized === "1" || normalized === "mercado livre") return 1;
+  if (normalized === "2" || normalized === "amazon") return 2;
+  if (normalized === "3" || normalized === "shopee") return 3;
+  if (normalized === "4" || normalized === "manual") return 4;
+  return null;
+}
+
 function mapBackendProduct(product) {
   const id = product?.idProduto ?? product?.id ?? 0;
   const categoria = product?.categoria ?? product?.category ?? "-";
@@ -82,9 +135,10 @@ function mapBackendProduct(product) {
 function mapBackendOrder(order) {
   return {
     id: order?.idPedido ?? 0,
+    idPedidoMarketplace: Number(order?.idPedidoMarketplace ?? 0) || null,
     dataEmissao: formatISOToBR(order?.dataEmissao),
     dataEntrega: formatISOToBR(order?.dataEntrega),
-    marketplace: order?.usuarioMarketplaceId != null ? `Marketplace #${order.usuarioMarketplaceId}` : "-",
+    marketplace: mapOrderMarketplace(order?.idPedidoMarketplace),
     pagamento: order?.statusPagamento ?? "-",
     status: order?.statusPedido ?? "-",
   };
@@ -135,6 +189,52 @@ export async function getPedidos() {
   const data = await fetchBackend(`/api/Order/`);
   const orders = Array.isArray(data) ? data.map(mapBackendOrder) : [];
   return { orders };
+}
+
+export async function createPedido(orderInput) {
+  const marketplaceCode = mapMarketplaceToCode(orderInput?.idPedidoMarketplace ?? orderInput?.marketplace ?? 4);
+  if (marketplaceCode == null) {
+    throw new Error("Marketplace inválido para criação do pedido.");
+  }
+
+  const payload = {
+    idPedidoMarketplace: marketplaceCode,
+    usuarioMarketplaceId: orderInput?.usuarioMarketplaceId ?? null,
+    dataEmissao: formatDateToISO(orderInput?.dataEmissao),
+    dataEntrega: formatDateToISO(orderInput?.dataEntrega),
+    statusPagamento: orderInput?.pagamento ?? "-",
+    statusPedido: orderInput?.status ?? "Pendente",
+  };
+
+  const created = await fetchBackend(`/api/Order/cadastrar`, {
+    method: "POST",
+    body: payload,
+  });
+
+  return mapBackendOrder(created);
+}
+
+export async function updatePedido(orderId, orderInput) {
+  const marketplaceCode = mapMarketplaceToCode(orderInput?.idPedidoMarketplace ?? orderInput?.marketplace);
+  if (marketplaceCode == null) {
+    throw new Error("Marketplace inválido para atualização do pedido.");
+  }
+
+  const payload = {
+    idPedidoMarketplace: marketplaceCode,
+    usuarioMarketplaceId: orderInput?.usuarioMarketplaceId ?? null,
+    dataEmissao: formatDateToISO(orderInput?.dataEmissao),
+    dataEntrega: formatDateToISO(orderInput?.dataEntrega),
+    statusPagamento: orderInput?.pagamento ?? "-",
+    statusPedido: orderInput?.status ?? "Pendente",
+  };
+
+  const updated = await fetchBackend(`/api/Order/atualizar/${orderId}`, {
+    method: "PUT",
+    body: payload,
+  });
+
+  return mapBackendOrder(updated);
 }
 
 export async function getRelatoriosPorAno(ano) {

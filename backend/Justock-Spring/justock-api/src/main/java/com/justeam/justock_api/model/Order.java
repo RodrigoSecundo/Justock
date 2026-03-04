@@ -15,9 +15,9 @@ public class Order {
     private int idPedido;
 
     @Column(name = "id_pedido_marketplace", nullable = true)
-    private String idPedidoMarketplace;
+    private Integer idPedidoMarketplace;
 
-    @Column(name = "usuario_marketplace_id", nullable = true)
+    @Column(name = "marketplace_id", nullable = true)
     private Integer usuarioMarketplaceId;
 
     @Column(name = "data_entrega", nullable = true)

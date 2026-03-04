@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getPedidos } from "../../utils/api";
+import { createPedido, getPedidos, updatePedido } from "../../utils/api";
 import { Calendar } from "primereact/calendar";
 import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/pedidos.css";
@@ -18,12 +18,14 @@ const Pedidos = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [newOrder, setNewOrder] = useState({ dataEmissao: null, dataEntrega: null, marketplace: "", pagamento: "Dinheiro", status: "Pendente" });
+  const [newOrder, setNewOrder] = useState({ dataEmissao: null, dataEntrega: null, marketplace: "Manual", pagamento: "Dinheiro", status: "Pendente" });
   const [observation, setObservation] = useState("");
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
   const srOpt = useSrOptimized();
   const [filters, setFilters] = useState({
     search: "",
@@ -50,15 +52,21 @@ const Pedidos = () => {
     setFilteredOrders(data);
   }, [orders, sortField, sortOrder]);
 
+  const loadOrders = async () => {
+    try {
+      const data = await getPedidos();
+      if (data && Array.isArray(data.orders)) {
+        setOrders(data.orders);
+        return;
+      }
+      setOrders([]);
+    } catch {
+      setOrders([]);
+    }
+  };
+
   useEffect(() => {
-    getPedidos()
-      .then((data) => {
-        if (data && Array.isArray(data.orders)) setOrders(data.orders);
-        else setOrders([]);
-      })
-      .catch(() => {
-        setOrders([]);
-      });
+    loadOrders();
   }, []);
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -126,15 +134,33 @@ const Pedidos = () => {
     setObservation("");
   };
 
-  const saveObservation = () => {
+  const saveOrder = async () => {
     if (!selectedOrder) return;
-    const updated = orders.map(o =>
-      o.id === selectedOrder.id ? { ...o, observacao: observation } : o
-    );
-    setOrders(updated);
-    setTimeout(() => applyFilters(), 0);
-    notifySuccess(`Observação salva para o pedido #${selectedOrder.id}.`);
-    closeModal();
+
+    if (!selectedOrder.dataEmissao) {
+      notifyError('Data de emissão é obrigatória.');
+      return;
+    }
+
+    try {
+      setIsUpdatingOrder(true);
+      const updatedOrder = await updatePedido(selectedOrder.id, {
+        idPedidoMarketplace: selectedOrder.idPedidoMarketplace ?? selectedOrder.marketplace,
+        marketplace: selectedOrder.marketplace,
+        dataEmissao: parseBRDate(selectedOrder.dataEmissao),
+        dataEntrega: selectedOrder.dataEntrega ? parseBRDate(selectedOrder.dataEntrega) : null,
+        pagamento: selectedOrder.pagamento,
+        status: selectedOrder.status,
+      });
+
+      await loadOrders();
+      notifySuccess(`Pedido #${updatedOrder.id} atualizado.`);
+      closeModal();
+    } catch (error) {
+      notifyError(error?.message || "Não foi possível atualizar o pedido.");
+    } finally {
+      setIsUpdatingOrder(false);
+    }
   };
 
   // Utilidades
@@ -153,28 +179,34 @@ const Pedidos = () => {
     return max + 1;
   };
   const openAdd = () => {
-    setNewOrder({ dataEmissao: null, dataEntrega: null, marketplace: "", pagamento: "Dinheiro", status: "Pendente" });
+    setNewOrder({ dataEmissao: null, dataEntrega: null, marketplace: "Manual", pagamento: "Dinheiro", status: "Pendente" });
     setAddOpen(true);
   };
   const cancelAdd = () => setAddOpen(false);
-  const confirmAdd = () => {
+  const confirmAdd = async () => {
     if (!newOrder.dataEmissao) {
       notifyError('Data de emissão é obrigatória.');
       return;
     }
-    const order = {
-      id: nextOrderId(),
-      dataEmissao: toBR(newOrder.dataEmissao),
-      dataEntrega: newOrder.dataEntrega ? toBR(newOrder.dataEntrega) : "",
-      marketplace: newOrder.marketplace || "-",
-      pagamento: newOrder.pagamento,
-      status: newOrder.status,
-    };
-    const updated = [order, ...orders];
-    setOrders(updated);
-    setTimeout(() => applyFilters(), 0);
-  setAddOpen(false);
-  notifySuccess(`Pedido #${order.id} adicionado.`);
+
+    try {
+      setIsSavingOrder(true);
+      const createdOrder = await createPedido({
+        idPedidoMarketplace: 4,
+        dataEmissao: newOrder.dataEmissao,
+        dataEntrega: newOrder.dataEntrega,
+        pagamento: newOrder.pagamento,
+        status: newOrder.status,
+      });
+
+      await loadOrders();
+      setAddOpen(false);
+      notifySuccess(`Pedido #${createdOrder.id} adicionado.`);
+    } catch (error) {
+      notifyError(error?.message || "Não foi possível cadastrar o pedido.");
+    } finally {
+      setIsSavingOrder(false);
+    }
   };
 
   const handleFilterChange = (key, value) => {
@@ -247,7 +279,7 @@ const Pedidos = () => {
                 value={filters.marketplace}
                 inputId="filtro-loja"
                 onChange={(e) => handleFilterChange("marketplace", e.value)}
-                options={[ 'Todos', 'Mercado Livre', 'Amazon', 'Shopee' ]}
+                options={[ 'Todos', 'Mercado Livre', 'Amazon', 'Shopee', 'Manual' ]}
                 placeholder="Selecione"
                 appendTo="self"
               />
@@ -359,10 +391,12 @@ const Pedidos = () => {
             </div>
             <div className="flex flex-column gap-2">
               <label>Marketplace</label>
-              <InputText
+              <Dropdown
                 value={selectedOrder.marketplace}
-                onChange={(e) => setSelectedOrder(o => ({ ...o, marketplace: e.target.value }))}
-                placeholder="Ex.: Mercado Livre"
+                onChange={(e) => setSelectedOrder(o => ({ ...o, marketplace: e.value }))}
+                options={[ 'Mercado Livre', 'Amazon', 'Shopee', 'Manual' ]}
+                placeholder="Selecione"
+                appendTo="self"
               />
             </div>
             <div className="flex flex-column gap-2">
@@ -395,7 +429,7 @@ const Pedidos = () => {
             </div>
             <div className="flex justify-content-end gap-2 mt-2">
               <Button label="Cancelar" severity="secondary" onClick={closeModal} />
-              <Button label="Salvar" icon="pi pi-check" onClick={saveObservation} />
+              <Button label="Salvar" icon="pi pi-check" onClick={saveOrder} loading={isUpdatingOrder} disabled={isUpdatingOrder} />
             </div>
           </div>
         </DialogoReutilizavel>
@@ -442,7 +476,7 @@ const Pedidos = () => {
             </div>
             <div className="flex flex-column gap-2">
               <label>Marketplace</label>
-              <InputText value={newOrder.marketplace} onChange={(e) => setNewOrder(v => ({ ...v, marketplace: e.target.value }))} placeholder="Ex.: Mercado Livre" />
+              <InputText value={newOrder.marketplace} readOnly />
             </div>
             <div className="flex flex-column gap-2">
               <label>Pagamento</label>
@@ -456,7 +490,7 @@ const Pedidos = () => {
             </div>
             <div className="flex justify-content-end gap-2 mt-2">
               <Button label="Cancelar" severity="secondary" onClick={cancelAdd} />
-              <Button label="Adicionar Pedido" icon="pi pi-check" onClick={confirmAdd} />
+              <Button label="Adicionar Pedido" icon="pi pi-check" onClick={confirmAdd} loading={isSavingOrder} disabled={isSavingOrder} />
             </div>
           </div>
   </DialogoReutilizavel>

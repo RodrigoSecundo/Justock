@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 public class OrderCreateRequest {
 
-    private String idPedidoMarketplace;
+    private Integer idPedidoMarketplace;
     private Integer usuarioMarketplaceId;
     private LocalDate dataEntrega;
     private LocalDate dataEmissao;
@@ -12,8 +12,8 @@ public class OrderCreateRequest {
     private String statusPedido;
 
     // Getters e Setters
-    public String getIdPedidoMarketplace() { return idPedidoMarketplace; }
-    public void setIdPedidoMarketplace(String idPedidoMarketplace) { this.idPedidoMarketplace = idPedidoMarketplace; }
+    public Integer getIdPedidoMarketplace() { return idPedidoMarketplace; }
+    public void setIdPedidoMarketplace(Integer idPedidoMarketplace) { this.idPedidoMarketplace = idPedidoMarketplace; }
 
     public Integer getUsuarioMarketplaceId() { return usuarioMarketplaceId; }
     public void setUsuarioMarketplaceId(Integer usuarioMarketplaceId) { this.usuarioMarketplaceId = usuarioMarketplaceId; }
