@@ -34,22 +34,31 @@ const Pedidos = () => {
     status: "Todos",
   });
 
-  useEffect(() => {
-    let data = [...orders];
-    if (sortField && sortOrder) {
-      data.sort((a, b) => {
-        const av = a[sortField];
-        const bv = b[sortField];
-        if (av == null && bv == null) return 0;
-        if (av == null) return -1 * sortOrder;
-        if (bv == null) return 1 * sortOrder;
-        if (typeof av === 'number' && typeof bv === 'number') {
-          return (av - bv) * sortOrder;
-        }
-        return String(av).localeCompare(String(bv)) * sortOrder;
-      });
+  const sortOrders = (list) => {
+    const data = [...list];
+
+    if (!sortField || !sortOrder) {
+      data.sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
+      return data;
     }
-    setFilteredOrders(data);
+
+    data.sort((a, b) => {
+      const av = a[sortField];
+      const bv = b[sortField];
+      if (av == null && bv == null) return 0;
+      if (av == null) return -1 * sortOrder;
+      if (bv == null) return 1 * sortOrder;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return (av - bv) * sortOrder;
+      }
+      return String(av).localeCompare(String(bv)) * sortOrder;
+    });
+
+    return data;
+  };
+
+  useEffect(() => {
+    setFilteredOrders(sortOrders(orders));
   }, [orders, sortField, sortOrder]);
 
   const loadOrders = async () => {
@@ -112,13 +121,13 @@ const Pedidos = () => {
       filtered = filtered.filter((order) => order.status === filters.status);
     }
 
-    setFilteredOrders(filtered);
+    setFilteredOrders(sortOrders(filtered));
     setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters({ search: "", period: null, marketplace: "Todos", status: "Todos" });
-    setFilteredOrders(orders);
+    setFilteredOrders(sortOrders(orders));
     setCurrentPage(1);
   };
 

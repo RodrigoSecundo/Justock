@@ -259,22 +259,31 @@ const Produtos = () => {
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
 
-  useEffect(() => {
-    let data = [...products];
-    if (sortField && sortOrder) {
-      data.sort((a, b) => {
-        const av = a[sortField];
-        const bv = b[sortField];
-        if (av == null && bv == null) return 0;
-        if (av == null) return -1 * sortOrder;
-        if (bv == null) return 1 * sortOrder;
-        if (typeof av === 'number' && typeof bv === 'number') {
-          return (av - bv) * sortOrder;
-        }
-        return String(av).localeCompare(String(bv)) * sortOrder;
-      });
+  const sortProducts = (list) => {
+    const data = [...list];
+
+    if (!sortField || !sortOrder) {
+      data.sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
+      return data;
     }
-    setFilteredProducts(data);
+
+    data.sort((a, b) => {
+      const av = a[sortField];
+      const bv = b[sortField];
+      if (av == null && bv == null) return 0;
+      if (av == null) return -1 * sortOrder;
+      if (bv == null) return 1 * sortOrder;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return (av - bv) * sortOrder;
+      }
+      return String(av).localeCompare(String(bv)) * sortOrder;
+    });
+
+    return data;
+  };
+
+  useEffect(() => {
+    setFilteredProducts(sortProducts(products));
   }, [products, sortField, sortOrder]);
 
   const loadProducts = async () => {
@@ -380,7 +389,7 @@ const Produtos = () => {
       });
     }
 
-    setFilteredProducts(filtered);
+    setFilteredProducts(sortProducts(filtered));
   };
 
   const clearFilters = () => {
@@ -388,7 +397,7 @@ const Produtos = () => {
       categoria: "Todos os Categorias",
       preco: "Todos os preços"
     });
-    setFilteredProducts(products);
+    setFilteredProducts(sortProducts(products));
   };
 
   const handleSort = (e) => {
@@ -491,7 +500,7 @@ const Produtos = () => {
                     />
                     <Button
                       icon="pi pi-trash"
-                      className="p-button-sm p-button-rounded p-button-text p-button-danger"
+                      className="p-button-sm p-button-rounded p-button-text btn-acao-editar"
                       onClick={() => handleDeleteProduct(product)}
                       tooltip="Excluir"
                       tooltipOptions={{ position: 'top' }}
