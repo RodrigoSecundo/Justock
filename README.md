@@ -24,6 +24,9 @@ Atualmente o frontend usa uma estratégia híbrida:
 - **Rotas ainda mockadas via `json-server` (`frontend/db.json`):**
   - dashboard, conexões, relatórios, assinatura, usuários e demais objetos ainda não migrados
 
+Observação importante sobre o Dashboard:
+- O card **Total de Produtos** já usa dados reais do backend, somando a coluna `quantidade` da tabela `estoque` (via `GET /api/products/`).
+- O card **Produtos em Baixa** permanece mockado no `db.json` por enquanto.
 Ou seja: **Produtos e Pedidos já usam backend real**, enquanto outras telas ainda podem depender do mock.
 
 ---

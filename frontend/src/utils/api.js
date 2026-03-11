@@ -168,13 +168,22 @@ function mapBackendOrder(order) {
 }
 
 export async function getDashboardResumo() {
-  const res = await fetch(`${MOCK_API_BASE_URL}/dashboard`);
-  const data = await handleResponse(res);
+  const [dashboardRes, productsData] = await Promise.all([
+    fetch(`${MOCK_API_BASE_URL}/dashboard`).then(handleResponse),
+    fetchBackend(`/api/products/`).catch(() => []),
+  ]);
+
+  const products = Array.isArray(productsData) ? productsData : [];
+  const totalFromDatabase = products.reduce((acc, product) => {
+    const quantity = Number(product?.quantidade ?? product?.estoque ?? 0);
+    return acc + (Number.isNaN(quantity) ? 0 : quantity);
+  }, 0);
+
   return {
-    total: data.totalProducts,
-    lowStock: data.lowStockProducts,
-    connectedMarketplaces: data.connectedMarketplaces,
-    syncStatus: data.syncStatus,
+    total: totalFromDatabase,
+    lowStock: dashboardRes.lowStockProducts,
+    connectedMarketplaces: dashboardRes.connectedMarketplaces,
+    syncStatus: dashboardRes.syncStatus,
   };
 }
 

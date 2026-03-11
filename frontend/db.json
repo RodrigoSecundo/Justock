@@ -1,7 +1,7 @@
 {
   "dashboard": {
     "totalProducts": 1350,
-    "lowStockProducts": 21,
+    "lowStockProducts": 3,
     "connectedMarketplaces": 3,
     "syncStatus": "ON",
     "inventoryOverview": {
