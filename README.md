@@ -1,4 +1,4 @@
-# JusTock — Guia Principal do Projeto
+# JusTock - Guia Principal do Projeto
 
 Este é o README principal do repositório. Ele consolida e melhora as instruções dos READMEs dedicados de:
 - `frontend/README.md`
@@ -14,6 +14,10 @@ O projeto está dividido em duas partes:
 Atualmente o frontend usa uma estratégia híbrida:
 - **Rotas que usam banco de dados real (backend Spring + Supabase/PostgreSQL):**
   - `GET /api/products/`
+  - `GET /api/products/visualizar/{id}`
+  - `POST /api/products/cadastrar`
+  - `PUT /api/products/atualizar/{id}`
+  - `DELETE /api/products/deletar/{id}`
   - `GET /api/Order/`
   - `POST /api/Order/cadastrar`
   - `PUT /api/Order/atualizar/{id}`
