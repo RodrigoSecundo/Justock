@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { getProdutos } from "../../utils/api";
+import { createProduto, deleteProduto, getProdutos, updateProduto } from "../../utils/api";
 import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/produtos.css";
 import { useSrOptimized, srProps } from "../../utils/useA11y";
+import { notifyError, notifySuccess } from "../../utils/notify";
 import DialogoReutilizavel from "../../components/common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
@@ -11,7 +12,7 @@ import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 
-const ModalAdicionarProduto = ({ isOpen, onClose, onAddProduct, nextId }) => {
+const ModalAdicionarProduto = ({ isOpen, onClose, onAddProduct, isSaving }) => {
   const [formData, setFormData] = useState({
     categoria: "Placas-mãe",
     marca: "ASUS",
@@ -43,27 +44,32 @@ const ModalAdicionarProduto = ({ isOpen, onClose, onAddProduct, nextId }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     const finalMarca = formData.marca === "Outras" ? formData.customMarca : formData.marca;
     const newProduct = {
-      id: nextId,
-      ...formData,
+      categoria: formData.categoria,
       marca: finalMarca,
-      preco: `R$ ${formData.preco.replace(/\D/g, "").replace(/(\d)(\d{2})$/, "$1,$2").replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.")}`,
-      estoque: parseInt(formData.estoque)
+      nome: formData.nome,
+      estoque: Number(formData.estoque ?? 0),
+      preco: formData.preco,
+      codigoBarras: formData.codigoBarras,
     };
-    onAddProduct(newProduct);
-    onClose();
-    setFormData({
-      categoria: "Placas-mãe",
-      marca: "ASUS",
-      nome: "",
-      estoque: 0,
-      preco: "",
-      codigoBarras: "",
-      customMarca: ""
-    });
+
+    const created = await onAddProduct(newProduct);
+    if (created) {
+      onClose();
+      setFormData({
+        categoria: "Placas-mãe",
+        marca: "ASUS",
+        nome: "",
+        estoque: 0,
+        preco: "",
+        codigoBarras: "",
+        customMarca: "",
+      });
+    }
   };
 
   return (
@@ -105,15 +111,15 @@ const ModalAdicionarProduto = ({ isOpen, onClose, onAddProduct, nextId }) => {
           <InputText name="codigoBarras" value={formData.codigoBarras} onChange={handleChange} required />
         </div>
         <div className="flex justify-content-end gap-2 mt-2">
-          <Button type="button" label="Cancelar" severity="secondary" onClick={onClose} />
-          <Button type="submit" label="Adicionar" icon="pi pi-check" />
+          <Button type="button" label="Cancelar" severity="secondary" onClick={onClose} disabled={isSaving} />
+          <Button type="submit" label="Adicionar" icon="pi pi-check" loading={isSaving} disabled={isSaving} />
         </div>
       </form>
   </DialogoReutilizavel>
   );
 };
 
-const ModalEditarProduto = ({ isOpen, onClose, product, onSave }) => {
+const ModalEditarProduto = ({ isOpen, onClose, product, onSave, isSaving }) => {
   const [formData, setFormData] = useState(() => {
     if (!product) {
       return {
@@ -131,7 +137,7 @@ const ModalEditarProduto = ({ isOpen, onClose, product, onSave }) => {
       marca: product.marca,
       nome: product.nome,
       estoque: product.estoque,
-      preco: product.preco.replace("R$ ", ""),
+      preco: String(product.preco || "").replace("R$ ", ""),
       codigoBarras: product.codigoBarras,
       customMarca: ""
     };
@@ -144,7 +150,7 @@ const ModalEditarProduto = ({ isOpen, onClose, product, onSave }) => {
         marca: product.marca,
         nome: product.nome,
         estoque: product.estoque,
-        preco: product.preco.replace("R$ ", ""),
+        preco: String(product.preco || "").replace("R$ ", ""),
         codigoBarras: product.codigoBarras,
         customMarca: ""
       });
@@ -173,7 +179,7 @@ const ModalEditarProduto = ({ isOpen, onClose, product, onSave }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!product) return;
     const finalMarca = formData.marca === "Outras" ? formData.customMarca : formData.marca;
@@ -182,12 +188,14 @@ const ModalEditarProduto = ({ isOpen, onClose, product, onSave }) => {
       categoria: formData.categoria,
       marca: finalMarca,
       nome: formData.nome,
-      estoque: parseInt(formData.estoque),
-      preco: `R$ ${formData.preco.replace(/\D/g, "").replace(/(\d)(\d{2})$/, "$1,$2").replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.")}`,
+      estoque: Number(formData.estoque ?? 0),
+      preco: formData.preco,
       codigoBarras: formData.codigoBarras
     };
-    onSave(updated);
-    onClose();
+    const saved = await onSave(updated);
+    if (saved) {
+      onClose();
+    }
   };
 
   return (
@@ -229,8 +237,8 @@ const ModalEditarProduto = ({ isOpen, onClose, product, onSave }) => {
           <InputText name="codigoBarras" value={formData.codigoBarras} onChange={handleChange} required />
         </div>
         <div className="flex justify-content-end gap-2 mt-2">
-          <Button type="button" label="Cancelar" severity="secondary" onClick={onClose} />
-          <Button type="submit" label="Salvar" icon="pi pi-check" />
+          <Button type="button" label="Cancelar" severity="secondary" onClick={onClose} disabled={isSaving} />
+          <Button type="submit" label="Salvar" icon="pi pi-check" loading={isSaving} disabled={isSaving} />
         </div>
       </form>
     </DialogoReutilizavel>
@@ -238,7 +246,6 @@ const ModalEditarProduto = ({ isOpen, onClose, product, onSave }) => {
 };
 
 const Produtos = () => {
-  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -248,6 +255,9 @@ const Produtos = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(null);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState(null);
 
   useEffect(() => {
     let data = [...products];
@@ -267,39 +277,84 @@ const Produtos = () => {
     setFilteredProducts(data);
   }, [products, sortField, sortOrder]);
 
-  useEffect(() => {
-    getProdutos()
-      .then((data) => {
-        if (data && Array.isArray(data.products)) {
-          setProducts(data.products);
-        } else {
-          setProducts([]);
-        }
-      })
-      .catch(() => {
+  const loadProducts = async () => {
+    try {
+      const data = await getProdutos();
+      if (data && Array.isArray(data.products)) {
+        setProducts(data.products);
+      } else {
         setProducts([]);
-      });
+      }
+    } catch {
+      setProducts([]);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
   }, []);
+
   const [filters, setFilters] = useState({
     categoria: "Todos os Categorias",
     preco: "Todos os preços"
   });
 
-  const nextId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
-
-  const handleAddProduct = (newProduct) => {
-    setProducts([...products, newProduct]);
+  const handleAddProduct = async (newProduct) => {
+    try {
+      setIsCreatingProduct(true);
+      const fallbackUser = Number(products?.[0]?.usuario ?? 1) || 1;
+      await createProduto({
+        ...newProduct,
+        estado: "ATIVO",
+        quantidadeReservada: 0,
+        marcador: "MANUAL",
+        usuario: fallbackUser,
+      });
+      await loadProducts();
+      notifySuccess("Produto adicionado com sucesso!");
+      return true;
+    } catch (error) {
+      notifyError(error?.message || "Não foi possível adicionar o produto.");
+      return false;
+    } finally {
+      setIsCreatingProduct(false);
+    }
   };
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const handleOpenEdit = (product) => {
     setEditProduct(product);
     setIsEditOpen(true);
   };
 
-  const handleSaveEdit = (updatedProduct) => {
-    setProducts(products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
+  const handleSaveEdit = async (updatedProduct) => {
+    try {
+      setIsUpdatingProduct(true);
+      await updateProduto(updatedProduct.id, updatedProduct);
+      await loadProducts();
+      notifySuccess("Produto atualizado com sucesso!");
+      return true;
+    } catch (error) {
+      notifyError(error?.message || "Não foi possível atualizar o produto.");
+      return false;
+    } finally {
+      setIsUpdatingProduct(false);
+    }
+  };
+
+  const handleDeleteProduct = async (product) => {
+    const confirmed = window.confirm(`Deseja realmente excluir o produto \"${product.nome}\"?`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingProductId(product.id);
+      await deleteProduto(product.id);
+      await loadProducts();
+      notifySuccess("Produto excluído com sucesso!");
+    } catch (error) {
+      notifyError(error?.message || "Não foi possível excluir o produto.");
+    } finally {
+      setDeletingProductId(null);
+    }
   };
 
   const applyFilters = () => {
@@ -326,7 +381,6 @@ const Produtos = () => {
     }
 
     setFilteredProducts(filtered);
-    setCurrentPage(1);
   };
 
   const clearFilters = () => {
@@ -335,7 +389,6 @@ const Produtos = () => {
       preco: "Todos os preços"
     });
     setFilteredProducts(products);
-    setCurrentPage(1);
   };
 
   const handleSort = (e) => {
@@ -425,16 +478,28 @@ const Produtos = () => {
               <Column field="codigoBarras" header="Código de Barras" />
               <Column
                 header=""
-                style={{ width: '3rem', textAlign: 'center' }}
+                style={{ width: '6rem', textAlign: 'center' }}
                 body={(product) => (
-                  <Button
-                    icon="pi pi-pencil"
-                    className="p-button-sm p-button-rounded p-button-text btn-acao-editar"
-                    onClick={() => handleOpenEdit(product)}
-                    tooltip="Editar"
-                    tooltipOptions={{ position: 'top' }}
-                    aria-label="Editar produto"
-                  />
+                  <div className="flex gap-1 justify-content-center">
+                    <Button
+                      icon="pi pi-pencil"
+                      className="p-button-sm p-button-rounded p-button-text btn-acao-editar"
+                      onClick={() => handleOpenEdit(product)}
+                      tooltip="Editar"
+                      tooltipOptions={{ position: 'top' }}
+                      aria-label="Editar produto"
+                    />
+                    <Button
+                      icon="pi pi-trash"
+                      className="p-button-sm p-button-rounded p-button-text p-button-danger"
+                      onClick={() => handleDeleteProduct(product)}
+                      tooltip="Excluir"
+                      tooltipOptions={{ position: 'top' }}
+                      aria-label="Excluir produto"
+                      loading={deletingProductId === product.id}
+                      disabled={deletingProductId === product.id}
+                    />
+                  </div>
                 )}
               />
             </DataTable>
@@ -447,13 +512,14 @@ const Produtos = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAddProduct={handleAddProduct}
-        nextId={nextId}
+        isSaving={isCreatingProduct}
       />
       <ModalEditarProduto
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         product={editProduct}
         onSave={handleSaveEdit}
+        isSaving={isUpdatingProduct}
       />
     </div>
   );

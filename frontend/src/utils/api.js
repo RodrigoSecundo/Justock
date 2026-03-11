@@ -52,6 +52,23 @@ function formatBRL(value) {
   });
 }
 
+function parseCurrencyToNumber(value) {
+  if (value == null || value === "") return 0;
+  if (typeof value === "number") return Number.isNaN(value) ? 0 : value;
+
+  const text = String(value).trim();
+  let normalized = text;
+
+  if (text.includes(",")) {
+    normalized = text.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  } else {
+    normalized = text.replace(/[^\d.-]/g, "");
+  }
+
+  const parsed = Number(normalized);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 function formatISOToBR(isoDate) {
   if (!isoDate) return "";
   const [year, month, day] = String(isoDate).split("-");
@@ -120,6 +137,7 @@ function mapBackendProduct(product) {
   const estoque = product?.quantidade ?? product?.estoque ?? product?.stock ?? 0;
   const preco = product?.preco ?? product?.price ?? 0;
   const codigoBarras = product?.codigoDeBarras ?? product?.codigoBarras ?? product?.barcode ?? "-";
+  const precoValor = parseCurrencyToNumber(preco);
 
   return {
     id,
@@ -127,8 +145,13 @@ function mapBackendProduct(product) {
     marca,
     nome,
     estoque,
-    preco: typeof preco === "string" && preco.includes("R$") ? preco : formatBRL(preco),
+    preco: typeof preco === "string" && preco.includes("R$") ? preco : formatBRL(precoValor),
+    precoValor,
     codigoBarras,
+    estado: product?.estado ?? "ATIVO",
+    quantidadeReservada: Number(product?.quantidadeReservada ?? 0) || 0,
+    marcador: product?.marcador ?? "MANUAL",
+    usuario: Number(product?.usuario ?? 1) || 1,
   };
 }
 
@@ -183,6 +206,58 @@ export async function getProdutos() {
   const data = await fetchBackend(`/api/products/`);
   const products = Array.isArray(data) ? data.map(mapBackendProduct) : [];
   return { products };
+}
+
+export async function createProduto(productInput) {
+  const payload = {
+    categoria: productInput?.categoria ?? "",
+    marca: productInput?.marca ?? "",
+    nomeDoProduto: productInput?.nome ?? productInput?.nomeDoProduto ?? "",
+    estado: productInput?.estado ?? "ATIVO",
+    preco: parseCurrencyToNumber(productInput?.preco ?? productInput?.precoValor ?? 0),
+    codigoDeBarras: productInput?.codigoBarras ?? productInput?.codigoDeBarras ?? "",
+    quantidade: Number(productInput?.estoque ?? productInput?.quantidade ?? 0),
+    quantidadeReservada: Number(productInput?.quantidadeReservada ?? 0),
+    marcador: productInput?.marcador ?? "MANUAL",
+    usuario: Number(productInput?.usuario ?? 1),
+  };
+
+  const created = await fetchBackend(`/api/products/cadastrar`, {
+    method: "POST",
+    body: payload,
+  });
+
+  return mapBackendProduct(created);
+}
+
+export async function updateProduto(productId, productInput) {
+  const payload = {
+    categoria: productInput?.categoria ?? "",
+    marca: productInput?.marca ?? "",
+    nomeDoProduto: productInput?.nome ?? productInput?.nomeDoProduto ?? "",
+    estado: productInput?.estado ?? "ATIVO",
+    preco: parseCurrencyToNumber(productInput?.preco ?? productInput?.precoValor ?? 0),
+    codigoDeBarras: productInput?.codigoBarras ?? productInput?.codigoDeBarras ?? "",
+    quantidade: Number(productInput?.estoque ?? productInput?.quantidade ?? 0),
+    quantidadeReservada: Number(productInput?.quantidadeReservada ?? 0),
+    marcador: productInput?.marcador ?? "MANUAL",
+    usuario: Number(productInput?.usuario ?? 1),
+  };
+
+  const updated = await fetchBackend(`/api/products/atualizar/${productId}`, {
+    method: "PUT",
+    body: payload,
+  });
+
+  return mapBackendProduct(updated);
+}
+
+export async function deleteProduto(productId) {
+  await fetchBackend(`/api/products/deletar/${productId}`, {
+    method: "DELETE",
+  });
+
+  return true;
 }
 
 export async function getPedidos() {
