@@ -29,6 +29,14 @@ Observação importante sobre o Dashboard:
 - O card **Produtos em Baixa** permanece mockado no `db.json` por enquanto.
 Ou seja: **Produtos e Pedidos já usam backend real**, enquanto outras telas ainda podem depender do mock.
 
+### Nota de atualização - Pedidos
+- O fluxo de **Pedidos** recebeu validações no frontend e no backend para evitar dados inconsistentes.
+- **Data de emissão**: obrigatória, só pode ser hoje ou uma data passada.
+- **Data de entrega**: opcional, mas quando informada deve ficar entre a data de emissão e a data atual; não pode ser anterior à emissão nem futura.
+- **Status do pedido** aceito para inserções manuais: `EM ANDAMENTO`, `CANCELADO` e `CONCLUÍDO`.
+- **Status de pagamento** aceito para inserções manuais: `PROCESSADO`, `EM PROCESSAMENTO`, `CANCELADO` e `NEGADO`.
+- Pedidos antigos fora desses padrões foram normalizados no banco por migrations do Flyway.
+
 ---
 
 ## Pré-requisitos
