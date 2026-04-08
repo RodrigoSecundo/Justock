@@ -106,13 +106,22 @@ function formatDateToISO(dateValue) {
 function validateOrderDates(orderInput) {
   const issueDate = formatDateToISO(orderInput?.dataEmissao);
   const deliveryDate = formatDateToISO(orderInput?.dataEntrega);
+  const today = formatDateToISO(new Date());
 
   if (!issueDate) {
     throw new Error("Data de emissão é obrigatória.");
   }
 
+  if (issueDate > today) {
+    throw new Error("Data de emissão não pode ser futura.");
+  }
+
   if (deliveryDate && deliveryDate < issueDate) {
     throw new Error("Data de entrega não pode ser anterior à data de emissão.");
+  }
+
+  if (deliveryDate && deliveryDate > today) {
+    throw new Error("Data de entrega não pode ser futura.");
   }
 }
 

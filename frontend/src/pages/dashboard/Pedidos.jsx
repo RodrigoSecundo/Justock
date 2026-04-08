@@ -17,6 +17,13 @@ const DEFAULT_MANUAL_ORDER_STATUS = MANUAL_ORDER_STATUS_OPTIONS[0];
 const MANUAL_PAYMENT_STATUS_OPTIONS = ["PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO"];
 const DEFAULT_MANUAL_PAYMENT_STATUS = "EM PROCESSAMENTO";
 
+const normalizeToDateOnly = (dateValue) => {
+  if (!dateValue) return null;
+  const normalizedDate = new Date(dateValue);
+  normalizedDate.setHours(0, 0, 0, 0);
+  return Number.isNaN(normalizedDate.getTime()) ? null : normalizedDate;
+};
+
 const Pedidos = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -84,12 +91,10 @@ const Pedidos = () => {
   }, []);
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const today = normalizeToDateOnly(new Date());
 
   const normalizeDate = (d) => {
-    if (!d) return null;
-    const nd = new Date(d);
-    nd.setHours(0, 0, 0, 0);
-    return nd;
+    return normalizeToDateOnly(d);
   };
   const parseBRDate = (br) => {
     if (!br) return null;
@@ -105,14 +110,29 @@ const Pedidos = () => {
     return Boolean(normalizedIssue && normalizedDelivery && normalizedDelivery.getTime() < normalizedIssue.getTime());
   };
 
+  const isDateAfterToday = (dateValue) => {
+    const normalizedDate = normalizeDate(dateValue);
+    return Boolean(normalizedDate && today && normalizedDate.getTime() > today.getTime());
+  };
+
   const validateOrderDates = (issueDate, deliveryDate) => {
     if (!issueDate) {
       notifyError('Data de emissão é obrigatória.');
       return false;
     }
 
+    if (isDateAfterToday(issueDate)) {
+      notifyError('Data de emissão não pode ser futura.');
+      return false;
+    }
+
     if (isDeliveryBeforeIssue(issueDate, deliveryDate)) {
       notifyError('Data de entrega não pode ser anterior à data de emissão.');
+      return false;
+    }
+
+    if (isDateAfterToday(deliveryDate)) {
+      notifyError('Data de entrega não pode ser futura.');
       return false;
     }
 
@@ -125,11 +145,12 @@ const Pedidos = () => {
 
       const nextIssueDate = value ? toBR(value) : "";
       const currentDeliveryDate = currentOrder.dataEntrega ? parseBRDate(currentOrder.dataEntrega) : null;
+      const shouldResetDelivery = isDeliveryBeforeIssue(value, currentDeliveryDate) || isDateAfterToday(currentDeliveryDate);
 
       return {
         ...currentOrder,
         dataEmissao: nextIssueDate,
-        dataEntrega: isDeliveryBeforeIssue(value, currentDeliveryDate) ? "" : currentOrder.dataEntrega,
+        dataEntrega: shouldResetDelivery ? "" : currentOrder.dataEntrega,
       };
     });
   };
@@ -138,7 +159,7 @@ const Pedidos = () => {
     setNewOrder((currentOrder) => ({
       ...currentOrder,
       dataEmissao: value,
-      dataEntrega: isDeliveryBeforeIssue(value, currentOrder.dataEntrega) ? null : currentOrder.dataEntrega,
+      dataEntrega: isDeliveryBeforeIssue(value, currentOrder.dataEntrega) || isDateAfterToday(currentOrder.dataEntrega) ? null : currentOrder.dataEntrega,
     }));
   };
 
@@ -426,6 +447,7 @@ const Pedidos = () => {
               <Calendar
                 value={parseBRDate(selectedOrder.dataEmissao)}
                 onChange={(e) => handleSelectedIssueDateChange(e.value)}
+                maxDate={today}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
                 appendTo={null}
@@ -440,6 +462,7 @@ const Pedidos = () => {
                 value={selectedOrder.dataEntrega ? parseBRDate(selectedOrder.dataEntrega) : null}
                 onChange={(e) => setSelectedOrder(o => ({ ...o, dataEntrega: e.value ? toBR(e.value) : "" }))}
                 minDate={selectedOrder.dataEmissao ? parseBRDate(selectedOrder.dataEmissao) : null}
+                maxDate={today}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
                 appendTo={null}
@@ -513,6 +536,7 @@ const Pedidos = () => {
               <Calendar
                 value={newOrder.dataEmissao}
                 onChange={(e) => handleNewIssueDateChange(e.value)}
+                maxDate={today}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
                 appendTo={null}
@@ -527,6 +551,7 @@ const Pedidos = () => {
                 value={newOrder.dataEntrega}
                 onChange={(e) => setNewOrder(v => ({ ...v, dataEntrega: e.value }))}
                 minDate={newOrder.dataEmissao || null}
+                maxDate={today}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
                 appendTo={null}

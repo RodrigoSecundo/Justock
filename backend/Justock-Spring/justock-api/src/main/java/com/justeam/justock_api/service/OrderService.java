@@ -79,8 +79,17 @@ public class OrderService {
             throw new BadRequestException("A data de emissão é obrigatória.");
         }
 
+        LocalDate today = LocalDate.now();
+        if (dataEmissao.isAfter(today)) {
+            throw new BadRequestException("A data de emissão não pode ser futura.");
+        }
+
         if (dataEntrega != null && dataEntrega.isBefore(dataEmissao)) {
             throw new BadRequestException("A data de entrega não pode ser anterior à data de emissão.");
+        }
+
+        if (dataEntrega != null && dataEntrega.isAfter(today)) {
+            throw new BadRequestException("A data de entrega não pode ser futura.");
         }
     }
 
