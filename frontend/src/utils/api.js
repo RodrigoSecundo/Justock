@@ -101,6 +101,19 @@ function formatDateToISO(dateValue) {
   return `${year}-${month}-${day}`;
 }
 
+function validateOrderDates(orderInput) {
+  const issueDate = formatDateToISO(orderInput?.dataEmissao);
+  const deliveryDate = formatDateToISO(orderInput?.dataEntrega);
+
+  if (!issueDate) {
+    throw new Error("Data de emissão é obrigatória.");
+  }
+
+  if (deliveryDate && deliveryDate < issueDate) {
+    throw new Error("Data de entrega não pode ser anterior à data de emissão.");
+  }
+}
+
 function mapOrderMarketplace(idPedidoMarketplace) {
   if (idPedidoMarketplace == null || idPedidoMarketplace === "") return "-";
 
@@ -281,6 +294,8 @@ export async function createPedido(orderInput) {
     throw new Error("Marketplace inválido para criação do pedido.");
   }
 
+  validateOrderDates(orderInput);
+
   const payload = {
     idPedidoMarketplace: marketplaceCode,
     usuarioMarketplaceId: orderInput?.usuarioMarketplaceId ?? null,
@@ -303,6 +318,8 @@ export async function updatePedido(orderId, orderInput) {
   if (marketplaceCode == null) {
     throw new Error("Marketplace inválido para atualização do pedido.");
   }
+
+  validateOrderDates(orderInput);
 
   const payload = {
     idPedidoMarketplace: marketplaceCode,

@@ -94,6 +94,49 @@ const Pedidos = () => {
     return isNaN(dt.getTime()) ? null : dt;
   };
 
+  const isDeliveryBeforeIssue = (issueDate, deliveryDate) => {
+    const normalizedIssue = normalizeDate(issueDate);
+    const normalizedDelivery = normalizeDate(deliveryDate);
+    return Boolean(normalizedIssue && normalizedDelivery && normalizedDelivery.getTime() < normalizedIssue.getTime());
+  };
+
+  const validateOrderDates = (issueDate, deliveryDate) => {
+    if (!issueDate) {
+      notifyError('Data de emissão é obrigatória.');
+      return false;
+    }
+
+    if (isDeliveryBeforeIssue(issueDate, deliveryDate)) {
+      notifyError('Data de entrega não pode ser anterior à data de emissão.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSelectedIssueDateChange = (value) => {
+    setSelectedOrder((currentOrder) => {
+      if (!currentOrder) return currentOrder;
+
+      const nextIssueDate = value ? toBR(value) : "";
+      const currentDeliveryDate = currentOrder.dataEntrega ? parseBRDate(currentOrder.dataEntrega) : null;
+
+      return {
+        ...currentOrder,
+        dataEmissao: nextIssueDate,
+        dataEntrega: isDeliveryBeforeIssue(value, currentDeliveryDate) ? "" : currentOrder.dataEntrega,
+      };
+    });
+  };
+
+  const handleNewIssueDateChange = (value) => {
+    setNewOrder((currentOrder) => ({
+      ...currentOrder,
+      dataEmissao: value,
+      dataEntrega: isDeliveryBeforeIssue(value, currentOrder.dataEntrega) ? null : currentOrder.dataEntrega,
+    }));
+  };
+
   const applyFilters = () => {
     let filtered = orders;
 
@@ -146,8 +189,10 @@ const Pedidos = () => {
   const saveOrder = async () => {
     if (!selectedOrder) return;
 
-    if (!selectedOrder.dataEmissao) {
-      notifyError('Data de emissão é obrigatória.');
+    const issueDate = parseBRDate(selectedOrder.dataEmissao);
+    const deliveryDate = selectedOrder.dataEntrega ? parseBRDate(selectedOrder.dataEntrega) : null;
+
+    if (!validateOrderDates(issueDate, deliveryDate)) {
       return;
     }
 
@@ -156,8 +201,8 @@ const Pedidos = () => {
       const updatedOrder = await updatePedido(selectedOrder.id, {
         idPedidoMarketplace: selectedOrder.idPedidoMarketplace ?? selectedOrder.marketplace,
         marketplace: selectedOrder.marketplace,
-        dataEmissao: parseBRDate(selectedOrder.dataEmissao),
-        dataEntrega: selectedOrder.dataEntrega ? parseBRDate(selectedOrder.dataEntrega) : null,
+        dataEmissao: issueDate,
+        dataEntrega: deliveryDate,
         pagamento: selectedOrder.pagamento,
         status: selectedOrder.status,
       });
@@ -193,8 +238,7 @@ const Pedidos = () => {
   };
   const cancelAdd = () => setAddOpen(false);
   const confirmAdd = async () => {
-    if (!newOrder.dataEmissao) {
-      notifyError('Data de emissão é obrigatória.');
+    if (!validateOrderDates(newOrder.dataEmissao, newOrder.dataEntrega)) {
       return;
     }
 
@@ -376,7 +420,7 @@ const Pedidos = () => {
               <label>Data de emissão</label>
               <Calendar
                 value={parseBRDate(selectedOrder.dataEmissao)}
-                onChange={(e) => setSelectedOrder(o => ({ ...o, dataEmissao: toBR(e.value) }))}
+                onChange={(e) => handleSelectedIssueDateChange(e.value)}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
                 appendTo={null}
@@ -390,12 +434,14 @@ const Pedidos = () => {
               <Calendar
                 value={selectedOrder.dataEntrega ? parseBRDate(selectedOrder.dataEntrega) : null}
                 onChange={(e) => setSelectedOrder(o => ({ ...o, dataEntrega: e.value ? toBR(e.value) : "" }))}
+                minDate={selectedOrder.dataEmissao ? parseBRDate(selectedOrder.dataEmissao) : null}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
                 appendTo={null}
                 panelClassName="jt-calendar-dropdown"
                 monthNavigator
                 yearNavigator
+                disabled={!selectedOrder.dataEmissao}
               />
             </div>
             <div className="flex flex-column gap-2">
@@ -461,7 +507,7 @@ const Pedidos = () => {
               <label>Data de emissão (obrigatória)</label>
               <Calendar
                 value={newOrder.dataEmissao}
-                onChange={(e) => setNewOrder(v => ({ ...v, dataEmissao: e.value }))}
+                onChange={(e) => handleNewIssueDateChange(e.value)}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
                 appendTo={null}
@@ -475,12 +521,14 @@ const Pedidos = () => {
               <Calendar
                 value={newOrder.dataEntrega}
                 onChange={(e) => setNewOrder(v => ({ ...v, dataEntrega: e.value }))}
+                minDate={newOrder.dataEmissao || null}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
                 appendTo={null}
                 panelClassName="jt-calendar-dropdown"
                 monthNavigator
                 yearNavigator
+                disabled={!newOrder.dataEmissao}
               />
             </div>
             <div className="flex flex-column gap-2">
