@@ -2,6 +2,8 @@ import { getAuthToken } from "./auth";
 
 const MOCK_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL || "http://localhost:8080";
+const ORDER_STATUS_OPTIONS = ["EM ANDAMENTO", "CANCELADO", "CONCLUÍDO"];
+const PAYMENT_STATUS_OPTIONS = ["PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO"];
 
 async function handleResponse(response) {
   if (!response.ok) {
@@ -112,6 +114,26 @@ function validateOrderDates(orderInput) {
   if (deliveryDate && deliveryDate < issueDate) {
     throw new Error("Data de entrega não pode ser anterior à data de emissão.");
   }
+}
+
+function validateOrderStatus(statusValue) {
+  const normalizedStatus = String(statusValue ?? "").trim().toUpperCase();
+
+  if (!ORDER_STATUS_OPTIONS.includes(normalizedStatus)) {
+    throw new Error("Status do pedido inválido. Use EM ANDAMENTO, CANCELADO ou CONCLUÍDO.");
+  }
+
+  return normalizedStatus;
+}
+
+function validatePaymentStatus(paymentValue) {
+  const normalizedPaymentStatus = String(paymentValue ?? "").trim().toUpperCase();
+
+  if (!PAYMENT_STATUS_OPTIONS.includes(normalizedPaymentStatus)) {
+    throw new Error("Status de pagamento inválido. Use PROCESSADO, EM PROCESSAMENTO, CANCELADO ou NEGADO.");
+  }
+
+  return normalizedPaymentStatus;
 }
 
 function mapOrderMarketplace(idPedidoMarketplace) {
@@ -295,14 +317,16 @@ export async function createPedido(orderInput) {
   }
 
   validateOrderDates(orderInput);
+  const normalizedStatus = validateOrderStatus(orderInput?.status ?? "EM ANDAMENTO");
+  const normalizedPaymentStatus = validatePaymentStatus(orderInput?.pagamento ?? "EM PROCESSAMENTO");
 
   const payload = {
     idPedidoMarketplace: marketplaceCode,
     usuarioMarketplaceId: orderInput?.usuarioMarketplaceId ?? null,
     dataEmissao: formatDateToISO(orderInput?.dataEmissao),
     dataEntrega: formatDateToISO(orderInput?.dataEntrega),
-    statusPagamento: orderInput?.pagamento ?? "-",
-    statusPedido: orderInput?.status ?? "Pendente",
+    statusPagamento: normalizedPaymentStatus,
+    statusPedido: normalizedStatus,
   };
 
   const created = await fetchBackend(`/api/Order/cadastrar`, {
@@ -320,14 +344,16 @@ export async function updatePedido(orderId, orderInput) {
   }
 
   validateOrderDates(orderInput);
+  const normalizedStatus = validateOrderStatus(orderInput?.status ?? "EM ANDAMENTO");
+  const normalizedPaymentStatus = validatePaymentStatus(orderInput?.pagamento ?? "EM PROCESSAMENTO");
 
   const payload = {
     idPedidoMarketplace: marketplaceCode,
     usuarioMarketplaceId: orderInput?.usuarioMarketplaceId ?? null,
     dataEmissao: formatDateToISO(orderInput?.dataEmissao),
     dataEntrega: formatDateToISO(orderInput?.dataEntrega),
-    statusPagamento: orderInput?.pagamento ?? "-",
-    statusPedido: orderInput?.status ?? "Pendente",
+    statusPagamento: normalizedPaymentStatus,
+    statusPedido: normalizedStatus,
   };
 
   const updated = await fetchBackend(`/api/Order/atualizar/${orderId}`, {

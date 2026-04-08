@@ -12,13 +12,18 @@ import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 
+const MANUAL_ORDER_STATUS_OPTIONS = ["EM ANDAMENTO", "CANCELADO", "CONCLUÍDO"];
+const DEFAULT_MANUAL_ORDER_STATUS = MANUAL_ORDER_STATUS_OPTIONS[0];
+const MANUAL_PAYMENT_STATUS_OPTIONS = ["PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO"];
+const DEFAULT_MANUAL_PAYMENT_STATUS = "EM PROCESSAMENTO";
+
 const Pedidos = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [newOrder, setNewOrder] = useState({ dataEmissao: null, dataEntrega: null, marketplace: "Manual", pagamento: "Dinheiro", status: "Pendente" });
+  const [newOrder, setNewOrder] = useState({ dataEmissao: null, dataEntrega: null, marketplace: "Manual", pagamento: DEFAULT_MANUAL_PAYMENT_STATUS, status: DEFAULT_MANUAL_ORDER_STATUS });
   const [observation, setObservation] = useState("");
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -233,7 +238,7 @@ const Pedidos = () => {
     return max + 1;
   };
   const openAdd = () => {
-    setNewOrder({ dataEmissao: null, dataEntrega: null, marketplace: "Manual", pagamento: "Dinheiro", status: "Pendente" });
+    setNewOrder({ dataEmissao: null, dataEntrega: null, marketplace: "Manual", pagamento: DEFAULT_MANUAL_PAYMENT_STATUS, status: DEFAULT_MANUAL_ORDER_STATUS });
     setAddOpen(true);
   };
   const cancelAdd = () => setAddOpen(false);
@@ -345,7 +350,7 @@ const Pedidos = () => {
                 value={filters.status}
                 inputId="filtro-status"
                 onChange={(e) => handleFilterChange("status", e.value)}
-                options={[ 'Todos', 'Pendente', 'Enviado', 'Entregue', 'Cancelado' ]}
+                options={[ 'Todos', ...MANUAL_ORDER_STATUS_OPTIONS ]}
                 placeholder="Selecione"
                 appendTo="self"
               />
@@ -459,7 +464,7 @@ const Pedidos = () => {
               <Dropdown
                 value={selectedOrder.pagamento}
                 onChange={(e) => setSelectedOrder(o => ({ ...o, pagamento: e.value }))}
-                options={[ 'Dinheiro', 'Cartão de crédito', 'Boleto', 'Pix' ]}
+                options={MANUAL_PAYMENT_STATUS_OPTIONS}
                 placeholder="Selecione"
                 appendTo="self"
               />
@@ -469,7 +474,7 @@ const Pedidos = () => {
               <Dropdown
                 value={selectedOrder.status}
                 onChange={(e) => setSelectedOrder(o => ({ ...o, status: e.value }))}
-                options={[ 'Pendente', 'Enviado', 'Entregue', 'Cancelado', 'Reembolsado' ]}
+                options={MANUAL_ORDER_STATUS_OPTIONS}
                 placeholder="Selecione"
                 appendTo="self"
               />
@@ -538,12 +543,12 @@ const Pedidos = () => {
             <div className="flex flex-column gap-2">
               <label>Pagamento</label>
               <Dropdown value={newOrder.pagamento} onChange={(e) => setNewOrder(v => ({ ...v, pagamento: e.value }))}
-                options={[ 'Dinheiro', 'Cartão de crédito', 'Boleto', 'Pix' ]} placeholder="Selecione" appendTo="self" />
+                options={MANUAL_PAYMENT_STATUS_OPTIONS} placeholder="Selecione" appendTo="self" />
             </div>
             <div className="flex flex-column gap-2">
               <label>Status atual</label>
               <Dropdown value={newOrder.status} onChange={(e) => setNewOrder(v => ({ ...v, status: e.value }))}
-                options={[ 'Pendente', 'Entregue', 'Cancelado', 'Reembolsado' ]} placeholder="Selecione" appendTo="self" />
+                options={MANUAL_ORDER_STATUS_OPTIONS} placeholder="Selecione" appendTo="self" />
             </div>
             <div className="flex justify-content-end gap-2 mt-2">
               <Button label="Cancelar" severity="secondary" onClick={cancelAdd} />
