@@ -258,6 +258,7 @@ const Produtos = () => {
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
+  const [isSyncingML, setIsSyncingML] = useState(false);
 
   const sortProducts = (list) => {
     const data = [...list];
@@ -363,6 +364,19 @@ const Produtos = () => {
       notifyError(error?.message || "Não foi possível excluir o produto.");
     } finally {
       setDeletingProductId(null);
+    }
+  };
+
+  const handleSyncML = async () => {
+    try {
+      setIsSyncingML(true);
+      await import("../../utils/api").then(api => api.syncMercadoLivre());
+      notifySuccess("Estoque sincronizado ao vivo! Atualizando lista...");
+      await loadProducts();
+    } catch (e) {
+      notifyError(e?.message || "Erro de conexão com o servidor ao sincronizar.");
+    } finally {
+      setIsSyncingML(false);
     }
   };
 
@@ -481,7 +495,12 @@ const Produtos = () => {
               <Column field="id" header="ID" sortable />
               <Column field="categoria" header="Categoria" sortable />
               <Column field="marca" header="Marca" sortable />
-              <Column field="nome" header="Nome do Produto" sortable />
+              <Column field="nome" header="Nome do Produto" sortable body={(rowData) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                   {rowData.nome}
+                   {rowData.marcador === 'ML' && <span style={{ fontSize: '0.7rem', padding: '2px 5px', backgroundColor: '#ffe600', color: '#2d3277', border: '1px solid #d4c000', borderRadius: '4px', fontWeight: 'bold'}}>MERCADO LIVRE</span>}
+                </div>
+              )} />
               <Column field="estoque" header="Estoque" sortable />
               <Column field="preco" header="Preço" sortable />
               <Column field="codigoBarras" header="Código de Barras" />
@@ -514,7 +533,10 @@ const Produtos = () => {
             </DataTable>
           </div>
           <div className="produtos-footer flex justify-content-between align-items-center mt-3">
-            <button className="add-button" onClick={() => setIsModalOpen(true)} {...srProps(srOpt, { 'aria-label': 'Adicionar novo produto' })}>Adicionar Produto</button>
+            <div className="flex gap-2">
+              <button className="add-button" onClick={() => setIsModalOpen(true)} {...srProps(srOpt, { 'aria-label': 'Adicionar novo produto' })}>Adicionar Produto</button>
+              <Button label="Sincronizar M.Livre" icon="pi pi-refresh" loading={isSyncingML} onClick={handleSyncML} className="p-button-outlined" style={{ borderColor: '#ffe600', color: '#2d3277', backgroundColor: '#fffdee'}} />
+            </div>
             <span className="text-600">Total: {filteredProducts.length}</span>
           </div>
       <ModalAdicionarProduto

@@ -43,4 +43,10 @@ public class Product {
 
     @Column(name = "usuario", nullable = false)
     private Integer usuario;
+
+    @Column(name = "marketplace_resource_id")
+    private String marketplaceResourceId;
+
+    @Column(name = "marketplace_source")
+    private String marketplaceSource;
 }

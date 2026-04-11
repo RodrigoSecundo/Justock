@@ -7,7 +7,7 @@ export function notify(type, message, options = {}) {
   const duration = options.duration ?? (type === 'success' ? 3000 : 4000);
   try {
     playFeedback(type === 'success' ? 'success' : 'error');
-  } catch { /* para aqui */ }
+  } catch { }
   try {
     const evt = new CustomEvent('jt:notify', {
       detail: { id, type, message, duration }

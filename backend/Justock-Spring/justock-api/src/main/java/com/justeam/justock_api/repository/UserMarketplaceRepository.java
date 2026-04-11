@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserMarketplaceRepository extends JpaRepository<UserMarketplace, Integer> {
+    java.util.List<UserMarketplace> findByUsuario(Integer usuario);
 }

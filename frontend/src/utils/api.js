@@ -400,3 +400,24 @@ export async function getUsuarios(params = {}) {
   const res = await fetch(url);
   return handleResponse(res);
 }
+
+export async function getMercadoLivreStatus() {
+  try {
+    const data = await fetchBackend('/api/mercadolivre/status');
+    return data;
+  } catch (e) {
+    return { connected: false };
+  }
+}
+
+export async function getMercadoLivreAuthUrl() {
+  return fetchBackend('/api/mercadolivre/auth-url');
+}
+
+export async function syncMercadoLivre() {
+  return fetchBackend('/api/mercadolivre/sync', { method: "POST", body: {} });
+}
+
+export async function disconnectMercadoLivre() {
+  return fetchBackend('/api/mercadolivre/disconnect', { method: "POST", body: {} });
+}
