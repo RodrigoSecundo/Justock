@@ -21,25 +21,24 @@ public class MercadoLivreController {
 
     @GetMapping("/auth-url")
     public ResponseEntity<Map<String, String>> getAuthUrl() {
-        return ResponseEntity.ok(Map.of("url", mercadoLivreService.getAuthorizationUrl()));
+        Integer usuarioId = mercadoLivreService.getIntegrationUserId();
+        return ResponseEntity.ok(Map.of("url", mercadoLivreService.getAuthorizationUrl(usuarioId)));
     }
 
     @GetMapping("/status")
-    public ResponseEntity<Map<String, Boolean>> getStatus(@RequestParam(defaultValue = "1") Integer usuarioId) {
-        boolean isConnected = mercadoLivreService.isConnected(usuarioId);
-        return ResponseEntity.ok(Map.of("connected", isConnected));
+    public ResponseEntity<Map<String, Object>> getStatus() {
+        Integer usuarioId = mercadoLivreService.getIntegrationUserId();
+        return ResponseEntity.ok(mercadoLivreService.getConnectionSummary(usuarioId));
     }
 
     @GetMapping("/callback")
     public ResponseEntity<?> callback(@RequestParam("code") String code,
-            @RequestParam(value = "state", defaultValue = "1") String state) {
+            @RequestParam("state") String state) {
         try {
-            Integer usuarioId = Integer.parseInt(state);
-
-            mercadoLivreService.processCallback(code, usuarioId);
+            mercadoLivreService.processCallback(code, state);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.add("Location", "http://localhost:5173/dashboard/conexoes");
+            headers.add("Location", mercadoLivreService.getFrontendRedirectUri());
             return new ResponseEntity<>(headers, HttpStatus.FOUND);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("FALHA AO PROCESSAR CALLBACK: " + e.getMessage());
@@ -47,10 +46,13 @@ public class MercadoLivreController {
     }
 
     @PostMapping("/sync")
-    public ResponseEntity<Map<String, String>> syncInventory(@RequestParam(defaultValue = "1") Integer usuarioId) {
+    public ResponseEntity<Map<String, Object>> syncInventory() {
         try {
-            mercadoLivreService.syncInventory(usuarioId);
-            return ResponseEntity.ok(Map.of("message", "Inventário sincronizado com o banco local."));
+            Integer usuarioId = mercadoLivreService.getIntegrationUserId();
+            Map<String, Object> summary = mercadoLivreService.syncMarketplaceData(usuarioId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Pedidos e produtos sincronizados com o banco local.",
+                    "summary", summary));
         } catch (org.springframework.web.client.HttpClientErrorException e) {
             return ResponseEntity.status(500).body(Map.of("message", "ERRO HTTP DA API DO ML: " + e.getResponseBodyAsString()));
         } catch (Exception e) {
@@ -59,12 +61,19 @@ public class MercadoLivreController {
     }
 
     @PostMapping("/disconnect")
-    public ResponseEntity<Map<String, String>> disconnect(@RequestParam(defaultValue = "1") Integer usuarioId) {
+    public ResponseEntity<Map<String, String>> disconnect() {
         try {
+            Integer usuarioId = mercadoLivreService.getIntegrationUserId();
             mercadoLivreService.disconnect(usuarioId);
             return ResponseEntity.ok(Map.of("message", "Desconectado com sucesso."));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("message", "FALHA INTERNA DESCONECTAR: " + e.getMessage()));
         }
+    }
+
+    @PostMapping("/webhook")
+    public ResponseEntity<Map<String, String>> webhook(@RequestBody Map<String, Object> payload) {
+        mercadoLivreService.registerWebhookEvent(payload);
+        return ResponseEntity.ok(Map.of("message", "Webhook recebido com sucesso."));
     }
 }

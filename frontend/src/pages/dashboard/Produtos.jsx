@@ -367,19 +367,6 @@ const Produtos = () => {
     }
   };
 
-  const handleSyncML = async () => {
-    try {
-      setIsSyncingML(true);
-      await import("../../utils/api").then(api => api.syncMercadoLivre());
-      notifySuccess("Estoque sincronizado ao vivo! Atualizando lista...");
-      await loadProducts();
-    } catch (e) {
-      notifyError(e?.message || "Erro de conexão com o servidor ao sincronizar.");
-    } finally {
-      setIsSyncingML(false);
-    }
-  };
-
   const applyFilters = () => {
     let filtered = products;
 
@@ -535,7 +522,6 @@ const Produtos = () => {
           <div className="produtos-footer flex justify-content-between align-items-center mt-3">
             <div className="flex gap-2">
               <button className="add-button" onClick={() => setIsModalOpen(true)} {...srProps(srOpt, { 'aria-label': 'Adicionar novo produto' })}>Adicionar Produto</button>
-              <Button label="Sincronizar M.Livre" icon="pi pi-refresh" loading={isSyncingML} onClick={handleSyncML} className="p-button-outlined" style={{ borderColor: '#ffe600', color: '#2d3277', backgroundColor: '#fffdee'}} />
             </div>
             <span className="text-600">Total: {filteredProducts.length}</span>
           </div>

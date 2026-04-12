@@ -1,14 +1,34 @@
 import React, { useEffect, useState } from "react";
 import "../../styles/pages/dashboard/conexoes.css";
-import { notifyError } from "../../utils/notify";
+import { notifyError, notifySuccess } from "../../utils/notify";
 import { useSrOptimized, srProps } from "../../utils/useA11y";
-import { getConexoes, getMercadoLivreStatus, getMercadoLivreAuthUrl, disconnectMercadoLivre } from "../../utils/api";
+import { getConexoes, getMercadoLivreAuthUrl, disconnectMercadoLivre, syncMercadoLivre } from "../../utils/api";
 
 
 const Conexoes = () => {
   const [marketplaces, setMarketplaces] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [syncingMarketplace, setSyncingMarketplace] = useState(null);
+  const [disconnectingMarketplace, setDisconnectingMarketplace] = useState(null);
   const srOpt = useSrOptimized();
+
+  const loadMarketplaces = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setCarregando(true);
+    }
+
+    try {
+      const data = await getConexoes();
+      setMarketplaces(Array.isArray(data?.marketplaces) ? data.marketplaces : []);
+    } catch (err) {
+      console.error(err);
+      setMarketplaces([]);
+    } finally {
+      if (!silent) {
+        setCarregando(false);
+      }
+    }
+  };
 
   const handleConnect = async (mktName) => {
     if (mktName.toLowerCase() === 'mercado livre') {
@@ -30,40 +50,43 @@ const Conexoes = () => {
   const handleDisconnect = async (mktName) => {
     if (mktName.toLowerCase() === 'mercado livre') {
       try {
+        setDisconnectingMarketplace(mktName);
         await disconnectMercadoLivre();
         notifySuccess("Desconectado de " + mktName);
-        const mkts = marketplaces.map(m => m.name === mktName ? { ...m, connected: false } : m);
-        setMarketplaces(mkts);
+        await loadMarketplaces();
       } catch (e) {
         notifyError(e?.message || "Erro ao desconectar do Mercado Livre");
+      } finally {
+        setDisconnectingMarketplace(null);
       }
     }
   };
 
+  const handleSync = async (mktName) => {
+    if (mktName.toLowerCase() !== 'mercado livre') {
+      return;
+    }
+
+    try {
+      setSyncingMarketplace(mktName);
+      await syncMercadoLivre();
+      notifySuccess("Pedidos e produtos do Mercado Livre sincronizados.");
+      await loadMarketplaces();
+    } catch (error) {
+      notifyError(error?.message || "Erro ao sincronizar com o Mercado Livre");
+    } finally {
+      setSyncingMarketplace(null);
+    }
+  };
+
   useEffect(() => {
-    setCarregando(true);
-    getConexoes()
-      .then(async (data) => {
-        let mkts = [];
-        if (data && Array.isArray(data.marketplaces)) {
-          mkts = data.marketplaces;
-        }
+    loadMarketplaces();
 
-        const realStatus = await getMercadoLivreStatus();
-        mkts = mkts.map(m => {
-          if (m.name.toLowerCase() === 'mercado livre') {
-            return { ...m, connected: realStatus?.connected || false };
-          }
-          return m;
-        });
+    const intervalId = window.setInterval(() => {
+      loadMarketplaces({ silent: true });
+    }, 30000);
 
-        setMarketplaces(mkts);
-      })
-      .catch((err) => {
-        console.error(err);
-        setMarketplaces([]);
-      })
-      .finally(() => setCarregando(false));
+    return () => window.clearInterval(intervalId);
   }, []);
 
   return (
@@ -90,12 +113,34 @@ const Conexoes = () => {
                     <p {...srProps(srOpt, { 'aria-label': `Total de vendas ${mkt.totalVendas}` })}><strong>Total de vendas:</strong> {mkt.totalVendas}</p>
                     <p {...srProps(srOpt, { 'aria-label': `Pedidos ativos ${mkt.pedidosAtivos}` })}><strong>Pedidos ativos:</strong> {mkt.pedidosAtivos}</p>
                     <p {...srProps(srOpt, { 'aria-label': `Quantidade em inventário ${mkt.totalInventario}` })}><strong>Quant. Inventário:</strong> {mkt.totalInventario}</p>
+                    {mkt.sellerId && <p {...srProps(srOpt, { 'aria-label': `Conta conectada ${mkt.sellerId}` })}><strong>Conta:</strong> {mkt.sellerId}</p>}
                   </div>
                 ) : (
                   <div className="conexoes_dados_vazio">Sem dados</div>
                 )}
               </div>
-              {mkt.connected && <button className="conexoes_btn_gerenciar" onClick={() => handleDisconnect(mkt.name)} {...srProps(srOpt, { 'aria-label': `Desconectar de ${mkt.name}` })}>Desconectar</button>}
+              {mkt.connected && (
+                <div className="conexoes_acoes">
+                  {mkt.name.toLowerCase() === 'mercado livre' && (
+                    <button
+                      className="conexoes_btn_gerenciar conexoes_btn_sync"
+                      onClick={() => handleSync(mkt.name)}
+                      disabled={syncingMarketplace === mkt.name}
+                      {...srProps(srOpt, { 'aria-label': `Sincronizar pedidos e produtos de ${mkt.name}` })}
+                    >
+                      {syncingMarketplace === mkt.name ? 'Sincronizando...' : 'Sincronizar pedidos e produtos'}
+                    </button>
+                  )}
+                  <button
+                    className="conexoes_btn_gerenciar"
+                    onClick={() => handleDisconnect(mkt.name)}
+                    disabled={disconnectingMarketplace === mkt.name}
+                    {...srProps(srOpt, { 'aria-label': `Desconectar de ${mkt.name}` })}
+                  >
+                    {disconnectingMarketplace === mkt.name ? 'Desconectando...' : 'Desconectar'}
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}

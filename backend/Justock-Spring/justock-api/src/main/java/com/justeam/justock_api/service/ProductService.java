@@ -22,6 +22,10 @@ public class ProductService {
         return productRepository.findAll();
     }
 
+    public List<Product> listProductsByUsuario(Integer usuarioId) {
+        return productRepository.findByUsuario(usuarioId);
+    }
+
     public Product findProduct(Integer id) {
         return productRepository.findById(id).orElse(null);
     }

@@ -4,6 +4,26 @@ const MOCK_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL || "http://localhost:8080";
 const ORDER_STATUS_OPTIONS = ["EM ANDAMENTO", "CANCELADO", "CONCLUÍDO"];
 const PAYMENT_STATUS_OPTIONS = ["PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO"];
+const MOCK_MARKETPLACE_CONNECTIONS = [
+  {
+    id: "amazon",
+    name: "Amazon",
+    connected: false,
+    totalVendas: 0,
+    pedidosAtivos: 0,
+    totalInventario: 0,
+    source: "mock",
+  },
+  {
+    id: "shopee",
+    name: "Shopee",
+    connected: false,
+    totalVendas: 0,
+    pedidosAtivos: 0,
+    totalInventario: 0,
+    source: "mock",
+  },
+];
 
 async function handleResponse(response) {
   if (!response.ok) {
@@ -200,14 +220,22 @@ function mapBackendProduct(product) {
 }
 
 function mapBackendOrder(order) {
+  const marketplaceSource = order?.marketplaceSource ?? null;
+  const marketplaceResourceId = order?.marketplaceResourceId ?? null;
+  const displayNumber = marketplaceResourceId || order?.idPedido || 0;
+
   return {
     id: order?.idPedido ?? 0,
     idPedidoMarketplace: Number(order?.idPedidoMarketplace ?? 0) || null,
+    numeroPedido: displayNumber,
     dataEmissao: formatISOToBR(order?.dataEmissao),
     dataEntrega: formatISOToBR(order?.dataEntrega),
     marketplace: mapOrderMarketplace(order?.idPedidoMarketplace),
     pagamento: order?.statusPagamento ?? "-",
     status: order?.statusPedido ?? "-",
+    marketplaceSource,
+    marketplaceResourceId,
+    isReadOnly: marketplaceSource === "MERCADO_LIVRE",
   };
 }
 
@@ -250,9 +278,23 @@ export async function getDashboardAlerts() {
 }
 
 export async function getConexoes() {
-  const res = await fetch(`${MOCK_API_BASE_URL}/conexoes`);
-  const data = await handleResponse(res);
-  return { marketplaces: data };
+  const mlStatus = await getMercadoLivreStatus();
+
+  return {
+    marketplaces: [
+      {
+        id: "mercado_livre",
+        name: "Mercado Livre",
+        connected: Boolean(mlStatus?.connected),
+        totalVendas: Number(mlStatus?.totalVendas ?? 0),
+        pedidosAtivos: Number(mlStatus?.pedidosAtivos ?? 0),
+        totalInventario: Number(mlStatus?.totalInventario ?? 0),
+        sellerId: mlStatus?.sellerId ?? null,
+        source: "api",
+      },
+      ...MOCK_MARKETPLACE_CONNECTIONS,
+    ],
+  };
 }
 
 export async function getProdutos() {
@@ -404,9 +446,21 @@ export async function getUsuarios(params = {}) {
 export async function getMercadoLivreStatus() {
   try {
     const data = await fetchBackend('/api/mercadolivre/status');
-    return data;
+    return {
+      connected: Boolean(data?.connected),
+      sellerId: data?.sellerId ?? null,
+      totalVendas: Number(data?.totalVendas ?? 0),
+      pedidosAtivos: Number(data?.pedidosAtivos ?? 0),
+      totalInventario: Number(data?.totalInventario ?? 0),
+    };
   } catch (e) {
-    return { connected: false };
+    return {
+      connected: false,
+      sellerId: null,
+      totalVendas: 0,
+      pedidosAtivos: 0,
+      totalInventario: 0,
+    };
   }
 }
 

@@ -61,6 +61,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/mercadolivre/callback").permitAll()
+                .requestMatchers("/api/mercadolivre/webhook").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

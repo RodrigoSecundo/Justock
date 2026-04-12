@@ -21,13 +21,23 @@ Atualmente o frontend usa uma estratégia híbrida:
   - `GET /api/Order/`
   - `POST /api/Order/cadastrar`
   - `PUT /api/Order/atualizar/{id}`
+  - `GET /api/mercadolivre/status`
+  - `GET /api/mercadolivre/auth-url`
+  - `POST /api/mercadolivre/sync`
+  - `POST /api/mercadolivre/disconnect`
+  - `POST /api/mercadolivre/webhook`
 - **Rotas ainda mockadas via `json-server` (`frontend/db.json`):**
-  - dashboard, conexões, relatórios, assinatura, usuários e demais objetos ainda não migrados
+  - dashboard, relatórios, assinatura, usuários e demais objetos ainda não migrados
+  - a tela de conexões segue híbrida: Mercado Livre usa backend real, enquanto Amazon e Shopee continuam mockados
 
 Observação importante sobre o Dashboard:
 - O card **Total de Produtos** já usa dados reais do backend, somando a coluna `quantidade` da tabela `estoque` (via `GET /api/products/`).
 - O card **Produtos em Baixa** permanece mockado no `db.json` por enquanto.
 Ou seja: **Produtos e Pedidos já usam backend real**, enquanto outras telas ainda podem depender do mock.
+
+Observação importante sobre Conexões:
+- O card do **Mercado Livre** já usa backend real para status da conexão e métricas da conta conectada.
+- Os cards de **Amazon** e **Shopee** continuam mockados e marcados como não conectados.
 
 ### Nota de atualização - Pedidos
 - O fluxo de **Pedidos** recebeu validações no frontend e no backend para evitar dados inconsistentes.
@@ -36,6 +46,24 @@ Ou seja: **Produtos e Pedidos já usam backend real**, enquanto outras telas ain
 - **Status do pedido** aceito para inserções manuais: `EM ANDAMENTO`, `CANCELADO` e `CONCLUÍDO`.
 - **Status de pagamento** aceito para inserções manuais: `PROCESSADO`, `EM PROCESSAMENTO`, `CANCELADO` e `NEGADO`.
 - Pedidos antigos fora desses padrões foram normalizados no banco por migrations do Flyway.
+- Pedidos sincronizados do Mercado Livre são gravados com metadados de origem do marketplace e aparecem separados dos pedidos manuais.
+- Pedidos sincronizados do Mercado Livre são tratados como somente leitura no frontend.
+
+### Nota de atualização - Mercado Livre
+- A integração com o Mercado Livre está funcional para **conectar conta vendedora**, **renovar token**, **sincronizar produtos e pedidos**, **desconectar** e **manter sincronização automática periódica**.
+- O fluxo OAuth agora usa **Authorization Code + PKCE**, exigido pela configuração atual da aplicação no Mercado Livre.
+- O callback público configurado no app do Mercado Livre deve apontar para o backend exposto pelo túnel HTTP, por exemplo:
+  - `https://SEU-TUNEL.ngrok-free.dev/api/mercadolivre/callback`
+- O webhook público pode apontar para:
+  - `https://SEU-TUNEL.ngrok-free.dev/api/mercadolivre/webhook`
+- O projeto opera hoje no modo **usuário interno compartilhado** do Justock. Ou seja: a conta interna padrão do sistema é a mesma, mas a conta vendedora conectada no Mercado Livre pode ser trocada.
+- A sincronização manual agora fica centralizada no card do **Mercado Livre** em **Conexões**, com o botão **Sincronizar pedidos e produtos**.
+- Ao sincronizar, o backend faz **upsert** por `marketplace_resource_id` tanto para produtos quanto para pedidos e remove registros antigos do vendedor anterior quando necessário.
+- O card do Mercado Livre em **Conexões** exibe dados reais da API, incluindo total de vendas, pedidos ativos, inventário e conta conectada.
+- O backend já recebe webhooks do Mercado Livre e registra o payload recebido.
+- Existe também sincronização automática periódica no backend e atualização periódica da tela de **Conexões** no frontend, sem precisar recarregar a página manualmente.
+- A marca dos produtos sincronizados do Mercado Livre passa a ser preenchida a partir dos atributos do item quando disponível, evitando o uso fixo de `N/A`.
+- Limitação operacional do ngrok free: o fluxo de callback pode passar pela página de aviso/interstitial do próprio ngrok antes de voltar ao app local.
 
 ---
 
@@ -97,6 +125,12 @@ cd backend/Justock-Spring/justock-api
 
 Backend padrão: `http://localhost:8080`
 
+Observações para a integração Mercado Livre:
+- O frontend local continua em `http://localhost:5173`.
+- O backend recebe o callback do Mercado Livre pela URL pública configurada em `mercadolivre.redirect.uri`.
+- Depois do callback, o backend redireciona o navegador para `mercadolivre.frontend.redirect-uri`, cujo padrão é `http://localhost:5173/conexoes`.
+- Se já existir outra instância ocupando a porta `8080`, o `spring-boot:run` falhará com erro de porta em uso.
+
 Se quiser validar compilação antes de subir:
 
 ```powershell
@@ -133,6 +167,27 @@ npm run dev
 ## Credenciais de desenvolvimento (frontend)
 
 - `testeAdminSEC@exemplo.com` / `S@nh4secr3t4`
+
+## Configuração do Mercado Livre
+
+As propriedades relevantes do backend ficam em `backend/Justock-Spring/justock-api/src/main/resources/application.properties`:
+
+```properties
+mercadolivre.client.id=SEU_APP_ID
+mercadolivre.client.secret=SUA_SECRET_KEY
+mercadolivre.redirect.uri=https://SEU-TUNEL.ngrok-free.dev/api/mercadolivre/callback
+mercadolivre.frontend.redirect-uri=http://localhost:5173/conexoes
+mercadolivre.shared.usuario-id=1
+mercadolivre.auto-sync.enabled=true
+mercadolivre.auto-sync.fixed-delay-ms=900000
+mercadolivre.auto-sync.initial-delay-ms=120000
+```
+
+Notas importantes:
+- `mercadolivre.redirect.uri` deve ser **idêntico** ao callback cadastrado no app do Mercado Livre.
+- Se o app do Mercado Livre estiver com PKCE habilitado, o backend já envia `code_challenge` e usa `code_verifier` automaticamente.
+- `mercadolivre.shared.usuario-id` define o usuário interno compartilhado do Justock usado para persistir a integração.
+- `mercadolivre.auto-sync.fixed-delay-ms` controla o intervalo da sincronização automática do backend.
 
 ---
 

@@ -12,8 +12,10 @@ public class OrderResponseDTO {
     private LocalDate dataEmissao;
     private String statusPagamento;
     private String statusPedido;
+    private String marketplaceResourceId;
+    private String marketplaceSource;
 
-    public OrderResponseDTO(int idPedido, Integer idPedidoMarketplace, Integer usuarioMarketplaceId, LocalDate dataEntrega, LocalDate dataEmissao, String statusPagamento, String statusPedido) {
+    public OrderResponseDTO(int idPedido, Integer idPedidoMarketplace, Integer usuarioMarketplaceId, LocalDate dataEntrega, LocalDate dataEmissao, String statusPagamento, String statusPedido, String marketplaceResourceId, String marketplaceSource) {
         this.idPedido = idPedido;
         this.idPedidoMarketplace = idPedidoMarketplace;
         this.usuarioMarketplaceId = usuarioMarketplaceId;
@@ -21,5 +23,7 @@ public class OrderResponseDTO {
         this.dataEmissao = dataEmissao;
         this.statusPagamento = statusPagamento;
         this.statusPedido = statusPedido;
+        this.marketplaceResourceId = marketplaceResourceId;
+        this.marketplaceSource = marketplaceSource;
     }
 }

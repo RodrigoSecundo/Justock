@@ -167,7 +167,7 @@ const Pedidos = () => {
     let filtered = orders;
 
     if (filters.search) {
-      filtered = filtered.filter((order) => order.id.toString().includes(filters.search));
+      filtered = filtered.filter((order) => String(order.numeroPedido ?? order.id).includes(filters.search));
     }
 
     const [startDate, endDate] = filters.period || [];
@@ -234,7 +234,7 @@ const Pedidos = () => {
       });
 
       await loadOrders();
-      notifySuccess(`Pedido #${updatedOrder.id} atualizado.`);
+      notifySuccess(`Pedido #${updatedOrder.numeroPedido ?? updatedOrder.id} atualizado.`);
       closeModal();
     } catch (error) {
       notifyError(error?.message || "Não foi possível atualizar o pedido.");
@@ -280,7 +280,7 @@ const Pedidos = () => {
 
       await loadOrders();
       setAddOpen(false);
-      notifySuccess(`Pedido #${createdOrder.id} adicionado.`);
+      notifySuccess(`Pedido #${createdOrder.numeroPedido ?? createdOrder.id} adicionado.`);
     } catch (error) {
       notifyError(error?.message || "Não foi possível cadastrar o pedido.");
     } finally {
@@ -319,6 +319,22 @@ const Pedidos = () => {
       setSortOrder(1);
     }
   };
+
+  const renderOrderNumber = (order) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <span>{order.numeroPedido}</span>
+      {order.marketplaceSource === 'MERCADO_LIVRE' && (
+        <span style={{ fontSize: '0.7rem', padding: '2px 5px', backgroundColor: '#ffe600', color: '#2d3277', border: '1px solid #d4c000', borderRadius: '4px', fontWeight: 'bold' }}>
+          MERCADO LIVRE
+        </span>
+      )}
+      {order.marketplaceSource === 'MANUAL' && (
+        <span style={{ fontSize: '0.7rem', padding: '2px 5px', backgroundColor: '#dff6e4', color: '#21613b', border: '1px solid #a8d5b5', borderRadius: '4px', fontWeight: 'bold' }}>
+          MANUAL
+        </span>
+      )}
+    </div>
+  );
 
   return (
     <div {...srProps(srOpt, { role: 'main', 'aria-label': 'Lista de pedidos' })}>
@@ -401,7 +417,7 @@ const Pedidos = () => {
               sortOrder={sortOrder}
               onSort={handleSort}
             >
-              <Column field="id" header="Nº Pedido" sortable />
+              <Column field="numeroPedido" header="Nº Pedido" sortable body={renderOrderNumber} />
               <Column field="dataEmissao" header="Data Emissão" sortable />
               <Column field="dataEntrega" header="Data Entrega" sortable />
               <Column field="marketplace" header="Marketplace" sortable />
@@ -415,9 +431,10 @@ const Pedidos = () => {
                     icon="pi pi-pencil"
                     className="p-button-sm p-button-rounded p-button-text btn-acao-editar"
                     onClick={() => handleRowClick(order)}
-                    tooltip="Editar pedido"
+                    tooltip={order.isReadOnly ? "Pedido sincronizado do Mercado Livre é somente leitura" : "Editar pedido"}
                     tooltipOptions={{ position: 'top' }}
-                    aria-label={`Editar pedido ${order.id}`}
+                    aria-label={`Editar pedido ${order.numeroPedido}`}
+                    disabled={order.isReadOnly}
                   />
                 )}
               />
@@ -433,14 +450,14 @@ const Pedidos = () => {
         <DialogoReutilizavel
           visible={modalOpen}
           onHide={closeModal}
-          header={`Editar Pedido #${selectedOrder.id}`}
+          header={`Editar Pedido #${selectedOrder.numeroPedido}`}
           position="right"
           width="480px"
         >
           <div role="form" aria-label="Editar pedido" className="flex flex-column gap-3 p-2">
             <div className="flex flex-column gap-2">
               <label>Nº do pedido</label>
-              <InputText value={selectedOrder.id} readOnly />
+              <InputText value={selectedOrder.numeroPedido} readOnly />
             </div>
             <div className="flex flex-column gap-2">
               <label>Data de emissão</label>

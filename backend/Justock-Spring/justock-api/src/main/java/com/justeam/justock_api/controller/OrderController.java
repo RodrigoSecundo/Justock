@@ -30,7 +30,7 @@ public class OrderController {
     public ApiResponseDTO<List<OrderResponseDTO>> index() {
         List<OrderResponseDTO> orders = orderService.listAllOrders()
                 .stream()
-                .map(o -> new OrderResponseDTO(o.getIdPedido(), o.getIdPedidoMarketplace(), o.getUsuarioMarketplaceId(), o.getDataEntrega(), o.getDataEmissao(), o.getStatusPagamento(), o.getStatusPedido()))
+                .map(this::toDto)
                 .collect(Collectors.toList());
         return new ApiResponseDTO<>(200, "Orders encontrados!", orders);
     }
@@ -43,7 +43,7 @@ public class OrderController {
         if (order == null) {
             return new ApiResponseDTO<>(404, "Order não encontrado!", null);
         }
-        OrderResponseDTO dto = new OrderResponseDTO(order.getIdPedido(), order.getIdPedidoMarketplace(), order.getUsuarioMarketplaceId(), order.getDataEntrega(), order.getDataEmissao(), order.getStatusPagamento(), order.getStatusPedido());
+        OrderResponseDTO dto = toDto(order);
         return new ApiResponseDTO<>(200, "Order encontrado!", dto);
     }
 
@@ -52,7 +52,7 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<OrderResponseDTO> store(@Valid @RequestBody OrderCreateRequest request) {
         Order order = orderService.createOrder(request);
-        OrderResponseDTO dto = new OrderResponseDTO(order.getIdPedido(), order.getIdPedidoMarketplace(), order.getUsuarioMarketplaceId(), order.getDataEntrega(), order.getDataEmissao(), order.getStatusPagamento(), order.getStatusPedido());
+        OrderResponseDTO dto = toDto(order);
         return new ApiResponseDTO<>(200, "Order cadastrado com sucesso!", dto);
     }
 
@@ -64,7 +64,7 @@ public class OrderController {
         if (order == null) {
             return new ApiResponseDTO<>(404, "Order não encontrado!", null);
         }
-        OrderResponseDTO dto = new OrderResponseDTO(order.getIdPedido(), order.getIdPedidoMarketplace(), order.getUsuarioMarketplaceId(), order.getDataEntrega(), order.getDataEmissao(), order.getStatusPagamento(), order.getStatusPedido());
+        OrderResponseDTO dto = toDto(order);
         return new ApiResponseDTO<>(200, "Order atualizado!", dto);
     }
 
@@ -77,5 +77,18 @@ public class OrderController {
             return new ApiResponseDTO<>(404, "Order não encontrado!", null);
         }
         return new ApiResponseDTO<>(200, "Order deletado!", null);
+    }
+
+    private OrderResponseDTO toDto(Order order) {
+        return new OrderResponseDTO(
+                order.getIdPedido(),
+                order.getIdPedidoMarketplace(),
+                order.getUsuarioMarketplaceId(),
+                order.getDataEntrega(),
+                order.getDataEmissao(),
+                order.getStatusPagamento(),
+                order.getStatusPedido(),
+                order.getMarketplaceResourceId(),
+                order.getMarketplaceSource());
     }
 }

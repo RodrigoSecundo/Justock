@@ -44,6 +44,8 @@ public class OrderService {
         order.setDataEmissao(dto.getDataEmissao());
         order.setStatusPagamento(normalizedPaymentStatus);
         order.setStatusPedido(normalizedStatus);
+        order.setMarketplaceSource(resolveMarketplaceSource(dto.getIdPedidoMarketplace()));
+        order.setMarketplaceResourceId(null);
         return orderRepository.save(order);
     }
 
@@ -61,6 +63,7 @@ public class OrderService {
             existingOrder.setDataEmissao(dto.getDataEmissao());
             existingOrder.setStatusPagamento(normalizedPaymentStatus);
             existingOrder.setStatusPedido(normalizedStatus);
+            existingOrder.setMarketplaceSource(resolveMarketplaceSource(dto.getIdPedidoMarketplace()));
             return orderRepository.save(existingOrder);
         }
         return null;
@@ -117,5 +120,19 @@ public class OrderService {
         }
 
         return normalizedPaymentStatus;
+    }
+
+    private String resolveMarketplaceSource(Integer marketplaceCode) {
+        if (marketplaceCode == null) {
+            return null;
+        }
+
+        return switch (marketplaceCode) {
+            case 1 -> "MERCADO_LIVRE";
+            case 2 -> "AMAZON";
+            case 3 -> "SHOPEE";
+            case 4 -> "MANUAL";
+            default -> null;
+        };
     }
 }

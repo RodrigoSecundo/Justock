@@ -57,6 +57,7 @@ const Routs = () => {
           <Route path="/login" element={<Login />} />
           <Route element={<DashboardLayout />}> 
             <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+            <Route path="/dashboard/conexoes" element={<ErrorBoundary><Conexoes /></ErrorBoundary>} />
             <Route path="/conexoes" element={<ErrorBoundary><Conexoes /></ErrorBoundary>} />
             <Route path="/produtos" element={<ErrorBoundary><Produtos /></ErrorBoundary>} />
             <Route path="/pedidos" element={<ErrorBoundary><Pedidos /></ErrorBoundary>} />

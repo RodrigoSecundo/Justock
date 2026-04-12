@@ -31,4 +31,10 @@ public class Order {
 
     @Column(name = "status_pedido", nullable = true)
     private String statusPedido;
+
+    @Column(name = "marketplace_resource_id")
+    private String marketplaceResourceId;
+
+    @Column(name = "marketplace_source")
+    private String marketplaceSource;
 }

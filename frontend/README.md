@@ -27,13 +27,8 @@ npm run dev
 Acesse a aplicação em `http://localhost:5173` (porta padrão do Vite no dev).
 
 ## Credenciais de login (dev)
-Foi adicionado um usuário padrão para facilitar testes locais:
-- Email: `admin@admin.com`
-- Senha: `admin123`
 
-Também existe o usuário original de desenvolvimento:
-- Email: `admin@justock.com`
-- Senha: `123456`
+- `testeAdminSEC@exemplo.com` / `S@nh4secr3t4`
 
 ## Variáveis de ambiente
 Você pode apontar o frontend para outro backend definindo `VITE_API_BASE_URL` (ex.: `.env` ou na sua sessão):
@@ -42,6 +37,46 @@ Você pode apontar o frontend para outro backend definindo `VITE_API_BASE_URL` (
 $env:VITE_API_BASE_URL = "https://api.meuservidor.com"
 npm run dev
 ```
+
+Para o cenário atual do projeto, o frontend usa preferencialmente:
+
+```powershell
+$env:VITE_API_BASE_URL = "http://localhost:3001"
+$env:VITE_BACKEND_API_BASE_URL = "http://localhost:8080"
+npm run dev
+```
+
+## Integração atual com o backend
+
+O frontend está em modo híbrido:
+- Produtos e pedidos já consomem backend real
+- A integração com Mercado Livre da tela de conexões já consome backend real
+- Dashboard, relatórios, assinatura e outras partes ainda usam `db.json` em diferentes pontos
+
+### Mercado Livre no frontend
+
+O frontend já possui fluxo para:
+- solicitar URL de autorização do Mercado Livre
+- redirecionar o navegador para o login/autorização do ML
+- consultar status da conexão
+- disparar sincronização manual de pedidos e produtos
+- desconectar a conta integrada
+- atualizar periodicamente a tela de conexões sem recarregar a página
+
+Observações:
+- O retorno do OAuth do Mercado Livre acontece no backend público exposto por túnel HTTP.
+- Depois do callback, o backend redireciona o navegador de volta para `http://localhost:5173/conexoes`.
+- Se estiver usando ngrok free, o navegador pode passar pela página de aviso do próprio ngrok durante esse retorno.
+
+Comportamento atual da página de Conexões:
+- O card do Mercado Livre usa dados reais do backend para status, total de vendas, pedidos ativos, inventário e conta conectada.
+- Amazon e Shopee continuam mockados e desconectados.
+- O botão de sincronização do Mercado Livre fica centralizado em Conexões com o texto `Sincronizar pedidos e produtos`.
+
+Comportamento atual da página de Pedidos:
+- Pedidos sincronizados do Mercado Livre aparecem com identificação de origem do marketplace.
+- Pedidos sincronizados do Mercado Livre são tratados como somente leitura.
+- Pedidos manuais continuam podendo ser criados e editados normalmente.
 
 ## Estrutura do projeto (atualizada)
 ```
@@ -79,3 +114,4 @@ npm run dev
 - Use `npm run api` + `npm run dev` em paralelo.
 - Verifique `db.json` e adapte os dados para reproduzir cenários (ex.: estoque baixo, pedidos cancelados, etc.).
 - Para testar integração com backend real local, execute o backend em outra porta e aponte `VITE_API_BASE_URL` para ele.
+
