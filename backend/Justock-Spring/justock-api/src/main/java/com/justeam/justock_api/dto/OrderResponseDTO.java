@@ -14,8 +14,9 @@ public class OrderResponseDTO {
     private String statusPedido;
     private String marketplaceResourceId;
     private String marketplaceSource;
+    private String observacao;
 
-    public OrderResponseDTO(int idPedido, Integer idPedidoMarketplace, Integer usuarioMarketplaceId, LocalDate dataEntrega, LocalDate dataEmissao, String statusPagamento, String statusPedido, String marketplaceResourceId, String marketplaceSource) {
+    public OrderResponseDTO(int idPedido, Integer idPedidoMarketplace, Integer usuarioMarketplaceId, LocalDate dataEntrega, LocalDate dataEmissao, String statusPagamento, String statusPedido, String marketplaceResourceId, String marketplaceSource, String observacao) {
         this.idPedido = idPedido;
         this.idPedidoMarketplace = idPedidoMarketplace;
         this.usuarioMarketplaceId = usuarioMarketplaceId;
@@ -25,5 +26,6 @@ public class OrderResponseDTO {
         this.statusPedido = statusPedido;
         this.marketplaceResourceId = marketplaceResourceId;
         this.marketplaceSource = marketplaceSource;
+        this.observacao = observacao;
     }
 }

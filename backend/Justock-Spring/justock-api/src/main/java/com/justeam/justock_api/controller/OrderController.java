@@ -89,6 +89,7 @@ public class OrderController {
                 order.getStatusPagamento(),
                 order.getStatusPedido(),
                 order.getMarketplaceResourceId(),
-                order.getMarketplaceSource());
+                order.getMarketplaceSource(),
+                order.getObservacao());
     }
 }

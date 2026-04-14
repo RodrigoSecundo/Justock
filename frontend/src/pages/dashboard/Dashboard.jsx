@@ -39,6 +39,15 @@ const DEFAULT_PALETTE = [
   "rgba(255, 99, 71, 0.8)",
 ];
 
+const resolveInventoryTickStep = (maxValue) => {
+  if (!Number.isFinite(maxValue) || maxValue <= 5) return 1;
+  if (maxValue <= 25) return 5;
+  if (maxValue <= 100) return 10;
+  if (maxValue <= 250) return 25;
+  if (maxValue <= 500) return 50;
+  return 100;
+};
+
 const Dashboard = () => {
   const srOpt = useSrOptimized();
   const [totalProducts, setTotalProducts] = useState(0);
@@ -147,15 +156,35 @@ const Dashboard = () => {
     const text = isDark ? '#e5eef7' : '#1a3a3a';
     const grid = isDark ? 'rgba(229,238,247,0.12)' : 'rgba(26,58,58,0.12)';
     const border = isDark ? 'rgba(229,238,247,0.22)' : 'rgba(26,58,58,0.22)';
+    const values = chartData?.datasets?.[0]?.data ?? [];
+    const maxValue = values.reduce((max, value) => {
+      const numericValue = Number(value);
+      if (Number.isNaN(numericValue)) return max;
+      return Math.max(max, numericValue);
+    }, 0);
+    const stepSize = resolveInventoryTickStep(maxValue);
     return {
       responsive: true,
       plugins: { legend: { display: false } },
       scales: {
         x: { ticks: { color: text, font: { weight: chartFontWeight } }, grid: { color: grid, borderColor: border } },
-        y: { ticks: { color: text, font: { weight: chartFontWeight } }, grid: { color: grid, borderColor: border } },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: text,
+            font: { weight: chartFontWeight },
+            stepSize,
+            precision: 0,
+            callback: (value) => {
+              const numericValue = Number(value);
+              return Number.isInteger(numericValue) ? String(numericValue) : "";
+            },
+          },
+          grid: { color: grid, borderColor: border },
+        },
       },
     };
-  }, [isDark, chartFontWeight]);
+  }, [isDark, chartFontWeight, chartData]);
 
   return (
     <div {...srProps(srOpt, { role: 'main', 'aria-label': 'Conteúdo principal do dashboard' })}>

@@ -16,8 +16,10 @@ public class ProductResponseDTO {
     private Integer quantidadeReservada;
     private String marcador;
     private Integer usuario;
+    private String marketplaceResourceId;
+    private String marketplaceSource;
 
-    public ProductResponseDTO(Integer idProduto, String categoria, String marca, String nomeDoProduto, String estado, BigDecimal preco, String codigoDeBarras, Integer quantidade, Integer quantidadeReservada, String marcador, Integer usuario) {
+    public ProductResponseDTO(Integer idProduto, String categoria, String marca, String nomeDoProduto, String estado, BigDecimal preco, String codigoDeBarras, Integer quantidade, Integer quantidadeReservada, String marcador, Integer usuario, String marketplaceResourceId, String marketplaceSource) {
         this.idProduto = idProduto;
         this.categoria = categoria;
         this.marca = marca;
@@ -29,5 +31,7 @@ public class ProductResponseDTO {
         this.quantidadeReservada = quantidadeReservada;
         this.marcador = marcador;
         this.usuario = usuario;
+        this.marketplaceResourceId = marketplaceResourceId;
+        this.marketplaceSource = marketplaceSource;
     }
 }

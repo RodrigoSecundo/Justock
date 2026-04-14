@@ -7,6 +7,7 @@ import { useSrOptimized, srProps } from "../../utils/useA11y";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import DialogoReutilizavel from "../../components/common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";
+import { InputTextarea } from "primereact/inputtextarea";
 import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
@@ -25,13 +26,20 @@ const normalizeToDateOnly = (dateValue) => {
 };
 
 const Pedidos = () => {
-  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [modalOpen, setModalOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [editingOrder, setEditingOrder] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [newOrder, setNewOrder] = useState({ dataEmissao: null, dataEntrega: null, marketplace: "Manual", pagamento: DEFAULT_MANUAL_PAYMENT_STATUS, status: DEFAULT_MANUAL_ORDER_STATUS });
-  const [observation, setObservation] = useState("");
+  const [newOrder, setNewOrder] = useState({
+    dataEmissao: null,
+    dataEntrega: null,
+    marketplace: "Manual",
+    pagamento: DEFAULT_MANUAL_PAYMENT_STATUS,
+    status: DEFAULT_MANUAL_ORDER_STATUS,
+    observacao: "",
+  });
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [sortField, setSortField] = useState(null);
@@ -60,7 +68,7 @@ const Pedidos = () => {
       if (av == null && bv == null) return 0;
       if (av == null) return -1 * sortOrder;
       if (bv == null) return 1 * sortOrder;
-      if (typeof av === 'number' && typeof bv === 'number') {
+      if (typeof av === "number" && typeof bv === "number") {
         return (av - bv) * sortOrder;
       }
       return String(av).localeCompare(String(bv)) * sortOrder;
@@ -90,19 +98,32 @@ const Pedidos = () => {
     loadOrders();
   }, []);
 
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const today = normalizeToDateOnly(new Date());
 
-  const normalizeDate = (d) => {
-    return normalizeToDateOnly(d);
-  };
+  const normalizeDate = (dateValue) => normalizeToDateOnly(dateValue);
+
   const parseBRDate = (br) => {
     if (!br) return null;
-    const [day, month, year] = br.split('/').map((v) => parseInt(v, 10));
+    const [day, month, year] = br.split("/").map((value) => parseInt(value, 10));
     const dt = new Date(year, (month || 1) - 1, day || 1);
     dt.setHours(0, 0, 0, 0);
-    return isNaN(dt.getTime()) ? null : dt;
+    return Number.isNaN(dt.getTime()) ? null : dt;
   };
+
+  const toBR = (dateValue) => {
+    if (!dateValue) return "";
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "";
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const cloneOrderForModal = (order) => ({
+    ...order,
+    observacao: order?.observacao ?? "",
+  });
 
   const isDeliveryBeforeIssue = (issueDate, deliveryDate) => {
     const normalizedIssue = normalizeDate(issueDate);
@@ -117,30 +138,30 @@ const Pedidos = () => {
 
   const validateOrderDates = (issueDate, deliveryDate) => {
     if (!issueDate) {
-      notifyError('Data de emissão é obrigatória.');
+      notifyError("Data de emissão é obrigatória.");
       return false;
     }
 
     if (isDateAfterToday(issueDate)) {
-      notifyError('Data de emissão não pode ser futura.');
+      notifyError("Data de emissão não pode ser futura.");
       return false;
     }
 
     if (isDeliveryBeforeIssue(issueDate, deliveryDate)) {
-      notifyError('Data de entrega não pode ser anterior à data de emissão.');
+      notifyError("Data de entrega não pode ser anterior à data de emissão.");
       return false;
     }
 
     if (isDateAfterToday(deliveryDate)) {
-      notifyError('Data de entrega não pode ser futura.');
+      notifyError("Data de entrega não pode ser futura.");
       return false;
     }
 
     return true;
   };
 
-  const handleSelectedIssueDateChange = (value) => {
-    setSelectedOrder((currentOrder) => {
+  const handleEditingIssueDateChange = (value) => {
+    setEditingOrder((currentOrder) => {
       if (!currentOrder) return currentOrder;
 
       const nextIssueDate = value ? toBR(value) : "";
@@ -159,7 +180,9 @@ const Pedidos = () => {
     setNewOrder((currentOrder) => ({
       ...currentOrder,
       dataEmissao: value,
-      dataEntrega: isDeliveryBeforeIssue(value, currentOrder.dataEntrega) || isDateAfterToday(currentOrder.dataEntrega) ? null : currentOrder.dataEntrega,
+      dataEntrega: isDeliveryBeforeIssue(value, currentOrder.dataEntrega) || isDateAfterToday(currentOrder.dataEntrega)
+        ? null
+        : currentOrder.dataEntrega,
     }));
   };
 
@@ -175,10 +198,10 @@ const Pedidos = () => {
     const end = normalizeDate(endDate);
     if (start || end) {
       filtered = filtered.filter((order) => {
-        const od = parseBRDate(order.dataEmissao);
-        if (!od) return false;
-        const afterStart = start ? od.getTime() >= start.getTime() : true;
-        const beforeEnd = end ? od.getTime() <= end.getTime() : true;
+        const orderDate = parseBRDate(order.dataEmissao);
+        if (!orderDate) return false;
+        const afterStart = start ? orderDate.getTime() >= start.getTime() : true;
+        const beforeEnd = end ? orderDate.getTime() <= end.getTime() : true;
         return afterStart && beforeEnd;
       });
     }
@@ -186,37 +209,49 @@ const Pedidos = () => {
     if (filters.marketplace !== "Todos") {
       filtered = filtered.filter((order) => order.marketplace === filters.marketplace);
     }
+
     if (filters.status !== "Todos") {
       filtered = filtered.filter((order) => order.status === filters.status);
     }
 
     setFilteredOrders(sortOrders(filtered));
-    setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters({ search: "", period: null, marketplace: "Todos", status: "Todos" });
     setFilteredOrders(sortOrders(orders));
-    setCurrentPage(1);
   };
 
   const handleRowClick = (order) => {
-    setSelectedOrder(order);
-    setObservation("");
-    setModalOpen(true);
+    setSelectedOrder(cloneOrderForModal(order));
+    setViewOpen(true);
   };
 
-  const closeModal = () => {
-    setModalOpen(false);
+  const openEditModal = (order) => {
+    if (order?.isReadOnly) {
+      notifyError("Não é possível editar pedido originado de marketplace manualmente.");
+      return;
+    }
+
+    setEditingOrder(cloneOrderForModal(order));
+    setEditOpen(true);
+  };
+
+  const closeViewModal = () => {
+    setViewOpen(false);
     setSelectedOrder(null);
-    setObservation("");
+  };
+
+  const closeEditModal = () => {
+    setEditOpen(false);
+    setEditingOrder(null);
   };
 
   const saveOrder = async () => {
-    if (!selectedOrder) return;
+    if (!editingOrder) return;
 
-    const issueDate = parseBRDate(selectedOrder.dataEmissao);
-    const deliveryDate = selectedOrder.dataEntrega ? parseBRDate(selectedOrder.dataEntrega) : null;
+    const issueDate = parseBRDate(editingOrder.dataEmissao);
+    const deliveryDate = editingOrder.dataEntrega ? parseBRDate(editingOrder.dataEntrega) : null;
 
     if (!validateOrderDates(issueDate, deliveryDate)) {
       return;
@@ -224,18 +259,19 @@ const Pedidos = () => {
 
     try {
       setIsUpdatingOrder(true);
-      const updatedOrder = await updatePedido(selectedOrder.id, {
-        idPedidoMarketplace: selectedOrder.idPedidoMarketplace ?? selectedOrder.marketplace,
-        marketplace: selectedOrder.marketplace,
+      const updatedOrder = await updatePedido(editingOrder.id, {
+        idPedidoMarketplace: editingOrder.idPedidoMarketplace ?? editingOrder.marketplace,
+        marketplace: editingOrder.marketplace,
         dataEmissao: issueDate,
         dataEntrega: deliveryDate,
-        pagamento: selectedOrder.pagamento,
-        status: selectedOrder.status,
+        pagamento: editingOrder.pagamento,
+        status: editingOrder.status,
+        observacao: editingOrder.observacao,
       });
 
       await loadOrders();
       notifySuccess(`Pedido #${updatedOrder.numeroPedido ?? updatedOrder.id} atualizado.`);
-      closeModal();
+      closeEditModal();
     } catch (error) {
       notifyError(error?.message || "Não foi possível atualizar o pedido.");
     } finally {
@@ -243,26 +279,26 @@ const Pedidos = () => {
     }
   };
 
-  // Utilidades
-  const toBR = (d) => {
-    if (!d) return "";
-    const dd = new Date(d);
-    if (Number.isNaN(dd.getTime())) return "";
-    const day = String(dd.getDate()).padStart(2, '0');
-    const mon = String(dd.getMonth() + 1).padStart(2, '0');
-    const yr = dd.getFullYear();
-    return `${day}/${mon}/${yr}`;
-  };
   const nextOrderId = () => {
-    const ids = orders.map(o => Number(o.id) || 0);
+    const ids = orders.map((order) => Number(order.id) || 0);
     const max = ids.length ? Math.max(...ids) : 0;
     return max + 1;
   };
+
   const openAdd = () => {
-    setNewOrder({ dataEmissao: null, dataEntrega: null, marketplace: "Manual", pagamento: DEFAULT_MANUAL_PAYMENT_STATUS, status: DEFAULT_MANUAL_ORDER_STATUS });
+    setNewOrder({
+      dataEmissao: null,
+      dataEntrega: null,
+      marketplace: "Manual",
+      pagamento: DEFAULT_MANUAL_PAYMENT_STATUS,
+      status: DEFAULT_MANUAL_ORDER_STATUS,
+      observacao: "",
+    });
     setAddOpen(true);
   };
+
   const cancelAdd = () => setAddOpen(false);
+
   const confirmAdd = async () => {
     if (!validateOrderDates(newOrder.dataEmissao, newOrder.dataEntrega)) {
       return;
@@ -276,6 +312,7 @@ const Pedidos = () => {
         dataEntrega: newOrder.dataEntrega,
         pagamento: newOrder.pagamento,
         status: newOrder.status,
+        observacao: newOrder.observacao,
       });
 
       await loadOrders();
@@ -290,7 +327,6 @@ const Pedidos = () => {
 
   const handleFilterChange = (key, value) => {
     if (key === "period") {
-      // Garante que início <= final quando as duas datas forem escolhidas
       let normalized = value;
       if (Array.isArray(value) && value[0] && value[1]) {
         const a = normalizeDate(value[0]);
@@ -298,15 +334,16 @@ const Pedidos = () => {
         normalized = a && b && a.getTime() > b.getTime() ? [b, a] : [a, b];
       }
       setFilters((prev) => ({ ...prev, period: normalized }));
-    } else {
-      setFilters({ ...filters, [key]: value });
+      return;
     }
+
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSort = (e) => {
-    if (!e.sortField) return;
-    if (sortField !== e.sortField) {
-      setSortField(e.sortField);
+  const handleSort = (event) => {
+    if (!event.sortField) return;
+    if (sortField !== event.sortField) {
+      setSortField(event.sortField);
       setSortOrder(1);
       return;
     }
@@ -321,15 +358,15 @@ const Pedidos = () => {
   };
 
   const renderOrderNumber = (order) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
       <span>{order.numeroPedido}</span>
-      {order.marketplaceSource === 'MERCADO_LIVRE' && (
-        <span style={{ fontSize: '0.7rem', padding: '2px 5px', backgroundColor: '#ffe600', color: '#2d3277', border: '1px solid #d4c000', borderRadius: '4px', fontWeight: 'bold' }}>
+      {order.marketplaceSource === "MERCADO_LIVRE" && (
+        <span style={{ fontSize: "0.7rem", padding: "2px 5px", backgroundColor: "#ffe600", color: "#2d3277", border: "1px solid #d4c000", borderRadius: "4px", fontWeight: "bold" }}>
           MERCADO LIVRE
         </span>
       )}
-      {order.marketplaceSource === 'MANUAL' && (
-        <span style={{ fontSize: '0.7rem', padding: '2px 5px', backgroundColor: '#dff6e4', color: '#21613b', border: '1px solid #a8d5b5', borderRadius: '4px', fontWeight: 'bold' }}>
+      {order.marketplaceSource === "MANUAL" && (
+        <span style={{ fontSize: "0.7rem", padding: "2px 5px", backgroundColor: "#dff6e4", color: "#21613b", border: "1px solid #a8d5b5", borderRadius: "4px", fontWeight: "bold" }}>
           MANUAL
         </span>
       )}
@@ -337,133 +374,203 @@ const Pedidos = () => {
   );
 
   return (
-    <div {...srProps(srOpt, { role: 'main', 'aria-label': 'Lista de pedidos' })}>
-          <div className="pedidos-header prime-filtro">
-            <div className="filter-group">
-              <label htmlFor="filtro-pedido">Nº Pedido:</label>
-              <InputText
-                className="filter-search"
-                value={filters.search}
-                onChange={(e) => handleFilterChange("search", e.target.value)}
-                id="filtro-pedido"
-                placeholder="Buscar por Nº Pedido"
-              />
-            </div>
+    <div {...srProps(srOpt, { role: "main", "aria-label": "Lista de pedidos" })}>
+      <div className="pedidos-header prime-filtro">
+        <div className="filter-group">
+          <label htmlFor="filtro-pedido">Nº Pedido:</label>
+          <InputText
+            className="filter-search"
+            value={filters.search}
+            onChange={(event) => handleFilterChange("search", event.target.value)}
+            id="filtro-pedido"
+            placeholder="Buscar por Nº Pedido"
+          />
+        </div>
 
-            <div className="filter-group">
-              <label htmlFor="filtro-periodo">Período:</label>
-              <Calendar
-                inputId="filtro-periodo"
-                value={filters.period}
-                onChange={(e) => handleFilterChange("period", e.value)}
-                selectionMode="range"
-                dateFormat="dd/mm/yy"
-                placeholder="Selecionar"
-                className="filter-date-range"
-                appendTo={null}
-                panelClassName="jt-calendar-dropdown"
-                monthNavigator
-                yearNavigator
-              />
-            </div>
+        <div className="filter-group">
+          <label htmlFor="filtro-periodo">Período:</label>
+          <Calendar
+            inputId="filtro-periodo"
+            value={filters.period}
+            onChange={(event) => handleFilterChange("period", event.value)}
+            selectionMode="range"
+            dateFormat="dd/mm/yy"
+            placeholder="Selecionar"
+            className="filter-date-range"
+            appendTo={null}
+            panelClassName="jt-calendar-dropdown"
+            monthNavigator
+            yearNavigator
+          />
+        </div>
 
-            <div className="filter-group">
-              <label htmlFor="filtro-loja">Lojas:</label>
-              <Dropdown
-                className="filter-select w-full"
-                value={filters.marketplace}
-                inputId="filtro-loja"
-                onChange={(e) => handleFilterChange("marketplace", e.value)}
-                options={[ 'Todos', 'Mercado Livre', 'Amazon', 'Shopee', 'Manual' ]}
-                placeholder="Selecione"
-                appendTo="self"
-              />
-            </div>
+        <div className="filter-group">
+          <label htmlFor="filtro-loja">Lojas:</label>
+          <Dropdown
+            className="filter-select w-full"
+            value={filters.marketplace}
+            inputId="filtro-loja"
+            onChange={(event) => handleFilterChange("marketplace", event.value)}
+            options={["Todos", "Mercado Livre", "Amazon", "Shopee", "Manual"]}
+            placeholder="Selecione"
+            appendTo="self"
+          />
+        </div>
 
-            <div className="filter-group">
-              <label htmlFor="filtro-status">Status:</label>
-              <Dropdown
-                className="filter-select w-full"
-                value={filters.status}
-                inputId="filtro-status"
-                onChange={(e) => handleFilterChange("status", e.value)}
-                options={[ 'Todos', ...MANUAL_ORDER_STATUS_OPTIONS ]}
-                placeholder="Selecione"
-                appendTo="self"
-              />
-            </div>
+        <div className="filter-group">
+          <label htmlFor="filtro-status">Status:</label>
+          <Dropdown
+            className="filter-select w-full"
+            value={filters.status}
+            inputId="filtro-status"
+            onChange={(event) => handleFilterChange("status", event.value)}
+            options={["Todos", ...MANUAL_ORDER_STATUS_OPTIONS]}
+            placeholder="Selecione"
+            appendTo="self"
+          />
+        </div>
 
-            <button className="filter-button" onClick={applyFilters} {...srProps(srOpt, { 'aria-label': 'Aplicar filtros' })}>Filtrar</button>
+        <button className="filter-button" onClick={applyFilters} {...srProps(srOpt, { "aria-label": "Aplicar filtros" })}>Filtrar</button>
 
-            {(filters.search ||
-              (Array.isArray(filters.period) && (filters.period[0] || filters.period[1])) ||
-              filters.marketplace !== "Todos" ||
-              filters.status !== "Todos") && (
-              <button className="clear-filter-button" onClick={clearFilters} {...srProps(srOpt, { 'aria-label': 'Limpar filtros' })}>
-                Limpar Filtro
-              </button>
-            )}
-          </div>
+        {(filters.search ||
+          (Array.isArray(filters.period) && (filters.period[0] || filters.period[1])) ||
+          filters.marketplace !== "Todos" ||
+          filters.status !== "Todos") && (
+          <button className="clear-filter-button" onClick={clearFilters} {...srProps(srOpt, { "aria-label": "Limpar filtros" })}>
+            Limpar Filtro
+          </button>
+        )}
+      </div>
 
-          <div className="pedidos-table-container" {...srProps(srOpt, { role: 'region', 'aria-label': 'Tabela de pedidos' })}>
-            <DataTable
-              value={filteredOrders}
-              paginator
-              rows={itemsPerPage}
-              className="w-full tabela-pedidos"
-              emptyMessage="Nenhum pedido encontrado"
-              rowHover
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-            >
-              <Column field="numeroPedido" header="Nº Pedido" sortable body={renderOrderNumber} />
-              <Column field="dataEmissao" header="Data Emissão" sortable />
-              <Column field="dataEntrega" header="Data Entrega" sortable />
-              <Column field="marketplace" header="Marketplace" sortable />
-              <Column field="pagamento" header="Pagamento" sortable />
-              <Column field="status" header="Status Atual" sortable />
-              <Column
-                header=""
-                style={{ width: '3rem', textAlign: 'center' }}
-                body={(order) => (
-                  <Button
-                    icon="pi pi-pencil"
-                    className="p-button-sm p-button-rounded p-button-text btn-acao-editar"
-                    onClick={() => handleRowClick(order)}
-                    tooltip={order.isReadOnly ? "Pedido sincronizado do Mercado Livre é somente leitura" : "Editar pedido"}
-                    tooltipOptions={{ position: 'top' }}
-                    aria-label={`Editar pedido ${order.numeroPedido}`}
-                    disabled={order.isReadOnly}
-                  />
-                )}
-              />
-            </DataTable>
-          </div>
-
-          <div className="pedidos-footer flex justify-content-between align-items-center mt-3">
-            <button className="add-button" onClick={openAdd} {...srProps(srOpt, { 'aria-label': 'Adicionar pedido' })}>Adicionar Pedido</button>
-            <span className="text-600">Total: {filteredOrders.length}</span>
-          </div>
-      
-      {modalOpen && selectedOrder && (
-        <DialogoReutilizavel
-          visible={modalOpen}
-          onHide={closeModal}
-          header={`Editar Pedido #${selectedOrder.numeroPedido}`}
-          position="right"
-          width="480px"
+      <div className="pedidos-table-container" {...srProps(srOpt, { role: "region", "aria-label": "Tabela de pedidos" })}>
+        <DataTable
+          value={filteredOrders}
+          paginator
+          rows={itemsPerPage}
+          className="w-full tabela-pedidos"
+          emptyMessage="Nenhum pedido encontrado"
+          rowHover
+          onRowClick={(event) => handleRowClick(event.data)}
+          rowClassName={() => "pedido-row-clickable"}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSort={handleSort}
         >
-          <div role="form" aria-label="Editar pedido" className="flex flex-column gap-3 p-2">
-            <div className="flex flex-column gap-2">
-              <label>Nº do pedido</label>
-              <InputText value={selectedOrder.numeroPedido} readOnly />
+          <Column field="numeroPedido" header="Nº Pedido" sortable body={renderOrderNumber} />
+          <Column field="dataEmissao" header="Data Emissão" sortable />
+          <Column field="dataEntrega" header="Data Entrega" sortable />
+          <Column field="marketplace" header="Marketplace" sortable />
+          <Column field="pagamento" header="Pagamento" sortable />
+          <Column field="status" header="Status Atual" sortable />
+          <Column
+            header=""
+            style={{ width: "3rem", textAlign: "center" }}
+            body={(order) => (
+              <Button
+                icon="pi pi-pencil"
+                className={`p-button-sm p-button-rounded p-button-text btn-acao-editar ${order.isReadOnly ? "btn-acao-bloqueada" : ""}`.trim()}
+                onClick={(event) => {
+                  event.originalEvent?.stopPropagation?.();
+                  openEditModal(order);
+                }}
+                tooltip={order.isReadOnly ? null : "Editar pedido"}
+                tooltipOptions={{ position: "top" }}
+                aria-label={`Editar pedido ${order.numeroPedido}`}
+              />
+            )}
+          />
+        </DataTable>
+      </div>
+
+      <div className="pedidos-footer flex justify-content-between align-items-center mt-3">
+        <button className="add-button" onClick={openAdd} {...srProps(srOpt, { "aria-label": "Adicionar pedido" })}>Adicionar Pedido</button>
+        <span className="text-600">Total: {filteredOrders.length}</span>
+      </div>
+
+      {viewOpen && selectedOrder && (
+        <DialogoReutilizavel
+          visible={viewOpen}
+          onHide={closeViewModal}
+          header={`Pedido #${selectedOrder.numeroPedido}`}
+          position="top"
+          width="min(960px, 92vw)"
+          className="pedido-visualizacao-modal"
+          contentClassName="pedido-visualizacao-conteudo"
+        >
+          <div aria-label="Visualizar pedido" className="pedido-visualizacao-dialog flex flex-column gap-4 p-2">
+            <div className="pedido-detalhe-grid">
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Nº interno</span>
+                <strong>{selectedOrder.numeroPedido}</strong>
+              </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Marketplace</span>
+                <strong>{selectedOrder.marketplace}</strong>
+              </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Pagamento</span>
+                <strong>{selectedOrder.pagamento}</strong>
+              </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Status</span>
+                <strong>{selectedOrder.status}</strong>
+              </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Data de emissão</span>
+                <strong>{selectedOrder.dataEmissao || "-"}</strong>
+              </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Data de entrega</span>
+                <strong>{selectedOrder.dataEntrega || "-"}</strong>
+              </div>
+            </div>
+
+            <div className="pedido-info-bloco">
+              <span className="pedido-detalhe-label">Observação</span>
+              <div className="pedido-observacao-view">
+                {selectedOrder.observacao?.trim() || "Sem observações para este pedido."}
+              </div>
+            </div>
+
+            <div className="flex justify-content-end gap-2">
+              <Button label="Fechar" severity="secondary" onClick={closeViewModal} />
+            </div>
+          </div>
+        </DialogoReutilizavel>
+      )}
+
+      {editOpen && editingOrder && (
+        <DialogoReutilizavel
+          visible={editOpen}
+          onHide={closeEditModal}
+          header={`Editar Pedido #${editingOrder.numeroPedido}`}
+          position="right"
+          width="560px"
+        >
+          <div role="form" aria-label="Editar pedido" className="pedido-detalhe-dialog flex flex-column gap-3 p-2">
+            <div className="pedido-detalhe-grid">
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Nº interno</span>
+                <strong>{editingOrder.numeroPedido}</strong>
+              </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Origem</span>
+                <strong>{editingOrder.marketplace}</strong>
+              </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Pagamento</span>
+                <strong>{editingOrder.pagamento}</strong>
+              </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Status</span>
+                <strong>{editingOrder.status}</strong>
+              </div>
             </div>
             <div className="flex flex-column gap-2">
               <label>Data de emissão</label>
               <Calendar
-                value={parseBRDate(selectedOrder.dataEmissao)}
-                onChange={(e) => handleSelectedIssueDateChange(e.value)}
+                value={parseBRDate(editingOrder.dataEmissao)}
+                onChange={(event) => handleEditingIssueDateChange(event.value)}
                 maxDate={today}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
@@ -476,9 +583,9 @@ const Pedidos = () => {
             <div className="flex flex-column gap-2">
               <label>Data de entrega</label>
               <Calendar
-                value={selectedOrder.dataEntrega ? parseBRDate(selectedOrder.dataEntrega) : null}
-                onChange={(e) => setSelectedOrder(o => ({ ...o, dataEntrega: e.value ? toBR(e.value) : "" }))}
-                minDate={selectedOrder.dataEmissao ? parseBRDate(selectedOrder.dataEmissao) : null}
+                value={editingOrder.dataEntrega ? parseBRDate(editingOrder.dataEntrega) : null}
+                onChange={(event) => setEditingOrder((order) => ({ ...order, dataEntrega: event.value ? toBR(event.value) : "" }))}
+                minDate={editingOrder.dataEmissao ? parseBRDate(editingOrder.dataEmissao) : null}
                 maxDate={today}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
@@ -486,24 +593,18 @@ const Pedidos = () => {
                 panelClassName="jt-calendar-dropdown"
                 monthNavigator
                 yearNavigator
-                disabled={!selectedOrder.dataEmissao}
+                disabled={!editingOrder.dataEmissao}
               />
             </div>
             <div className="flex flex-column gap-2">
               <label>Marketplace</label>
-              <Dropdown
-                value={selectedOrder.marketplace}
-                onChange={(e) => setSelectedOrder(o => ({ ...o, marketplace: e.value }))}
-                options={[ 'Mercado Livre', 'Amazon', 'Shopee', 'Manual' ]}
-                placeholder="Selecione"
-                appendTo="self"
-              />
+              <InputText value={editingOrder.marketplace} readOnly />
             </div>
             <div className="flex flex-column gap-2">
               <label>Pagamento</label>
               <Dropdown
-                value={selectedOrder.pagamento}
-                onChange={(e) => setSelectedOrder(o => ({ ...o, pagamento: e.value }))}
+                value={editingOrder.pagamento}
+                onChange={(event) => setEditingOrder((order) => ({ ...order, pagamento: event.value }))}
                 options={MANUAL_PAYMENT_STATUS_OPTIONS}
                 placeholder="Selecione"
                 appendTo="self"
@@ -512,8 +613,8 @@ const Pedidos = () => {
             <div className="flex flex-column gap-2">
               <label>Status atual</label>
               <Dropdown
-                value={selectedOrder.status}
-                onChange={(e) => setSelectedOrder(o => ({ ...o, status: e.value }))}
+                value={editingOrder.status}
+                onChange={(event) => setEditingOrder((order) => ({ ...order, status: event.value }))}
                 options={MANUAL_ORDER_STATUS_OPTIONS}
                 placeholder="Selecione"
                 appendTo="self"
@@ -521,14 +622,16 @@ const Pedidos = () => {
             </div>
             <div className="flex flex-column gap-2">
               <label>Observação</label>
-              <InputText
-                value={observation}
-                onChange={(e) => setObservation(e.target.value)}
-                placeholder="Digite uma observação..."
+              <InputTextarea
+                value={editingOrder.observacao ?? ""}
+                onChange={(event) => setEditingOrder((order) => ({ ...order, observacao: event.target.value }))}
+                placeholder="Digite uma observação para o vendedor..."
+                rows={4}
+                autoResize
               />
             </div>
             <div className="flex justify-content-end gap-2 mt-2">
-              <Button label="Cancelar" severity="secondary" onClick={closeModal} />
+              <Button label="Cancelar" severity="secondary" onClick={closeEditModal} />
               <Button label="Salvar" icon="pi pi-check" onClick={saveOrder} loading={isUpdatingOrder} disabled={isUpdatingOrder} />
             </div>
           </div>
@@ -536,7 +639,7 @@ const Pedidos = () => {
       )}
 
       {addOpen && (
-  <DialogoReutilizavel
+        <DialogoReutilizavel
           visible={addOpen}
           onHide={cancelAdd}
           header="Novo Pedido"
@@ -552,7 +655,7 @@ const Pedidos = () => {
               <label>Data de emissão (obrigatória)</label>
               <Calendar
                 value={newOrder.dataEmissao}
-                onChange={(e) => handleNewIssueDateChange(e.value)}
+                onChange={(event) => handleNewIssueDateChange(event.value)}
                 maxDate={today}
                 dateFormat="dd/mm/yy"
                 placeholder="Selecione a data"
@@ -566,7 +669,7 @@ const Pedidos = () => {
               <label>Data de entrega (opcional)</label>
               <Calendar
                 value={newOrder.dataEntrega}
-                onChange={(e) => setNewOrder(v => ({ ...v, dataEntrega: e.value }))}
+                onChange={(event) => setNewOrder((value) => ({ ...value, dataEntrega: event.value }))}
                 minDate={newOrder.dataEmissao || null}
                 maxDate={today}
                 dateFormat="dd/mm/yy"
@@ -584,20 +687,40 @@ const Pedidos = () => {
             </div>
             <div className="flex flex-column gap-2">
               <label>Pagamento</label>
-              <Dropdown value={newOrder.pagamento} onChange={(e) => setNewOrder(v => ({ ...v, pagamento: e.value }))}
-                options={MANUAL_PAYMENT_STATUS_OPTIONS} placeholder="Selecione" appendTo="self" />
+              <Dropdown
+                value={newOrder.pagamento}
+                onChange={(event) => setNewOrder((value) => ({ ...value, pagamento: event.value }))}
+                options={MANUAL_PAYMENT_STATUS_OPTIONS}
+                placeholder="Selecione"
+                appendTo="self"
+              />
             </div>
             <div className="flex flex-column gap-2">
               <label>Status atual</label>
-              <Dropdown value={newOrder.status} onChange={(e) => setNewOrder(v => ({ ...v, status: e.value }))}
-                options={MANUAL_ORDER_STATUS_OPTIONS} placeholder="Selecione" appendTo="self" />
+              <Dropdown
+                value={newOrder.status}
+                onChange={(event) => setNewOrder((value) => ({ ...value, status: event.value }))}
+                options={MANUAL_ORDER_STATUS_OPTIONS}
+                placeholder="Selecione"
+                appendTo="self"
+              />
+            </div>
+            <div className="flex flex-column gap-2">
+              <label>Observação</label>
+              <InputTextarea
+                value={newOrder.observacao ?? ""}
+                onChange={(event) => setNewOrder((value) => ({ ...value, observacao: event.target.value }))}
+                rows={4}
+                autoResize
+                placeholder="Digite uma observação para o vendedor..."
+              />
             </div>
             <div className="flex justify-content-end gap-2 mt-2">
               <Button label="Cancelar" severity="secondary" onClick={cancelAdd} />
               <Button label="Adicionar Pedido" icon="pi pi-check" onClick={confirmAdd} loading={isSavingOrder} disabled={isSavingOrder} />
             </div>
           </div>
-  </DialogoReutilizavel>
+        </DialogoReutilizavel>
       )}
     </div>
   );

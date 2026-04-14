@@ -46,6 +46,7 @@ public class OrderService {
         order.setStatusPedido(normalizedStatus);
         order.setMarketplaceSource(resolveMarketplaceSource(dto.getIdPedidoMarketplace()));
         order.setMarketplaceResourceId(null);
+        order.setObservacao(normalizeObservation(dto.getObservacao()));
         return orderRepository.save(order);
     }
 
@@ -57,6 +58,7 @@ public class OrderService {
 
         Order existingOrder = orderRepository.findById(id).orElse(null);
         if (existingOrder != null) {
+            ensureManualOrder(existingOrder);
             existingOrder.setIdPedidoMarketplace(dto.getIdPedidoMarketplace());
             existingOrder.setUsuarioMarketplaceId(dto.getUsuarioMarketplaceId());
             existingOrder.setDataEntrega(dto.getDataEntrega());
@@ -64,13 +66,16 @@ public class OrderService {
             existingOrder.setStatusPagamento(normalizedPaymentStatus);
             existingOrder.setStatusPedido(normalizedStatus);
             existingOrder.setMarketplaceSource(resolveMarketplaceSource(dto.getIdPedidoMarketplace()));
+            existingOrder.setObservacao(normalizeObservation(dto.getObservacao()));
             return orderRepository.save(existingOrder);
         }
         return null;
     }
 
     public boolean deleteOrder(int id) {
-        if (orderRepository.existsById(id)) {
+        Order existingOrder = orderRepository.findById(id).orElse(null);
+        if (existingOrder != null) {
+            ensureManualOrder(existingOrder);
             orderRepository.deleteById(id);
             return true;
         }
@@ -134,5 +139,21 @@ public class OrderService {
             case 4 -> "MANUAL";
             default -> null;
         };
+    }
+
+    private String normalizeObservation(String observacao) {
+        if (observacao == null) {
+            return null;
+        }
+
+        String trimmedObservation = observacao.trim();
+        return trimmedObservation.isEmpty() ? null : trimmedObservation;
+    }
+
+    private void ensureManualOrder(Order order) {
+        boolean marketplaceManaged = order.getMarketplaceSource() != null && !order.getMarketplaceSource().isBlank();
+        if (marketplaceManaged) {
+            throw new BadRequestException("Pedidos sincronizados de marketplace não podem ser editados ou excluídos manualmente.");
+        }
     }
 }

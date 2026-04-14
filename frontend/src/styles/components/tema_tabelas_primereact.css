@@ -43,6 +43,15 @@
   background: #d1d5db !important;
 }
 
+.btn-acao-bloqueada {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+.btn-acao-bloqueada:hover {
+  background: #e5e7eb !important;
+}
+
 [data-theme="dark"] .btn-acao-editar {
   background: #020617 !important; /* quase preto no dark */
   border-color: #1f2937 !important;
@@ -53,6 +62,10 @@
 }
 [data-theme="dark"] .btn-acao-editar:hover {
   background: #111827 !important;
+}
+
+[data-theme="dark"] .btn-acao-bloqueada:hover {
+  background: #020617 !important;
 }
 
 /* (removidos estilos específicos de marcador que não são mais usados) */

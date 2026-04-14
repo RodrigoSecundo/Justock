@@ -37,4 +37,7 @@ public class Order {
 
     @Column(name = "marketplace_source")
     private String marketplaceSource;
+
+    @Column(name = "observacao")
+    private String observacao;
 }

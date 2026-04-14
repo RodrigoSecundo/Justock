@@ -30,7 +30,7 @@ public class ProductController {
     public ApiResponseDTO<List<ProductResponseDTO>> index() {
         List<ProductResponseDTO> products = productService.listAllProducts()
                 .stream()
-                .map(p -> new ProductResponseDTO(p.getIdProduto(), p.getCategoria(), p.getMarca(), p.getNomeDoProduto(), p.getEstado(), p.getPreco(), p.getCodigoDeBarras(), p.getQuantidade(), p.getQuantidadeReservada(), p.getMarcador(), p.getUsuario()))
+            .map(p -> new ProductResponseDTO(p.getIdProduto(), p.getCategoria(), p.getMarca(), p.getNomeDoProduto(), p.getEstado(), p.getPreco(), p.getCodigoDeBarras(), p.getQuantidade(), p.getQuantidadeReservada(), p.getMarcador(), p.getUsuario(), p.getMarketplaceResourceId(), p.getMarketplaceSource()))
                 .collect(Collectors.toList());
         return new ApiResponseDTO<>(200, "Produtos encontrados!", products);
     }
@@ -43,7 +43,7 @@ public class ProductController {
         if (product == null) {
             return new ApiResponseDTO<>(404, "Produto não encontrado!", null);
         }
-        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario());
+        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
         return new ApiResponseDTO<>(200, "Produto encontrado!", dto);
     }
 
@@ -52,7 +52,7 @@ public class ProductController {
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<ProductResponseDTO> store(@Valid @RequestBody ProductCreateRequest request) {
         Product product = productService.createProduct(request);
-        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario());
+        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
         return new ApiResponseDTO<>(200, "Produto cadastrado com sucesso!", dto);
     }
 
@@ -64,7 +64,7 @@ public class ProductController {
         if (product == null) {
             return new ApiResponseDTO<>(404, "Produto não encontrado!", null);
         }
-        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario());
+        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
         return new ApiResponseDTO<>(200, "Produto atualizado!", dto);
     }
 

@@ -332,6 +332,11 @@ const Produtos = () => {
   };
 
   const handleOpenEdit = (product) => {
+    if (product?.isReadOnly) {
+      notifyError("Produtos sincronizados de marketplace não podem ser editados manualmente.");
+      return;
+    }
+
     setEditProduct(product);
     setIsEditOpen(true);
   };
@@ -352,6 +357,11 @@ const Produtos = () => {
   };
 
   const handleDeleteProduct = async (product) => {
+    if (product?.isReadOnly) {
+      notifyError("Produtos sincronizados de marketplace não podem ser excluídos manualmente.");
+      return;
+    }
+
     const confirmed = window.confirm(`Deseja realmente excluir o produto \"${product.nome}\"?`);
     if (!confirmed) return;
 
@@ -498,17 +508,17 @@ const Produtos = () => {
                   <div className="flex gap-1 justify-content-center">
                     <Button
                       icon="pi pi-pencil"
-                      className="p-button-sm p-button-rounded p-button-text btn-acao-editar"
+                      className={`p-button-sm p-button-rounded p-button-text btn-acao-editar ${product.isReadOnly ? 'btn-acao-bloqueada' : ''}`.trim()}
                       onClick={() => handleOpenEdit(product)}
-                      tooltip="Editar"
+                      tooltip={product.isReadOnly ? null : "Editar"}
                       tooltipOptions={{ position: 'top' }}
                       aria-label="Editar produto"
                     />
                     <Button
                       icon="pi pi-trash"
-                      className="p-button-sm p-button-rounded p-button-text btn-acao-editar"
+                      className={`p-button-sm p-button-rounded p-button-text btn-acao-editar ${product.isReadOnly ? 'btn-acao-bloqueada' : ''}`.trim()}
                       onClick={() => handleDeleteProduct(product)}
-                      tooltip="Excluir"
+                      tooltip={product.isReadOnly ? null : "Excluir"}
                       tooltipOptions={{ position: 'top' }}
                       aria-label="Excluir produto"
                       loading={deletingProductId === product.id}

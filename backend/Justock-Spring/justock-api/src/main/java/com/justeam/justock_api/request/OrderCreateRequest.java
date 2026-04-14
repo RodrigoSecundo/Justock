@@ -10,6 +10,7 @@ public class OrderCreateRequest {
     private LocalDate dataEmissao;
     private String statusPagamento;
     private String statusPedido;
+    private String observacao;
 
     // Getters e Setters
     public Integer getIdPedidoMarketplace() { return idPedidoMarketplace; }
@@ -29,4 +30,7 @@ public class OrderCreateRequest {
 
     public String getStatusPedido() { return statusPedido; }
     public void setStatusPedido(String statusPedido) { this.statusPedido = statusPedido; }
+
+    public String getObservacao() { return observacao; }
+    public void setObservacao(String observacao) { this.observacao = observacao; }
 }

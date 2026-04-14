@@ -1,5 +1,6 @@
 package com.justeam.justock_api.service;
 
+import com.justeam.justock_api.exception.BadRequestException;
 import com.justeam.justock_api.model.Product;
 import com.justeam.justock_api.repository.ProductRepository;
 import com.justeam.justock_api.request.ProductCreateRequest;
@@ -49,6 +50,7 @@ public class ProductService {
     public Product updateProduct(Integer id, ProductUpdateRequest dto) {
         Product existingProduct = productRepository.findById(id).orElse(null);
         if (existingProduct != null) {
+            ensureManualProduct(existingProduct);
             if (dto.getCategoria() != null) existingProduct.setCategoria(dto.getCategoria());
             if (dto.getMarca() != null) existingProduct.setMarca(dto.getMarca());
             if (dto.getNomeDoProduto() != null) existingProduct.setNomeDoProduto(dto.getNomeDoProduto());
@@ -65,10 +67,22 @@ public class ProductService {
     }
 
     public boolean deleteProduct(Integer id) {
-        if (productRepository.existsById(id)) {
+        Product existingProduct = productRepository.findById(id).orElse(null);
+        if (existingProduct != null) {
+            ensureManualProduct(existingProduct);
             productRepository.deleteById(id);
             return true;
         }
         return false;
+    }
+
+    private void ensureManualProduct(Product product) {
+        boolean marketplaceManaged = (product.getMarketplaceSource() != null && !product.getMarketplaceSource().isBlank())
+                || (product.getMarketplaceResourceId() != null && !product.getMarketplaceResourceId().isBlank())
+                || "ML".equalsIgnoreCase(product.getMarcador());
+
+        if (marketplaceManaged) {
+            throw new BadRequestException("Produtos sincronizados de marketplace não podem ser editados ou excluídos manualmente.");
+        }
     }
 }

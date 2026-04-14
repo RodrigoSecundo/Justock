@@ -46,8 +46,7 @@ public class MercadoLivreService {
             "payment_required",
             "payment_in_process",
             "partially_paid",
-            "paid",
-            "partially_refunded");
+            "paid");
 
     @Value("${mercadolivre.client.id}")
     private String clientId;
@@ -71,6 +70,7 @@ public class MercadoLivreService {
     private final WebhookEventRepository webhookEventRepository;
     private final ObjectMapper objectMapper;
     private final Map<String, String> pkceVerifierByState = new ConcurrentHashMap<>();
+    private final Map<String, String> categoryNameCache = new ConcurrentHashMap<>();
 
     public MercadoLivreService(RestTemplate restTemplate, UserMarketplaceRepository userMarketplaceRepository,
             ProductRepository productRepository,
@@ -134,15 +134,9 @@ public class MercadoLivreService {
         summary.put("connected", Boolean.TRUE);
         summary.put("sellerId", connection.getIdLoja());
 
-        try {
-            summary.put("totalVendas", fetchTotalOrders(connection, false));
-            summary.put("pedidosAtivos", fetchTotalOrders(connection, true));
-            summary.put("totalInventario", fetchTotalInventory(connection));
-        } catch (Exception ignored) {
-            summary.put("totalVendas", 0);
-            summary.put("pedidosAtivos", 0);
-            summary.put("totalInventario", 0);
-        }
+        summary.put("totalVendas", safeCount(() -> fetchTotalOrders(connection, false)));
+        summary.put("pedidosAtivos", safeCount(() -> fetchTotalOrders(connection, true)));
+        summary.put("totalInventario", safeCount(() -> fetchTotalInventory(connection)));
 
         return summary;
     }
@@ -287,10 +281,11 @@ public class MercadoLivreService {
         BigDecimal price = new BigDecimal(priceNum.toString());
         Integer quantity = availableQty.intValue();
         String brand = extractBrand(itemMap);
+        String category = resolveNormalizedCategory(itemMap, title);
 
         Product product = productRepository.findByMarketplaceResourceIdAndUsuario(mlId, usuarioId)
             .orElseGet(Product::new);
-        product.setCategoria("Mercado Livre");
+        product.setCategoria(category);
         product.setMarca(brand);
         product.setNomeDoProduto(title);
         product.setEstado("Ativo");
@@ -318,6 +313,7 @@ public class MercadoLivreService {
         order.setStatusPagamento(mapMercadoLivrePaymentStatus(orderMap));
         order.setMarketplaceSource("MERCADO_LIVRE");
         order.setMarketplaceResourceId(resourceId);
+        order.setObservacao(buildMarketplaceOrderObservation(orderMap, resourceId));
 
         orderRepository.save(order);
     }
@@ -525,6 +521,19 @@ public class MercadoLivreService {
         return 0;
     }
 
+    private int safeCount(CountSupplier supplier) {
+        try {
+            return supplier.get();
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    @FunctionalInterface
+    private interface CountSupplier {
+        int get();
+    }
+
     private LocalDate parseMercadoLivreDate(Object rawValue) {
         if (rawValue == null) {
             return null;
@@ -605,6 +614,115 @@ public class MercadoLivreService {
         }
 
         return "N/A";
+    }
+
+    private String resolveNormalizedCategory(Map<String, Object> itemMap, String title) {
+        String categoryId = itemMap.get("category_id") == null ? null : String.valueOf(itemMap.get("category_id"));
+        String marketplaceCategoryName = fetchMarketplaceCategoryName(categoryId);
+        String normalizedFromCategory = normalizeCategoryName(marketplaceCategoryName);
+        if (normalizedFromCategory != null) {
+            return normalizedFromCategory;
+        }
+
+        String normalizedFromTitle = normalizeCategoryName(title);
+        if (normalizedFromTitle != null) {
+            return normalizedFromTitle;
+        }
+
+        return "Outros";
+    }
+
+    private String fetchMarketplaceCategoryName(String categoryId) {
+        if (categoryId == null || categoryId.isBlank()) {
+            return null;
+        }
+
+        return categoryNameCache.computeIfAbsent(categoryId, this::requestCategoryName);
+    }
+
+    private String requestCategoryName(String categoryId) {
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    "https://api.mercadolibre.com/categories/" + encode(categoryId),
+                    HttpMethod.GET,
+                    new HttpEntity<>(new HttpHeaders()),
+                    Map.class);
+
+            Map<String, Object> body = response.getBody();
+            Object name = body == null ? null : body.get("name");
+            if (name == null) {
+                return "";
+            }
+
+            String categoryName = String.valueOf(name).trim();
+            return categoryName.isEmpty() ? "" : categoryName;
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String normalizeCategoryName(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return null;
+        }
+
+        String normalized = normalizeText(rawValue);
+
+        if (containsAny(normalized, "placa mae", "motherboard")) {
+            return "Placas-mãe";
+        }
+        if (containsAny(normalized, "placa de video", "placa video", "gpu", "video card", "placa grafica")) {
+            return "Placas de vídeo";
+        }
+        if (containsAny(normalized, "processador", "cpu")) {
+            return "Processadores";
+        }
+        if (containsAny(normalized, "memoria ram", "memoria ddr", "ram")) {
+            return "Memórias RAM";
+        }
+        if (containsAny(normalized, "ssd", "hd", "hdd", "armazenamento", "disco rigido", "nvme", "m.2", "cartao de memoria", "pendrive")) {
+            return "Armazenamento";
+        }
+        if (containsAny(normalized, "fonte", "power supply", "psu")) {
+            return "Fontes";
+        }
+        if (containsAny(normalized, "cooler", "water cooler", "air cooler", "fan")) {
+            return "Coolers";
+        }
+
+        return null;
+    }
+
+    private boolean containsAny(String value, String... candidates) {
+        for (String candidate : candidates) {
+            if (value.contains(candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String normalizeText(String value) {
+        String normalized = java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase();
+        return normalized.replaceAll("[^a-z0-9]+", " ").trim();
+    }
+
+    private String buildMarketplaceOrderObservation(Map<String, Object> orderMap, String resourceId) {
+        String marketplaceNumber = extractMarketplaceDisplayNumber(orderMap, resourceId);
+        return marketplaceNumber == null ? null : "Número - " + marketplaceNumber;
+    }
+
+    private String extractMarketplaceDisplayNumber(Map<String, Object> orderMap, String resourceId) {
+        Object packId = orderMap.get("pack_id");
+        if (packId != null && !String.valueOf(packId).isBlank() && !"null".equalsIgnoreCase(String.valueOf(packId))) {
+            return String.valueOf(packId);
+        }
+        if (resourceId == null || resourceId.isBlank()) {
+            return null;
+        }
+        return resourceId;
     }
 
     private List<String> extractStringList(Object rawList) {

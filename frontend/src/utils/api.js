@@ -202,6 +202,8 @@ function mapBackendProduct(product) {
   const preco = product?.preco ?? product?.price ?? 0;
   const codigoBarras = product?.codigoDeBarras ?? product?.codigoBarras ?? product?.barcode ?? "-";
   const precoValor = parseCurrencyToNumber(preco);
+  const marketplaceSource = product?.marketplaceSource ?? null;
+  const marketplaceResourceId = product?.marketplaceResourceId ?? null;
 
   return {
     id,
@@ -216,13 +218,16 @@ function mapBackendProduct(product) {
     quantidadeReservada: Number(product?.quantidadeReservada ?? 0) || 0,
     marcador: product?.marcador ?? "MANUAL",
     usuario: Number(product?.usuario ?? 1) || 1,
+    marketplaceSource,
+    marketplaceResourceId,
+    isReadOnly: marketplaceSource === "MERCADO_LIVRE" || Boolean(marketplaceResourceId) || String(product?.marcador ?? "").toUpperCase() === "ML",
   };
 }
 
 function mapBackendOrder(order) {
   const marketplaceSource = order?.marketplaceSource ?? null;
   const marketplaceResourceId = order?.marketplaceResourceId ?? null;
-  const displayNumber = marketplaceResourceId || order?.idPedido || 0;
+  const displayNumber = order?.idPedido || 0;
 
   return {
     id: order?.idPedido ?? 0,
@@ -235,14 +240,16 @@ function mapBackendOrder(order) {
     status: order?.statusPedido ?? "-",
     marketplaceSource,
     marketplaceResourceId,
+    observacao: order?.observacao ?? "",
     isReadOnly: marketplaceSource === "MERCADO_LIVRE",
   };
 }
 
 export async function getDashboardResumo() {
-  const [dashboardRes, productsData] = await Promise.all([
-    fetch(`${MOCK_API_BASE_URL}/dashboard`).then(handleResponse),
+  const [dashboardRes, productsData, mlStatus] = await Promise.all([
+    fetch(`${MOCK_API_BASE_URL}/dashboard`).then(handleResponse).catch(() => ({})),
     fetchBackend(`/api/products/`).catch(() => []),
+    getMercadoLivreStatus(),
   ]);
 
   const products = Array.isArray(productsData) ? productsData : [];
@@ -250,19 +257,56 @@ export async function getDashboardResumo() {
     const quantity = Number(product?.quantidade ?? product?.estoque ?? 0);
     return acc + (Number.isNaN(quantity) ? 0 : quantity);
   }, 0);
+  const lowStockFromDatabase = products.reduce((acc, product) => {
+    const quantity = Number(product?.quantidade ?? product?.estoque ?? 0);
+    if (Number.isNaN(quantity)) {
+      return acc;
+    }
+    return quantity < 3 ? acc + 1 : acc;
+  }, 0);
 
   return {
     total: totalFromDatabase,
-    lowStock: dashboardRes.lowStockProducts,
-    connectedMarketplaces: dashboardRes.connectedMarketplaces,
-    syncStatus: dashboardRes.syncStatus,
+    lowStock: lowStockFromDatabase,
+    connectedMarketplaces: mlStatus.connected ? 1 : 0,
+    syncStatus: mlStatus.connected ? "ON" : "OFF",
   };
 }
 
 export async function getDashboardInventoryOverview() {
-  const res = await fetch(`${MOCK_API_BASE_URL}/dashboard`);
-  const data = await handleResponse(res);
-  return data.inventoryOverview;
+  const productsData = await fetchBackend(`/api/products/`).catch(() => []);
+  const products = Array.isArray(productsData) ? productsData : [];
+
+  const categoryCounts = products.reduce((acc, product) => {
+    const categoryName = String(product?.categoria ?? product?.category ?? "").trim();
+    if (!categoryName) {
+      return acc;
+    }
+
+    acc.set(categoryName, (acc.get(categoryName) ?? 0) + 1);
+    return acc;
+  }, new Map());
+
+  const categories = [...categoryCounts.entries()]
+    .sort((a, b) => {
+      if (b[1] !== a[1]) {
+        return b[1] - a[1];
+      }
+      return a[0].localeCompare(b[0]);
+    })
+    .slice(0, 4);
+
+  if (categories.length < 4) {
+    return {
+      labels: ["Sem categorias suficientes"],
+      values: [0],
+    };
+  }
+
+  return {
+    labels: categories.map(([categoryName]) => categoryName),
+    values: categories.map(([, count]) => count),
+  };
 }
 
 export async function getDashboardRecentActivity() {
@@ -378,6 +422,7 @@ export async function createPedido(orderInput) {
     dataEntrega: formatDateToISO(orderInput?.dataEntrega),
     statusPagamento: normalizedPaymentStatus,
     statusPedido: normalizedStatus,
+    observacao: orderInput?.observacao ?? "",
   };
 
   const created = await fetchBackend(`/api/Order/cadastrar`, {
@@ -405,6 +450,7 @@ export async function updatePedido(orderId, orderInput) {
     dataEntrega: formatDateToISO(orderInput?.dataEntrega),
     statusPagamento: normalizedPaymentStatus,
     statusPedido: normalizedStatus,
+    observacao: orderInput?.observacao ?? "",
   };
 
   const updated = await fetchBackend(`/api/Order/atualizar/${orderId}`, {
