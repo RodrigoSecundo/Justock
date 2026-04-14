@@ -1,95 +1,151 @@
-# JusTock - Guia Principal do Projeto
+# JusTock
 
-Este é o README principal do repositório. Ele consolida e melhora as instruções dos READMEs dedicados de:
-- `frontend/README.md`
-- `backend/README.MD`
+README principal do repositório. Este arquivo resume o estado atual do projeto e aponta para a documentação específica de frontend e backend.
 
 ## Visão geral
 
-O projeto está dividido em duas partes:
-- **Frontend**: React + Vite (`frontend/`)
-- **Backend**: Spring Boot (`backend/Justock-Spring/justock-api/`)
+O projeto está dividido em duas aplicações:
+- Frontend React + Vite em `frontend/`
+- Backend Spring Boot em `backend/Justock-Spring/justock-api/`
 
-### Arquitetura de dados (importante)
-Atualmente o frontend usa uma estratégia híbrida:
-- **Rotas que usam banco de dados real (backend Spring + Supabase/PostgreSQL):**
-  - `GET /api/products/`
-  - `GET /api/products/visualizar/{id}`
-  - `POST /api/products/cadastrar`
-  - `PUT /api/products/atualizar/{id}`
-  - `DELETE /api/products/deletar/{id}`
-  - `GET /api/Order/`
-  - `POST /api/Order/cadastrar`
-  - `PUT /api/Order/atualizar/{id}`
-  - `GET /api/mercadolivre/status`
-  - `GET /api/mercadolivre/auth-url`
-  - `POST /api/mercadolivre/sync`
-  - `POST /api/mercadolivre/disconnect`
-  - `POST /api/mercadolivre/webhook`
-- **Rotas ainda mockadas via `json-server` (`frontend/db.json`):**
-  - dashboard, relatórios, assinatura, usuários e demais objetos ainda não migrados
-  - a tela de conexões segue híbrida: Mercado Livre usa backend real, enquanto Amazon e Shopee continuam mockados
+Hoje o sistema opera em modo híbrido: parte dos dados vem do backend real e parte ainda vem do mock local via `json-server`.
 
-Observação importante sobre o Dashboard:
-- O card **Total de Produtos** já usa dados reais do backend, somando a coluna `quantidade` da tabela `estoque` (via `GET /api/products/`).
-- O card **Produtos em Baixa** permanece mockado no `db.json` por enquanto.
-Ou seja: **Produtos e Pedidos já usam backend real**, enquanto outras telas ainda podem depender do mock.
+## Estado atual dos dados
 
-Observação importante sobre Conexões:
-- O card do **Mercado Livre** já usa backend real para status da conexão e métricas da conta conectada.
-- Os cards de **Amazon** e **Shopee** continuam mockados e marcados como não conectados.
+### Backend real
 
-### Nota de atualização - Pedidos
-- O fluxo de **Pedidos** recebeu validações no frontend e no backend para evitar dados inconsistentes.
-- **Data de emissão**: obrigatória, só pode ser hoje ou uma data passada.
-- **Data de entrega**: opcional, mas quando informada deve ficar entre a data de emissão e a data atual; não pode ser anterior à emissão nem futura.
-- **Status do pedido** aceito para inserções manuais: `EM ANDAMENTO`, `CANCELADO` e `CONCLUÍDO`.
-- **Status de pagamento** aceito para inserções manuais: `PROCESSADO`, `EM PROCESSAMENTO`, `CANCELADO` e `NEGADO`.
-- Pedidos antigos fora desses padrões foram normalizados no banco por migrations do Flyway.
-- Pedidos sincronizados do Mercado Livre são gravados com metadados de origem do marketplace e aparecem separados dos pedidos manuais.
-- Pedidos sincronizados do Mercado Livre são tratados como somente leitura no frontend.
+Estas áreas já usam o backend Spring + PostgreSQL/Supabase:
+- Produtos
+- Pedidos
+- Integração com Mercado Livre
+- Maior parte do dashboard principal
 
-### Nota de atualização - Mercado Livre
-- A integração com o Mercado Livre está funcional para **conectar conta vendedora**, **renovar token**, **sincronizar produtos e pedidos**, **desconectar** e **manter sincronização automática periódica**.
-- O fluxo OAuth agora usa **Authorization Code + PKCE**, exigido pela configuração atual da aplicação no Mercado Livre.
-- O callback público configurado no app do Mercado Livre deve apontar para o backend exposto pelo túnel HTTP, por exemplo:
-  - `https://SEU-TUNEL.ngrok-free.dev/api/mercadolivre/callback`
-- O webhook público pode apontar para:
-  - `https://SEU-TUNEL.ngrok-free.dev/api/mercadolivre/webhook`
-- O projeto opera hoje no modo **usuário interno compartilhado** do Justock. Ou seja: a conta interna padrão do sistema é a mesma, mas a conta vendedora conectada no Mercado Livre pode ser trocada.
-- A sincronização manual agora fica centralizada no card do **Mercado Livre** em **Conexões**, com o botão **Sincronizar pedidos e produtos**.
-- Ao sincronizar, o backend faz **upsert** por `marketplace_resource_id` tanto para produtos quanto para pedidos e remove registros antigos do vendedor anterior quando necessário.
-- O card do Mercado Livre em **Conexões** exibe dados reais da API, incluindo total de vendas, pedidos ativos, inventário e conta conectada.
-- O backend já recebe webhooks do Mercado Livre e registra o payload recebido.
-- Existe também sincronização automática periódica no backend e atualização periódica da tela de **Conexões** no frontend, sem precisar recarregar a página manualmente.
-- A marca dos produtos sincronizados do Mercado Livre passa a ser preenchida a partir dos atributos do item quando disponível, evitando o uso fixo de `N/A`.
-- Limitação operacional do ngrok free: o fluxo de callback pode passar pela página de aviso/interstitial do próprio ngrok antes de voltar ao app local.
+### Mock local (`frontend/db.json`)
 
----
+Estas áreas ainda dependem total ou parcialmente do mock:
+- Relatórios
+- Assinatura
+- Usuários
+- Atividade recente do dashboard
+- Alertas do dashboard
+- Amazon e Shopee em Conexões
+
+## Dashboard hoje
+
+Os cards e gráficos do dashboard principal estão neste estado:
+- `Total de Produtos`: real, somando o estoque dos produtos vindos do backend
+- `Produtos em Baixa`: real, contando produtos com estoque menor que `3`
+- `Marketplaces Conectadas`: real, hoje fica `1` quando o Mercado Livre está conectado e `0` quando não está
+- `Status da Sincronização`: real, hoje fica `ON` com Mercado Livre conectado e `OFF` sem conexão
+- `Visão Geral do Inventário`: real, usando as 4 categorias com maior ocorrência nos produtos reais; se houver menos de 4 categorias distintas, exibe uma barra default zerada
+- `Atividade Recente` e `Alertas`: ainda mockados
+
+## Produtos e pedidos
+
+### Produtos
+
+- CRUD manual usa backend real
+- Produtos sincronizados do Mercado Livre ficam identificados como origem de marketplace
+- Produtos de marketplace não podem ser editados nem excluídos manualmente, a UI mantém os botões visivelmente bloqueados e exibe erro ao clicar
+
+### Pedidos
+
+- CRUD manual usa backend real
+- Validações manuais ativas:
+  - Data de emissão obrigatória e não futura
+  - Data de entrega opcional, mas nunca anterior à emissão nem futura
+  - Status do pedido manual: `EM ANDAMENTO`, `CANCELADO`, `CONCLUÍDO`
+  - Status de pagamento manual: `PROCESSADO`, `EM PROCESSAMENTO`, `CANCELADO`, `NEGADO`
+- Pedidos sincronizados do Mercado Livre são somente leitura no fluxo manual
+- Clique na linha do pedido abre modal de visualização
+- Lápis edita apenas pedidos manuais
+- Pedidos de marketplace exibem observação automática com o número externo do marketplace
+
+## Mercado Livre
+
+A integração com Mercado Livre já suporta:
+- OAuth com Authorization Code + PKCE
+- Conectar e desconectar conta vendedora
+- Renovação de token por `refresh_token`
+- Sincronização manual de produtos e pedidos
+- Sincronização automática periódica no backend
+- Registro de webhooks recebidos
+- Upsert por `marketplace_resource_id`
+- Remoção de dados antigos quando a conta compartilhada é trocada e uma nova sincronização roda
+- Normalização de marca por atributos do item
+- Normalização de categoria por `category_id` do ML com fallback por heurística no nome do produto
+
+Detalhes operacionais importantes:
+- O projeto usa um usuário interno compartilhado do Justock para a integração (`mercadolivre.shared.usuario-id`)
+- A conta conectada do Mercado Livre pode ser trocada
+- A primeira sincronização automática roda 2 minutos após subir o backend
+- As próximas sincronizações automáticas rodam a cada 15 minutos
+
+### Fluxo de testes homologado
+
+O Mercado Livre não fornece sandbox separado para pedidos, anúncios e compras. O fluxo oficial de testes é feito em produção com usuários de teste.
+
+Resumo do processo:
+- Criar um vendedor de teste e um comprador de teste via API do Mercado Livre
+- Autorizar a aplicação do Justock com o vendedor de teste
+- Publicar um anúncio de teste com o vendedor de teste
+- Comprar esse anúncio com o comprador de teste
+- Sincronizar produtos e pedidos no Justock
+- Validar os dados em `Pedidos` e no card de `Conexões`
+
+Observações importantes:
+- Não usar conta real para comprar ou vender no fluxo de testes
+- Usuários de teste podem expirar por inatividade e não devem ser tratados como permanentes
+- Se a validação de e-mail for solicitada em uma conta de teste, o código é formado pelos últimos dígitos do `id` do usuário de teste
+- As credenciais geradas para usuários de teste devem ser guardadas fora do repositório
+
+### Criação de usuários de teste
+
+Depois de obter um `access_token` válido do dono da aplicação do ML, os usuários de teste podem ser criados via terminal:
+
+```powershell
+curl -X POST \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"site_id":"MLB"}' \
+  https://api.mercadolibre.com/users/test_user
+```
+
+Executar o comando duas vezes:
+- uma para o vendedor de teste
+- outra para o comprador de teste
+
+### Verificação de pedido no Justock
+
+Após a compra de teste:
+- usar `Sincronizar pedidos e produtos` na tela `Conexões` ou `POST /api/mercadolivre/sync`
+- conferir se o pedido apareceu na tela `Pedidos`
+- conferir se o card do Mercado Livre em `Conexões` mostra os totais atualizados
+
+O card de `Conexões` usa dados reais do backend:
+- `totalVendas`: total retornado por `/orders/search`
+- `pedidosAtivos`: total filtrado de pedidos ativos no ML
+- `totalInventario`: total retornado por `/users/{seller}/items/search`
+
+Foi corrigido um problema em que um filtro inválido de status do ML zerava todos os totais do card, mesmo quando havia pedido e inventário válidos.
 
 ## Pré-requisitos
 
-### Para o Frontend
-- Node.js 16+
+### Frontend
+
+- Node.js 20+
 - npm
 
-### Para o Backend
+### Backend
+
 - JDK 17
-- Maven 3.9.11+ (ou usar o Maven Wrapper `mvnw` que já está no projeto)
-- IDE de sua preferência (VS Code, IntelliJ, Eclipse etc.)
+- Maven 3.9+ ou uso do Maven Wrapper incluído no projeto
 
-Sugestão de extensões no VS Code (Java):
-- Java Extension Pack
-- Spring Boot Extension Pack
+## Como rodar localmente
 
----
+Recomendado: abrir 3 terminais na raiz do repositório.
 
-## Como iniciar o projeto (passo a passo)
-
-> Recomendado: abrir **3 terminais** na raiz `Justock`.
-
-## 1) Frontend (Vite)
-No terminal 1:
+### 1. Frontend
 
 ```powershell
 cd frontend
@@ -97,54 +153,38 @@ npm install
 npm run dev
 ```
 
-Frontend em dev: `http://localhost:5173`
+Aplicação em `http://localhost:5173`
 
----
-
-## 2) API mock (json-server)
-No terminal 2:
+### 2. Mock local
 
 ```powershell
 cd frontend
 npm run api
 ```
 
-Mock API: `http://localhost:3001`
+Mock em `http://localhost:3001`, lendo `frontend/db.json`
 
-Esse servidor lê o arquivo `frontend/db.json`.
-
----
-
-## 3) Backend (Spring Boot)
-No terminal 3:
+### 3. Backend
 
 ```powershell
 cd backend/Justock-Spring/justock-api
 ./mvnw.cmd spring-boot:run
 ```
 
-Backend padrão: `http://localhost:8080`
+API em `http://localhost:8080`
 
-Observações para a integração Mercado Livre:
-- O frontend local continua em `http://localhost:5173`.
-- O backend recebe o callback do Mercado Livre pela URL pública configurada em `mercadolivre.redirect.uri`.
-- Depois do callback, o backend redireciona o navegador para `mercadolivre.frontend.redirect-uri`, cujo padrão é `http://localhost:5173/conexoes`.
-- Se já existir outra instância ocupando a porta `8080`, o `spring-boot:run` falhará com erro de porta em uso.
-
-Se quiser validar compilação antes de subir:
+Para validar compilação do backend:
 
 ```powershell
 cd backend/Justock-Spring/justock-api
-./mvnw.cmd -DskipTests clean compile
+./mvnw.cmd -q -DskipTests compile
 ```
 
----
-
-## Variáveis de ambiente do Frontend
+## Variáveis de ambiente do frontend
 
 O frontend usa duas bases:
-- `VITE_API_BASE_URL` → mock (`json-server`), padrão: `http://localhost:3001`
-- `VITE_BACKEND_API_BASE_URL` → backend real, padrão: `http://localhost:8080`
+- `VITE_API_BASE_URL` para o mock local, padrão `http://localhost:3001`
+- `VITE_BACKEND_API_BASE_URL` para o backend real, padrão `http://localhost:8080`
 
 Exemplo em PowerShell:
 
@@ -154,23 +194,9 @@ $env:VITE_BACKEND_API_BASE_URL = "http://localhost:8080"
 npm run dev
 ```
 
----
-
-## Fluxo recomendado no dia a dia
-
-- Suba **backend + frontend + mock** quando estiver trabalhando em várias telas.
-- Se for trabalhar só em **Produtos/Pedidos**, priorize backend + frontend.
-- Se for trabalhar em telas ainda mockadas, mantenha também o `npm run api`.
-
----
-
-## Credenciais de desenvolvimento (frontend)
-
-- `testeAdminSEC@exemplo.com` / `S@nh4secr3t4`
-
 ## Configuração do Mercado Livre
 
-As propriedades relevantes do backend ficam em `backend/Justock-Spring/justock-api/src/main/resources/application.properties`:
+As propriedades principais ficam em `backend/Justock-Spring/justock-api/src/main/resources/application.properties`:
 
 ```properties
 mercadolivre.client.id=SEU_APP_ID
@@ -183,13 +209,10 @@ mercadolivre.auto-sync.fixed-delay-ms=900000
 mercadolivre.auto-sync.initial-delay-ms=120000
 ```
 
-Notas importantes:
-- `mercadolivre.redirect.uri` deve ser **idêntico** ao callback cadastrado no app do Mercado Livre.
-- Se o app do Mercado Livre estiver com PKCE habilitado, o backend já envia `code_challenge` e usa `code_verifier` automaticamente.
-- `mercadolivre.shared.usuario-id` define o usuário interno compartilhado do Justock usado para persistir a integração.
-- `mercadolivre.auto-sync.fixed-delay-ms` controla o intervalo da sincronização automática do backend.
-
----
+Notas:
+- `mercadolivre.redirect.uri` deve ser idêntico ao callback cadastrado no app do Mercado Livre
+- O callback do ML entra pelo backend público e depois redireciona para o frontend local em `Conexões`
+- Em ngrok free, o navegador pode passar pela tela de aviso do próprio túnel antes do retorno
 
 ## Estrutura resumida
 
@@ -202,13 +225,10 @@ Justock/
 │  ├─ README.md
 │  ├─ db.json
 │  └─ src/
-└─ README.md   <-- (este arquivo)
+└─ README.md
 ```
-
----
 
 ## Documentação dedicada
 
-Para detalhes específicos de cada stack:
 - Frontend: `frontend/README.md`
 - Backend: `backend/README.MD`
