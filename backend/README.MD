@@ -2,6 +2,14 @@
 
 Backend da aplicação JusTock, construído com Spring Boot, Spring Security, JPA/Hibernate, Flyway e PostgreSQL.
 
+## Novidades recentes
+
+- Nova persistência de eventos do dashboard com Flyway `V10`
+- Endpoints reais para atividade recente, alertas e notificações do dashboard
+- Registro automático de eventos em produtos, pedidos, sincronização do Mercado Livre e mudanças de configuração/tema
+- Contador de notificações não lidas e marcação individual como visualizada
+- Exibição limitada dos blocos de atividade recente e alertas aos 5 itens mais novos, sem perder a persistência dos eventos
+
 ## Stack
 
 - Java 17
@@ -47,7 +55,7 @@ Para rodar testes:
 
 - Banco atual: PostgreSQL / Supabase
 - Migrations gerenciadas com Flyway
-- O histórico atual do projeto vai até `V9`
+- O histórico atual do projeto vai até `V10`
 
 ## O que já está real no backend
 
@@ -55,6 +63,9 @@ Para rodar testes:
 - CRUD de pedidos
 - Integração com Mercado Livre
 - Resumo de status do Mercado Livre para a tela de Conexões
+- Feed de atividade recente do dashboard
+- Alertas de estoque do dashboard
+- Notificações do dashboard com estado de leitura
 
 ## Regras de negócio atuais
 
@@ -63,12 +74,22 @@ Para rodar testes:
 - Produtos manuais podem ser criados, editados e excluídos
 - Produtos sincronizados de marketplace não podem ser editados ou excluídos manualmente via API do Justock
 - Produtos sincronizados do Mercado Livre são identificados por `marketplace_source`, `marketplace_resource_id` e marcador `ML`
+- Criação, edição, exclusão e sincronização de produtos alimentam os eventos do dashboard
 
 ### Pedidos
 
 - Pedidos manuais seguem validações de data e status
 - Pedidos sincronizados de marketplace não podem ser editados ou excluídos manualmente via API do Justock
 - Pedidos do Mercado Livre recebem observação automática com o número externo do marketplace
+- Criação, edição, exclusão e sincronização de pedidos alimentam os eventos do dashboard
+
+### Dashboard e notificações
+
+- `Atividade Recente` é persistida na tabela `dashboard_event`
+- `Alertas` consideram apenas produtos com estoque zerado ou abaixo do limite atual (`< 3`)
+- O sino de notificações usa os mesmos alertas de estoque, com contador real de não lidas
+- O feed visual de atividade, alertas e dropdown de notificações retorna até 5 itens por vez
+- O total de notificações não lidas é calculado separadamente para não distorcer o badge do frontend
 
 ## Integração com Mercado Livre
 
@@ -102,6 +123,14 @@ Para rodar testes:
 - `POST /api/mercadolivre/sync`
 - `POST /api/mercadolivre/disconnect`
 - `POST /api/mercadolivre/webhook`
+
+## Endpoints do dashboard
+
+- `GET /api/dashboard/recent-activity`
+- `GET /api/dashboard/alerts`
+- `GET /api/dashboard/notifications`
+- `POST /api/dashboard/notifications/{eventId}/read`
+- `POST /api/dashboard/activity`
 
 ### Sincronização automática
 

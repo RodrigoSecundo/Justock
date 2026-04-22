@@ -2,6 +2,14 @@
 
 Frontend da aplicação JusTock, construído com React + Vite. O projeto consome uma combinação de backend real e mock local via `json-server`.
 
+## Novidades recentes
+
+- Dashboard principal agora consome atividade recente e alertas reais do backend
+- Barra superior ganhou notificações reais com contador, lista visual e marcação como visualizada
+- Tema escuro foi ajustado para notificações, alertas e atividade recente
+- Configurações do dashboard agora registram eventos de atividade no backend
+- Configuração de lint do frontend foi atualizada e o projeto volta a validar com `npm run lint`
+
 ## Requisitos
 
 - Node.js 20+
@@ -58,15 +66,13 @@ Onde:
 - Produtos
 - Pedidos
 - Status e ações do Mercado Livre em Conexões
-- Parte do dashboard principal
+- Dashboard principal, incluindo atividade recente, alertas e notificações
 
 ### Ainda usando mock total ou parcial
 
 - Relatórios
 - Assinatura
 - Usuários
-- Atividade recente do dashboard
-- Alertas do dashboard
 - Amazon e Shopee em Conexões
 
 ## Dashboard principal
@@ -77,10 +83,17 @@ Hoje o dashboard está assim:
 - `Marketplaces Conectadas`: real, hoje refletindo o status do Mercado Livre (`1` conectado, `0` desconectado)
 - `Status da Sincronização`: real, `ON` ou `OFF` conforme conexão do Mercado Livre
 - `Visão Geral do Inventário`: real, usando as 4 categorias com maior contagem entre os produtos reais
-- `Atividade Recente`: mock
-- `Alertas`: mock
+- `Atividade Recente`: real, atualizada a partir dos eventos persistidos no backend e exibindo até 5 itens no bloco
+- `Alertas`: reais, mostrando apenas estoque baixo e produto esgotado, também limitados aos 5 itens mais recentes do bloco
+- `Notificações` na barra superior: reais, com contador de não lidas, dropdown próprio e ação de marcar como visualizada
 
 O gráfico de inventário já aplica marcações inteiras no eixo Y, com step adaptativo (`1`, `5`, `10`, `25`, `50`, `100`) conforme o maior valor.
+
+Os blocos do dashboard reagem automaticamente a mudanças vindas de:
+- criação, edição e exclusão de produtos
+- criação, edição e exclusão de pedidos
+- sincronização manual ou automática do Mercado Livre
+- salvamento de configurações e troca de tema
 
 ## Mercado Livre no frontend
 
@@ -175,6 +188,7 @@ frontend/
 - `npm run build`: gera build de produção
 - `npm run preview`: visualiza build localmente
 - `npm run api`: sobe o `json-server` usando `db.json`
+- `npm run lint`: valida o código do frontend com ESLint 9
 
 ## Principais tecnologias
 

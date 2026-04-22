@@ -10,6 +10,15 @@ O projeto está dividido em duas aplicações:
 
 Hoje o sistema opera em modo híbrido: parte dos dados vem do backend real e parte ainda vem do mock local via `json-server`.
 
+## Novidades recentes
+
+As mudanças mais relevantes registradas neste estado do projeto são:
+- Dashboard principal com `Atividade Recente` e `Alertas` vindos do backend real
+- Notificações reais na barra superior, com contador, marcação como visualizada e reaproveitamento dos alertas de estoque
+- Registro persistente de eventos do dashboard para ações de produtos, pedidos, sincronizações e mudanças de configuração/tema
+- Ajustes visuais de tema escuro para notificações, alertas e atividade recente
+- Lint do frontend ajustado para o formato atual do ESLint 9
+
 ## Estado atual dos dados
 
 ### Backend real
@@ -18,7 +27,7 @@ Estas áreas já usam o backend Spring + PostgreSQL/Supabase:
 - Produtos
 - Pedidos
 - Integração com Mercado Livre
-- Maior parte do dashboard principal
+- Dashboard principal, incluindo atividade recente, alertas e notificações
 
 ### Mock local (`frontend/db.json`)
 
@@ -26,8 +35,6 @@ Estas áreas ainda dependem total ou parcialmente do mock:
 - Relatórios
 - Assinatura
 - Usuários
-- Atividade recente do dashboard
-- Alertas do dashboard
 - Amazon e Shopee em Conexões
 
 ## Dashboard hoje
@@ -38,7 +45,9 @@ Os cards e gráficos do dashboard principal estão neste estado:
 - `Marketplaces Conectadas`: real, hoje fica `1` quando o Mercado Livre está conectado e `0` quando não está
 - `Status da Sincronização`: real, hoje fica `ON` com Mercado Livre conectado e `OFF` sem conexão
 - `Visão Geral do Inventário`: real, usando as 4 categorias com maior ocorrência nos produtos reais; se houver menos de 4 categorias distintas, exibe uma barra default zerada
-- `Atividade Recente` e `Alertas`: ainda mockados
+- `Atividade Recente`: real, persistida no backend e limitada aos 5 registros mais recentes exibidos no bloco
+- `Alertas`: real, exibindo apenas produtos esgotados ou em baixa (`estoque < 3`), também limitado aos 5 alertas mais recentes exibidos no bloco
+- `Notificações`: reais na barra superior, com contador de não lidas, lista visual própria e ação de marcar como visualizada
 
 ## Produtos e pedidos
 
@@ -80,6 +89,7 @@ Detalhes operacionais importantes:
 - A conta conectada do Mercado Livre pode ser trocada
 - A primeira sincronização automática roda 2 minutos após subir o backend
 - As próximas sincronizações automáticas rodam a cada 15 minutos
+- Sincronizações do Mercado Livre também alimentam a atividade recente e os alertas do dashboard quando produtos ou pedidos são criados/atualizados
 
 ### Fluxo de testes homologado
 
