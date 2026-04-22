@@ -25,17 +25,17 @@ export function getThemePref() {
 }
 
 export function setFontPref(v) {
-  try { window.localStorage.setItem(FONT_KEY, v); } catch { }
+  try { window.localStorage.setItem(FONT_KEY, v); } catch { void 0; }
   applyAppearance();
 }
 
 export function setSidebarPref(v) {
-  try { window.localStorage.setItem(SIDEBAR_KEY, v); } catch { }
+  try { window.localStorage.setItem(SIDEBAR_KEY, v); } catch { void 0; }
   applyAppearance();
 }
 
 export function setThemePref(v) {
-  try { window.localStorage.setItem(THEME_KEY, v); } catch { }
+  try { window.localStorage.setItem(THEME_KEY, v); } catch { void 0; }
   applyAppearance();
 }
 
@@ -68,7 +68,7 @@ export function applyAppearance() {
       const evt = new CustomEvent('jt:appearance-updated', { detail: { font, sidebar, theme } });
       window.dispatchEvent(evt);
     }
-  } catch { }
+  } catch { void 0; }
 }
 
 export function initAppearance() {

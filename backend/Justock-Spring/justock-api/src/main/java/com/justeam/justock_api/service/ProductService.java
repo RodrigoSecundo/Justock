@@ -16,8 +16,13 @@ import jakarta.transaction.Transactional;
 @Service
 public class ProductService {
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
+    private final DashboardEventService dashboardEventService;
+
+    public ProductService(ProductRepository productRepository, DashboardEventService dashboardEventService) {
+        this.productRepository = productRepository;
+        this.dashboardEventService = dashboardEventService;
+    }
 
     public List<Product> listAllProducts() {
         return productRepository.findAll();
@@ -43,7 +48,9 @@ public class ProductService {
         product.setQuantidadeReservada(dto.getQuantidadeReservada());
         product.setMarcador(dto.getMarcador());
         product.setUsuario(dto.getUsuario());
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+        dashboardEventService.recordProductCreated(savedProduct);
+        return savedProduct;
     }
 
     @Transactional
@@ -51,6 +58,11 @@ public class ProductService {
         Product existingProduct = productRepository.findById(id).orElse(null);
         if (existingProduct != null) {
             ensureManualProduct(existingProduct);
+            Product previousProduct = new Product();
+            previousProduct.setIdProduto(existingProduct.getIdProduto());
+            previousProduct.setNomeDoProduto(existingProduct.getNomeDoProduto());
+            previousProduct.setQuantidade(existingProduct.getQuantidade());
+            previousProduct.setUsuario(existingProduct.getUsuario());
             if (dto.getCategoria() != null) existingProduct.setCategoria(dto.getCategoria());
             if (dto.getMarca() != null) existingProduct.setMarca(dto.getMarca());
             if (dto.getNomeDoProduto() != null) existingProduct.setNomeDoProduto(dto.getNomeDoProduto());
@@ -61,7 +73,9 @@ public class ProductService {
             if (dto.getQuantidadeReservada() != null) existingProduct.setQuantidadeReservada(dto.getQuantidadeReservada());
             if (dto.getMarcador() != null) existingProduct.setMarcador(dto.getMarcador());
             if (dto.getUsuario() != null) existingProduct.setUsuario(dto.getUsuario());
-            return productRepository.save(existingProduct);
+            Product updatedProduct = productRepository.save(existingProduct);
+            dashboardEventService.recordProductUpdated(previousProduct, updatedProduct);
+            return updatedProduct;
         }
         return null;
     }
@@ -71,6 +85,7 @@ public class ProductService {
         if (existingProduct != null) {
             ensureManualProduct(existingProduct);
             productRepository.deleteById(id);
+            dashboardEventService.recordProductDeleted(existingProduct);
             return true;
         }
         return false;

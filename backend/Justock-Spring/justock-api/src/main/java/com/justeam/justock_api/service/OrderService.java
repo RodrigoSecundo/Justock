@@ -21,8 +21,13 @@ public class OrderService {
     private static final Set<String> ALLOWED_ORDER_STATUS = Set.of("EM ANDAMENTO", "CANCELADO", "CONCLUÍDO");
     private static final Set<String> ALLOWED_PAYMENT_STATUS = Set.of("PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO");
 
-    @Autowired
-    private OrderRepository orderRepository;
+    private final OrderRepository orderRepository;
+    private final DashboardEventService dashboardEventService;
+
+    public OrderService(OrderRepository orderRepository, DashboardEventService dashboardEventService) {
+        this.orderRepository = orderRepository;
+        this.dashboardEventService = dashboardEventService;
+    }
 
     public List<Order> listAllOrders() {
         return orderRepository.findAll();
@@ -47,7 +52,9 @@ public class OrderService {
         order.setMarketplaceSource(resolveMarketplaceSource(dto.getIdPedidoMarketplace()));
         order.setMarketplaceResourceId(null);
         order.setObservacao(normalizeObservation(dto.getObservacao()));
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+        dashboardEventService.recordOrderCreated(savedOrder);
+        return savedOrder;
     }
 
     @Transactional
@@ -67,7 +74,9 @@ public class OrderService {
             existingOrder.setStatusPedido(normalizedStatus);
             existingOrder.setMarketplaceSource(resolveMarketplaceSource(dto.getIdPedidoMarketplace()));
             existingOrder.setObservacao(normalizeObservation(dto.getObservacao()));
-            return orderRepository.save(existingOrder);
+            Order updatedOrder = orderRepository.save(existingOrder);
+            dashboardEventService.recordOrderUpdated(updatedOrder);
+            return updatedOrder;
         }
         return null;
     }
@@ -77,6 +86,7 @@ public class OrderService {
         if (existingOrder != null) {
             ensureManualOrder(existingOrder);
             orderRepository.deleteById(id);
+            dashboardEventService.recordOrderDeleted(existingOrder);
             return true;
         }
         return false;

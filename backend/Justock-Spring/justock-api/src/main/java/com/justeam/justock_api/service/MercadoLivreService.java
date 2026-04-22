@@ -68,6 +68,7 @@ public class MercadoLivreService {
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
     private final WebhookEventRepository webhookEventRepository;
+    private final DashboardEventService dashboardEventService;
     private final ObjectMapper objectMapper;
     private final Map<String, String> pkceVerifierByState = new ConcurrentHashMap<>();
     private final Map<String, String> categoryNameCache = new ConcurrentHashMap<>();
@@ -76,12 +77,14 @@ public class MercadoLivreService {
             ProductRepository productRepository,
             OrderRepository orderRepository,
             WebhookEventRepository webhookEventRepository,
+            DashboardEventService dashboardEventService,
             ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.userMarketplaceRepository = userMarketplaceRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.webhookEventRepository = webhookEventRepository;
+        this.dashboardEventService = dashboardEventService;
         this.objectMapper = objectMapper;
     }
 
@@ -210,12 +213,13 @@ public class MercadoLivreService {
     }
 
     public Map<String, Object> syncMarketplaceData(Integer usuarioId) {
-        syncInventory(usuarioId);
-        syncOrders(usuarioId);
+        int syncedProducts = syncInventory(usuarioId);
+        int syncedOrders = syncOrders(usuarioId);
+        dashboardEventService.recordSyncCompleted(usuarioId, syncedProducts, syncedOrders);
         return getConnectionSummary(usuarioId);
     }
 
-    public void syncInventory(Integer usuarioId) {
+    public int syncInventory(Integer usuarioId) {
         UserMarketplace um = ensureValidAccessToken(getConnectionOrThrow(usuarioId));
 
         HttpHeaders headers = new HttpHeaders();
@@ -228,6 +232,7 @@ public class MercadoLivreService {
         if (searchResponse.getStatusCode().is2xxSuccessful() && searchResponse.getBody() != null) {
             List<String> itemsId = (List<String>) searchResponse.getBody().get("results");
             Set<String> syncedItemIds = new HashSet<>();
+            int processedItems = 0;
 
             if (itemsId != null && !itemsId.isEmpty()) {
                 syncedItemIds.addAll(itemsId);
@@ -243,6 +248,7 @@ public class MercadoLivreService {
                             if (Integer.valueOf(200).equals(itemWrapper.get("code"))) {
                                 Map<String, Object> itemMap = (Map<String, Object>) itemWrapper.get("body");
                                 saveOrUpdateProduct(itemMap, usuarioId);
+                                processedItems++;
                             }
                         }
                     }
@@ -250,13 +256,17 @@ public class MercadoLivreService {
             }
 
             removeProductsMissingFromLatestSync(usuarioId, syncedItemIds);
+            return processedItems;
         }
+
+        return 0;
     }
 
-    public void syncOrders(Integer usuarioId) {
+    public int syncOrders(Integer usuarioId) {
         UserMarketplace connection = ensureValidAccessToken(getConnectionOrThrow(usuarioId));
         List<Map<String, Object>> orders = fetchOrders(connection, null);
         Set<String> syncedOrderIds = new HashSet<>();
+        int processedOrders = 0;
 
         for (Map<String, Object> orderMap : orders) {
             Object orderId = orderMap.get("id");
@@ -267,9 +277,11 @@ public class MercadoLivreService {
             String resourceId = String.valueOf(orderId);
             syncedOrderIds.add(resourceId);
             saveOrUpdateOrder(orderMap, connection, resourceId);
+            processedOrders++;
         }
 
         removeOrdersMissingFromLatestSync(syncedOrderIds);
+        return processedOrders;
     }
 
     private void saveOrUpdateProduct(Map<String, Object> itemMap, Integer usuarioId) {
@@ -283,6 +295,7 @@ public class MercadoLivreService {
         String brand = extractBrand(itemMap);
         String category = resolveNormalizedCategory(itemMap, title);
 
+        boolean created = productRepository.findByMarketplaceResourceIdAndUsuario(mlId, usuarioId).isEmpty();
         Product product = productRepository.findByMarketplaceResourceIdAndUsuario(mlId, usuarioId)
             .orElseGet(Product::new);
         product.setCategoria(category);
@@ -298,12 +311,14 @@ public class MercadoLivreService {
         product.setMarketplaceResourceId(mlId);
         product.setMarketplaceSource("MERCADO_LIVRE");
 
-        productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+        dashboardEventService.recordSyncedProduct(savedProduct, created);
     }
 
     private void saveOrUpdateOrder(Map<String, Object> orderMap, UserMarketplace connection, String resourceId) {
+        boolean created = orderRepository.findByMarketplaceResourceIdAndMarketplaceSource(resourceId, "MERCADO_LIVRE").isEmpty();
         Order order = orderRepository.findByMarketplaceResourceIdAndMarketplaceSource(resourceId, "MERCADO_LIVRE")
-                .orElseGet(Order::new);
+            .orElseGet(Order::new);
 
         order.setIdPedidoMarketplace(1);
         order.setUsuarioMarketplaceId(connection.getUsuarioMarketplaceId());
@@ -315,7 +330,8 @@ public class MercadoLivreService {
         order.setMarketplaceResourceId(resourceId);
         order.setObservacao(buildMarketplaceOrderObservation(orderMap, resourceId));
 
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+        dashboardEventService.recordSyncedOrder(savedOrder, created);
     }
 
     public void registerWebhookEvent(Map<String, Object> payload) {

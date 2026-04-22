@@ -20,7 +20,7 @@ export function getAccessibilityPrefs() {
 }
 
 export function setAccessibilityPrefs(prefs) {
-  try { window.localStorage.setItem(ACCESS_KEY, JSON.stringify(prefs)); } catch { }
+  try { window.localStorage.setItem(ACCESS_KEY, JSON.stringify(prefs)); } catch { void 0; }
   applyAccessibility(prefs);
 }
 
@@ -40,7 +40,7 @@ export function playFeedback(type = 'success') {
     g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
     o.start();
     o.stop(ctx.currentTime + 0.3);
-  } catch { }
+  } catch { void 0; }
 }
 
 export function applyAccessibility(p) {
@@ -58,7 +58,7 @@ export function applyAccessibility(p) {
   try {
     const evt = new CustomEvent('jt:accessibility-updated', { detail: { ...prefs } });
     window.dispatchEvent(evt);
-  } catch { }
+  } catch { void 0; }
 }
 
 export function initAccessibility() {

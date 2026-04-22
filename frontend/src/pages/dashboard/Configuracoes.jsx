@@ -5,6 +5,7 @@ import "../../styles/pages/dashboard/configuracoes.css";
 import { getFontPref, getSidebarPref, setFontPref, setSidebarPref, getThemePref, setThemePref } from "../../utils/appearance";
 import { getAccessibilityPrefs, setAccessibilityPrefs, playFeedback } from "../../utils/accessibility";
 import { useSrOptimized, srProps } from "../../utils/useA11y";
+import { registerDashboardActivity } from "../../utils/api";
 
 const ThemeSwitch = ({ value, onChange, disabled }) => (
   <button
@@ -41,17 +42,12 @@ const Select = ({ label, value, onChange, options, id }) => (
 
 const Configuracoes = () => {
   const srOpt = useSrOptimized();
-  // Aparência
-  const [temaEscuro, setTemaEscuro] = useState(false);
-  const [fonte, setFonte] = useState("media");
-  const [sidebar, setSidebar] = useState("mista");
+  const initialAccessibility = getAccessibilityPrefs();
 
-  // carregar preferências salvas
-  useEffect(() => {
-    setFonte(getFontPref());
-    setSidebar(getSidebarPref());
-    setTemaEscuro(getThemePref() === 'dark');
-  }, []);
+  // Aparência
+  const [temaEscuro, setTemaEscuro] = useState(() => getThemePref() === 'dark');
+  const [fonte, setFonte] = useState(() => getFontPref());
+  const [sidebar, setSidebar] = useState(() => getSidebarPref());
 
   // Exibição
   const [idioma, setIdioma] = useState("pt-BR");
@@ -70,12 +66,11 @@ const Configuracoes = () => {
     porEmail: true,
   });
 
-  const baseAcess = getAccessibilityPrefs();
-  const [acess, setAcess] = useState(() => baseAcess);
+  const [acess, setAcess] = useState(() => initialAccessibility);
   const [toast, setToast] = useState("");
 
   // Lock do tema só após salvar com alto contraste ativo (não pode ter os dois ativos ao mesmo tempo)
-  const [temaLocked, setTemaLocked] = useState(() => baseAcess.altoContraste === true);
+  const [temaLocked, setTemaLocked] = useState(() => initialAccessibility.altoContraste === true);
 
   useEffect(() => {
     if (!toast) return;
@@ -83,7 +78,8 @@ const Configuracoes = () => {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const previousTheme = getThemePref();
     setFontPref(fonte);
     setSidebarPref(sidebar);
     // Persistir acessibilidade primeiro
@@ -102,6 +98,26 @@ const Configuracoes = () => {
     console.log("Preferências salvas:", {
       temaEscuro, fonte, sidebar, idioma, moeda, notifs, acess
     });
+    const savedTheme = acess.altoContraste && temaEscuro ? 'light' : (temaEscuro ? 'dark' : 'light');
+    try {
+      await registerDashboardActivity({
+        eventKey: "SETTINGS_UPDATED",
+        font: fonte,
+        sidebar,
+        language: idioma,
+        currency: moeda,
+        notifications: notifs,
+        accessibility: acess,
+      });
+      if (previousTheme !== savedTheme) {
+        await registerDashboardActivity({
+          eventKey: "THEME_CHANGED",
+          theme: savedTheme,
+        });
+      }
+    } catch {
+      // non-blocking telemetry for dashboard activity
+    }
     playFeedback('success');
   };
 

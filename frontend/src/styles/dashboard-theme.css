@@ -131,7 +131,19 @@ body.sidebar-no-transition .barra_lateral-texto {
 [data-theme="dark"] .tempo-atividade,
 [data-theme="dark"] .tempo-alerta,
 [data-theme="dark"] .dropdown-notificacoes p,
-[data-theme="dark"] .dropdown-perfil a { color: var(--jt-text-muted) !important; }
+[data-theme="dark"] .dropdown-perfil a,
+[data-theme="dark"] .item-notificacao-texto small { color: var(--jt-text-muted) !important; }
+
+[data-theme="dark"] .texto-atividade,
+[data-theme="dark"] .texto-alerta,
+[data-theme="dark"] .dropdown-notificacoes-header,
+[data-theme="dark"] .item-notificacao-texto,
+[data-theme="dark"] .item-notificacao-titulo,
+[data-theme="dark"] .btn-visualizado,
+[data-theme="dark"] .dropdown-perfil-link,
+[data-theme="dark"] .avatar-usuario {
+  color: var(--jt-text) !important;
+}
 
 [data-theme="dark"] .item-atividade.validado,
 [data-theme="dark"] .item-atividade.sincronizado,
@@ -162,7 +174,45 @@ body.sidebar-no-transition .barra_lateral-texto {
 [data-theme="dark"] .dropdown-perfil {
   border-color: var(--jt-border) !important;
 }
+[data-theme="dark"] .dropdown-notificacoes {
+  background: linear-gradient(180deg, #101a26 0%, #0f1620 100%) !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45) !important;
+}
+[data-theme="dark"] .dropdown-notificacoes-header {
+  border-bottom-color: rgba(157, 178, 192, 0.18) !important;
+}
+[data-theme="dark"] .item-notificacao {
+  background: #13202e !important;
+  border-color: #223244 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03) !important;
+}
+[data-theme="dark"] .item-notificacao.baixo {
+  border-left-color: #fb923c !important;
+}
+[data-theme="dark"] .item-notificacao.fora-estoque {
+  border-left-color: #f87171 !important;
+}
+[data-theme="dark"] .btn-visualizado {
+  background: #1d4ed8 !important;
+}
+[data-theme="dark"] .btn-visualizado:hover {
+  background: #2563eb !important;
+}
+[data-theme="dark"] .badge-notificacoes .p-badge {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+[data-theme="dark"] .avatar-usuario {
+  background: #1f2937 !important;
+  border: 1px solid #334155 !important;
+}
 [data-theme="dark"] .dropdown-perfil a:hover { background: rgba(255,255,255,0.06) !important; }
+
+[data-theme="dark"] .item-atividade,
+[data-theme="dark"] .item-alerta {
+  background: #13202e !important;
+  border-color: #223244 !important;
+}
 
 [data-theme="dark"] .conf-select {
   background: var(--jt-surface-2) !important;

@@ -32,7 +32,6 @@ const BarraLateral = () => {
       setSidebarMode(mode);
     };
     window.addEventListener('jt:appearance-updated', handler);
-    handler();
     return () => window.removeEventListener('jt:appearance-updated', handler);
   }, []);
 
@@ -43,7 +42,6 @@ const BarraLateral = () => {
       else setHighContrast(getAccessibilityPrefs().altoContraste === true);
     };
     window.addEventListener('jt:accessibility-updated', onAcc);
-    onAcc({ detail: getAccessibilityPrefs() });
     return () => window.removeEventListener('jt:accessibility-updated', onAcc);
   }, []);
 
@@ -59,7 +57,6 @@ const BarraLateral = () => {
     if (sidebarMode !== 'mista') {
       clearTimers();
       document.body.classList.remove('sidebar-mista-expandida');
-      setMixedExpanded(false);
       if (sidebarMode !== 'detalhada') {
         document.body.classList.remove('sidebar-detalhada');
       } else {
@@ -100,7 +97,8 @@ const BarraLateral = () => {
   const shouldStartExpanded = mixedHoverPersist || nav.matches(':hover');
     if (shouldStartExpanded) {
       document.body.classList.add('sidebar-no-transition');
-      openMixed();
+      document.body.classList.add('sidebar-mista-expandida');
+      requestAnimationFrame(() => setMixedExpanded(true));
       setTimeout(() => {
         document.body.classList.remove('sidebar-no-transition');
       }, 90);
@@ -123,7 +121,7 @@ const BarraLateral = () => {
     }
 
     if (isExpanded) {
-      setLogoShowsExpanded(true);
+      requestAnimationFrame(() => setLogoShowsExpanded(true));
       if (logoResizeObserverRef.current) {
         logoResizeObserverRef.current.disconnect();
         logoResizeObserverRef.current = null;

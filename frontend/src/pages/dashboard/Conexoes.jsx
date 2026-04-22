@@ -39,7 +39,7 @@ const Conexoes = () => {
         } else {
           notifyError("Não foi possível obter a URL de autorização.");
         }
-      } catch (error) {
+      } catch {
         notifyError("Erro ao conectar com servidor do Mercado Livre");
       }
     } else {

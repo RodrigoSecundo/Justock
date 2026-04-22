@@ -4,6 +4,7 @@ const MOCK_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL || "http://localhost:8080";
 const ORDER_STATUS_OPTIONS = ["EM ANDAMENTO", "CANCELADO", "CONCLUÍDO"];
 const PAYMENT_STATUS_OPTIONS = ["PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO"];
+const DASHBOARD_CHANGED_EVENT = "jt:dashboard-data-changed";
 const MOCK_MARKETPLACE_CONNECTIONS = [
   {
     id: "amazon",
@@ -59,6 +60,23 @@ async function fetchBackend(path, { method = "GET", body } = {}) {
 
   const payload = await handleResponse(res);
   return normalizeApiEnvelope(payload);
+}
+
+function emitDashboardDataChanged(detail = {}) {
+  try {
+    window.dispatchEvent(new CustomEvent(DASHBOARD_CHANGED_EVENT, { detail }));
+  } catch {
+    // ignore browser dispatch failures
+  }
+}
+
+export function subscribeDashboardDataChanged(callback) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  window.addEventListener(DASHBOARD_CHANGED_EVENT, callback);
+  return () => window.removeEventListener(DASHBOARD_CHANGED_EVENT, callback);
 }
 
 function formatBRL(value) {
@@ -246,8 +264,7 @@ function mapBackendOrder(order) {
 }
 
 export async function getDashboardResumo() {
-  const [dashboardRes, productsData, mlStatus] = await Promise.all([
-    fetch(`${MOCK_API_BASE_URL}/dashboard`).then(handleResponse).catch(() => ({})),
+  const [productsData, mlStatus] = await Promise.all([
     fetchBackend(`/api/products/`).catch(() => []),
     getMercadoLivreStatus(),
   ]);
@@ -310,15 +327,33 @@ export async function getDashboardInventoryOverview() {
 }
 
 export async function getDashboardRecentActivity() {
-  const res = await fetch(`${MOCK_API_BASE_URL}/dashboard`);
-  const data = await handleResponse(res);
-  return { activities: data.recentActivity };
+  return fetchBackend(`/api/dashboard/recent-activity`);
 }
 
 export async function getDashboardAlerts() {
-  const res = await fetch(`${MOCK_API_BASE_URL}/dashboard`);
-  const data = await handleResponse(res);
-  return { alerts: data.alerts };
+  return fetchBackend(`/api/dashboard/alerts`);
+}
+
+export async function getDashboardNotifications() {
+  return fetchBackend(`/api/dashboard/notifications`);
+}
+
+export async function markDashboardNotificationAsRead(notificationId) {
+  const data = await fetchBackend(`/api/dashboard/notifications/${notificationId}/read`, {
+    method: "POST",
+    body: {},
+  });
+  emitDashboardDataChanged({ source: "notification-read", notificationId });
+  return data;
+}
+
+export async function registerDashboardActivity(activityInput) {
+  const data = await fetchBackend(`/api/dashboard/activity`, {
+    method: "POST",
+    body: activityInput,
+  });
+  emitDashboardDataChanged({ source: "activity", activityInput });
+  return data;
 }
 
 export async function getConexoes() {
@@ -366,6 +401,7 @@ export async function createProduto(productInput) {
     body: payload,
   });
 
+  emitDashboardDataChanged({ source: "product-created" });
   return mapBackendProduct(created);
 }
 
@@ -388,6 +424,7 @@ export async function updateProduto(productId, productInput) {
     body: payload,
   });
 
+  emitDashboardDataChanged({ source: "product-updated", productId });
   return mapBackendProduct(updated);
 }
 
@@ -396,6 +433,7 @@ export async function deleteProduto(productId) {
     method: "DELETE",
   });
 
+  emitDashboardDataChanged({ source: "product-deleted", productId });
   return true;
 }
 
@@ -430,6 +468,7 @@ export async function createPedido(orderInput) {
     body: payload,
   });
 
+  emitDashboardDataChanged({ source: "order-created" });
   return mapBackendOrder(created);
 }
 
@@ -458,6 +497,7 @@ export async function updatePedido(orderId, orderInput) {
     body: payload,
   });
 
+  emitDashboardDataChanged({ source: "order-updated", orderId });
   return mapBackendOrder(updated);
 }
 
@@ -499,7 +539,7 @@ export async function getMercadoLivreStatus() {
       pedidosAtivos: Number(data?.pedidosAtivos ?? 0),
       totalInventario: Number(data?.totalInventario ?? 0),
     };
-  } catch (e) {
+  } catch {
     return {
       connected: false,
       sellerId: null,
@@ -515,7 +555,9 @@ export async function getMercadoLivreAuthUrl() {
 }
 
 export async function syncMercadoLivre() {
-  return fetchBackend('/api/mercadolivre/sync', { method: "POST", body: {} });
+  const data = await fetchBackend('/api/mercadolivre/sync', { method: "POST", body: {} });
+  emitDashboardDataChanged({ source: "mercadolivre-sync" });
+  return data;
 }
 
 export async function disconnectMercadoLivre() {

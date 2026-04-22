@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { createPedido, getPedidos, updatePedido } from "../../utils/api";
 import { Calendar } from "primereact/calendar";
 import "../../styles/pages/dashboard/dashboard.css";
@@ -54,7 +54,7 @@ const Pedidos = () => {
     status: "Todos",
   });
 
-  const sortOrders = (list) => {
+  const sortOrders = useCallback((list) => {
     const data = [...list];
 
     if (!sortField || !sortOrder) {
@@ -75,11 +75,11 @@ const Pedidos = () => {
     });
 
     return data;
-  };
+  }, [sortField, sortOrder]);
 
   useEffect(() => {
     setFilteredOrders(sortOrders(orders));
-  }, [orders, sortField, sortOrder]);
+  }, [orders, sortOrders]);
 
   const loadOrders = async () => {
     try {

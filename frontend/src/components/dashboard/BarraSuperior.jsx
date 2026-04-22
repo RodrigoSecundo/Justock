@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import SuporteModal from "../suporte/SuporteModal";
 import { getAccessibilityPrefs } from "../../utils/accessibility";
 import PerfilDialog from "./PerfilDialog";
+import { Badge } from "primereact/badge";
+import { getDashboardNotifications, markDashboardNotificationAsRead, subscribeDashboardDataChanged } from "../../utils/api";
 
 const BarraSuperior = () => {
   const navigate = useNavigate();
@@ -13,15 +15,33 @@ const BarraSuperior = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [openSuporte, setOpenSuporte] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const notificationsCount = notifications.length;
+  const [notificationsCount, setNotificationsCount] = useState(0);
   const [openPerfil, setOpenPerfil] = useState(false);
 
   const notificationsRef = useRef(null);
   const profileRef = useRef(null);
   const [srOpt, setSrOpt] = useState(() => getAccessibilityPrefs().toggleLeitor === true);
 
+  const loadNotifications = () => {
+    getDashboardNotifications()
+      .then((data) => {
+        setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
+        setNotificationsCount(Number(data?.unreadCount ?? 0));
+      })
+      .catch(() => {
+        setNotifications([]);
+        setNotificationsCount(0);
+      });
+  };
+
   const toggleNotifications = () => {
-    setShowNotifications(prev => !prev);
+    setShowNotifications(prev => {
+      const next = !prev;
+      if (next) {
+        loadNotifications();
+      }
+      return next;
+    });
     setShowProfile(false);
   };
   const toggleProfile = () => {
@@ -44,6 +64,7 @@ const BarraSuperior = () => {
   };
 
   useEffect(() => {
+    loadNotifications();
     const handleClickOutside = (e) => {
       if (notificationsRef.current && !notificationsRef.current.contains(e.target)) {
         setShowNotifications(false);
@@ -60,9 +81,13 @@ const BarraSuperior = () => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
+    const unsubscribeDashboard = subscribeDashboardDataChanged(() => {
+      loadNotifications();
+    });
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
+      unsubscribeDashboard();
     };
   }, []);
 
@@ -76,6 +101,16 @@ const BarraSuperior = () => {
     onAcc({ detail: getAccessibilityPrefs() });
     return () => window.removeEventListener('jt:accessibility-updated', onAcc);
   }, []);
+
+  const handleReadNotification = async (notificationId) => {
+    try {
+      await markDashboardNotificationAsRead(notificationId);
+      setNotifications((current) => current.filter((notification) => notification.id !== notificationId));
+      setNotificationsCount((current) => Math.max(0, current - 1));
+    } catch {
+      // keep current list when marking fails
+    }
+  };
 
   return (
     <div className="barra-superior" role="banner" aria-label="Barra superior">
@@ -111,23 +146,34 @@ const BarraSuperior = () => {
             onClick={toggleNotifications}
           >
             <FiBell />
+            {notificationsCount > 0 && <Badge value={notificationsCount} severity="danger" className="badge-notificacoes" />}
           </button>
           {showNotifications && (
             <div id="dropdown-notificacoes" className={`dropdown-notificacoes ${showNotifications ? 'show' : ''}`} role="menu" aria-label="Lista de notificações" aria-live={srOpt ? 'polite' : undefined}>
               {notificationsCount > 0 ? (
                 <div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }} role="none">
-                    {notifications.map((n, idx) => (
-                      <li key={idx} role="menuitem" style={{ padding: '6px 4px', borderBottom: '1px solid #eee' }}>{n}</li>
+                  <div className="dropdown-notificacoes-header">
+                    <strong>Notificações</strong>
+                    <span>{notificationsCount} pendente(s)</span>
+                  </div>
+                  <ul className="lista-notificacoes" role="none">
+                    {notifications.map((notification) => (
+                      <li key={notification.id} role="menuitem" className={`item-notificacao ${notification.type}`}>
+                        <div className="item-notificacao-texto">
+                          <span className="item-notificacao-titulo">{notification.title || 'Alerta'}</span>
+                          <span>{notification.text}</span>
+                          <small>{notification.time}</small>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn-visualizado"
+                          onClick={() => handleReadNotification(notification.id)}
+                        >
+                          Visualizado
+                        </button>
+                      </li>
                     ))}
                   </ul>
-                  <button
-                    type="button"
-                    style={{ marginTop: '8px', width: '100%', background: '#f5f5f5', border: '1px solid #ddd', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}
-                    onClick={() => setNotifications([])}
-                  >
-                    Limpar notificações
-                  </button>
                 </div>
               ) : (
                 <p>Sem notificações no momento</p>

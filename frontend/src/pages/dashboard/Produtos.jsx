@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { createProduto, deleteProduto, getProdutos, updateProduto } from "../../utils/api";
 import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/produtos.css";
@@ -143,20 +143,6 @@ const ModalEditarProduto = ({ isOpen, onClose, product, onSave, isSaving }) => {
     };
   });
 
-  useEffect(() => {
-    if (product) {
-      setFormData({
-        categoria: product.categoria,
-        marca: product.marca,
-        nome: product.nome,
-        estoque: product.estoque,
-        preco: String(product.preco || "").replace("R$ ", ""),
-        codigoBarras: product.codigoBarras,
-        customMarca: ""
-      });
-    }
-  }, [product]);
-
   const categorias = [
     "Placas-mãe",
     "Processadores",
@@ -258,9 +244,8 @@ const Produtos = () => {
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
-  const [isSyncingML, setIsSyncingML] = useState(false);
 
-  const sortProducts = (list) => {
+  const sortProducts = useCallback((list) => {
     const data = [...list];
 
     if (!sortField || !sortOrder) {
@@ -281,11 +266,11 @@ const Produtos = () => {
     });
 
     return data;
-  };
+  }, [sortField, sortOrder]);
 
   useEffect(() => {
     setFilteredProducts(sortProducts(products));
-  }, [products, sortField, sortOrder]);
+  }, [products, sortProducts]);
 
   const loadProducts = async () => {
     try {
@@ -362,7 +347,7 @@ const Produtos = () => {
       return;
     }
 
-    const confirmed = window.confirm(`Deseja realmente excluir o produto \"${product.nome}\"?`);
+    const confirmed = window.confirm(`Deseja realmente excluir o produto "${product.nome}"?`);
     if (!confirmed) return;
 
     try {
@@ -542,6 +527,7 @@ const Produtos = () => {
         isSaving={isCreatingProduct}
       />
       <ModalEditarProduto
+        key={editProduct?.id ?? "novo-produto"}
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         product={editProduct}

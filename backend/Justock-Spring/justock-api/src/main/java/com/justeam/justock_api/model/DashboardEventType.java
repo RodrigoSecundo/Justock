@@ -1,0 +1,17 @@
+package com.justeam.justock_api.model;
+
+public enum DashboardEventType {
+    PRODUCT_CREATED,
+    PRODUCT_UPDATED,
+    PRODUCT_DELETED,
+    PRODUCT_LOW_STOCK,
+    PRODUCT_OUT_OF_STOCK,
+    ORDER_CREATED,
+    ORDER_UPDATED,
+    ORDER_DELETED,
+    ORDER_SYNCED,
+    PRODUCT_SYNCED,
+    SETTINGS_UPDATED,
+    THEME_CHANGED,
+    SYNC_COMPLETED
+}

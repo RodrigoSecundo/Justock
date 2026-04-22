@@ -120,26 +120,37 @@
 .item-alerta {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
   font-size: 0.9rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fbfc;
+  border: 1px solid #e6eef2;
 }
 
 .icone-atividade,
 .icone-alerta {
-  margin-right: 8px;
+  margin-right: 0;
+  margin-top: 1px;
+  flex-shrink: 0;
 }
 
 .texto-atividade,
 .texto-alerta {
   flex-grow: 1;
+  color: #334155;
+  line-height: 1.4;
 }
 
 .tempo-atividade,
 .tempo-alerta {
   color: #999;
   font-size: 0.8rem;
-  margin-left: 10px;
+  margin-left: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .item-atividade.validado {
@@ -168,4 +179,23 @@
 
 .item-alerta.atualizado {
   color: #4caf50;
+}
+
+.item-atividade.atualizado,
+.item-atividade.validado,
+.item-atividade.novo,
+.item-atividade.sincronizado {
+  border-left: 4px solid #10b981;
+}
+
+.item-atividade.reembolsado {
+  border-left: 4px solid #ef4444;
+}
+
+.item-alerta.baixo {
+  border-left: 4px solid #f97316;
+}
+
+.item-alerta.fora-estoque {
+  border-left: 4px solid #ef4444;
 }

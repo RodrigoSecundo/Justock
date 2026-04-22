@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiAlertTriangle, FiXCircle } from "react-icons/fi";
 import "../../styles/pages/dashboard/dashboard.css";
 
-import { getDashboardResumo, getDashboardInventoryOverview, getDashboardRecentActivity, getDashboardAlerts } from "../../utils/api";
+import { getDashboardResumo, getDashboardInventoryOverview, getDashboardRecentActivity, getDashboardAlerts, subscribeDashboardDataChanged } from "../../utils/api";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -82,6 +82,18 @@ const Dashboard = () => {
     try { return getThemePref() === 'dark'; } catch { return false; }
   });
 
+  const loadRecentActivity = () => {
+    getDashboardRecentActivity()
+      .then((data) => setRecentActivity(Array.isArray(data.activities) ? data.activities : []))
+      .catch(() => setRecentActivity([]));
+  };
+
+  const loadAlerts = () => {
+    getDashboardAlerts()
+      .then((data) => setAlerts(Array.isArray(data.alerts) ? data.alerts : []))
+      .catch(() => setAlerts([]));
+  };
+
   // Carrega dados dependentes de tema (paleta) sempre que 'isDark' alterar
   useEffect(() => {
     let cancelled = false;
@@ -133,22 +145,30 @@ const Dashboard = () => {
 
     // inventory-overview é carregado em um effect separado que respeita 'isDark'
 
-    getDashboardRecentActivity()
-      .then((data) => setRecentActivity(Array.isArray(data.activities) ? data.activities : []))
-      .catch(() => setRecentActivity([]));
-
-    getDashboardAlerts()
-      .then((data) => setAlerts(Array.isArray(data.alerts) ? data.alerts : []))
-      .catch(() => setAlerts([]));
+    loadRecentActivity();
+    loadAlerts();
     const onAppearance = (e) => {
       if (e?.detail?.theme) setIsDark(e.detail.theme === 'dark');
       else if (document?.body) setIsDark(document.body.getAttribute('data-theme') === 'dark');
     };
+    const unsubscribeDashboard = subscribeDashboardDataChanged(() => {
+      loadRecentActivity();
+      loadAlerts();
+      getDashboardResumo()
+        .then((data) => {
+          setTotalProducts(typeof data.total === "number" ? data.total : 0);
+          setLowStockProducts(typeof data.lowStock === "number" ? data.lowStock : 0);
+          setConnectedMarketplaces(typeof data.connectedMarketplaces === "number" ? data.connectedMarketplaces : 0);
+          setSyncStatus(typeof data.syncStatus === "string" ? data.syncStatus : "OFF");
+        })
+        .catch(() => {});
+    });
     window.addEventListener('jt:appearance-updated', onAppearance);
     onAppearance();
     return () => {
       window.removeEventListener('jt:accessibility-updated', handler);
       window.removeEventListener('jt:appearance-updated', onAppearance);
+      unsubscribeDashboard();
     };
   }, []);
 
@@ -221,7 +241,7 @@ const Dashboard = () => {
                 <h3>Atividade Recente</h3>
                 <ul>
                   {recentActivity.map((item, index) => (
-                    <li key={index} className={`item-atividade ${item.type}`}>
+                    <li key={item.id ?? index} className={`item-atividade ${item.type}`}>
                       <span className="icone-atividade" aria-hidden="true">
                         {item.type === 'reembolsado' ? <FiAlertTriangle size={18} /> : <FiCheckCircle size={18} />}
                       </span>
@@ -236,7 +256,7 @@ const Dashboard = () => {
                 <h3>Alertas</h3>
                 <ul>
                   {alerts.map((alert, index) => (
-                    <li key={index} className={`item-alerta ${alert.type}`}>
+                    <li key={alert.id ?? index} className={`item-alerta ${alert.type}`}>
                       <span className="icone-alerta" aria-hidden="true">
                         {alert.type === 'fora-estoque' ? <FiXCircle size={18} /> : alert.type === 'atualizado' ? <FiCheckCircle size={18} /> : <FiAlertTriangle size={18} />}
                       </span>
