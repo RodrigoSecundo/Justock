@@ -4,6 +4,16 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { login } from "../../utils/auth";
 
+async function warmDashboardRoute() {
+  try {
+    const { preloadDashboardRoutes, preloadDashboardShell } = await import("../../routers/dashboardPreload.js");
+    await preloadDashboardShell();
+    void preloadDashboardRoutes();
+  } catch {
+    // Se o preload falhar, a navegação ainda continua e o Suspense cobre a transição.
+  }
+}
+
 function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -16,6 +26,7 @@ function Login() {
     try {
       const usuario = await login({ email, senha });
       window.localStorage.setItem("jt:user", JSON.stringify(usuario));
+      await warmDashboardRoute();
       navigate("/dashboard");
     } catch (err) {
       console.error("Login error:", err);

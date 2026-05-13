@@ -1,5 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import '../../styles/dashboard-theme.css';
+import '../../styles/components/tema_tabelas_primereact.css';
 import BarraLateral from './BarraLateral';
 import BarraSuperior from './BarraSuperior';
 
