@@ -41,18 +41,21 @@ npm run dev
 
 Aplicação em `http://localhost:5173`.
 
-## Credenciais de login (dev)
-
-- `testeAdminSEC@exemplo.com` / `S@nh4secr3t4`
-
 ## Variáveis de ambiente
 
-O frontend usa preferencialmente:
+O frontend lê as URLs locais de `frontend/.env.local`, que já fica fora do versionamento.
+
+Crie o arquivo local a partir do exemplo:
 
 ```powershell
-$env:VITE_API_BASE_URL = "http://localhost:3001"
-$env:VITE_BACKEND_API_BASE_URL = "http://localhost:8080"
-npm run dev
+Copy-Item .env.example .env.local
+```
+
+Conteúdo esperado:
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:3001
+VITE_BACKEND_API_BASE_URL=http://localhost:8080
 ```
 
 Onde:

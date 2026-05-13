@@ -12,7 +12,7 @@ Backend da aplicação JusTock, construído com Spring Boot, Spring Security, JP
 
 ## Stack
 
-- Java 17
+- Java 21
 - Spring Boot 3.5.x
 - Spring Security
 - Spring Data JPA / Hibernate
@@ -21,7 +21,7 @@ Backend da aplicação JusTock, construído com Spring Boot, Spring Security, JP
 
 ## Requisitos
 
-- JDK 17
+- JDK 21
 - Maven 3.9+ ou uso do Maven Wrapper incluído no projeto
 - IDE de sua preferência
 
@@ -37,6 +37,10 @@ Na pasta `backend/Justock-Spring/justock-api`:
 ./mvnw.cmd spring-boot:run
 ```
 
+No Windows, o `mvnw.cmd` do projeto tenta selecionar automaticamente um JDK 21 instalado em `%USERPROFILE%\.jdk\jdk-21*`, então o comando acima deve funcionar sem export manual de `JAVA_HOME`.
+
+Se esse JDK 21 não existir nesse caminho, configure `JAVA_HOME`/`Path` manualmente antes de rodar o wrapper.
+
 Backend padrão em `http://localhost:8080`
 
 Para validar compilação:
@@ -44,6 +48,8 @@ Para validar compilação:
 ```powershell
 ./mvnw.cmd -q -DskipTests compile
 ```
+
+O projeto continua compilando com `java.version=21`; o wrapper só evita que o terminal use por engano um Java mais antigo quando encontra um JDK 21 local compatível.
 
 Para rodar testes:
 
@@ -146,17 +152,29 @@ mercadolivre.auto-sync.fixed-delay-ms=900000
 mercadolivre.auto-sync.initial-delay-ms=120000
 ```
 
-### Configuração esperada no `application.properties`
+### Configuração local esperada no `application-local.properties`
+
+O arquivo versionado ficou limpo e agora o backend importa um arquivo local ignorado pelo Git. Crie o arquivo a partir do modelo:
+
+```powershell
+Copy-Item application-local.example.properties application-local.properties
+```
+
+Depois disso, troque os placeholders pelos valores reais do seu ambiente.
 
 ```properties
-mercadolivre.client.id=SEU_APP_ID
-mercadolivre.client.secret=SUA_SECRET_KEY
-mercadolivre.redirect.uri=https://SEU-TUNEL.ngrok-free.dev/api/mercadolivre/callback
-mercadolivre.frontend.redirect-uri=http://localhost:5173/conexoes
-mercadolivre.shared.usuario-id=1
-mercadolivre.auto-sync.enabled=true
-mercadolivre.auto-sync.fixed-delay-ms=900000
-mercadolivre.auto-sync.initial-delay-ms=120000
+SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/database
+SPRING_DATASOURCE_USERNAME=seu_usuario
+SPRING_DATASOURCE_PASSWORD=sua_senha
+JWT_SECRET=sua_chave_jwt_com_pelo_menos_32_caracteres
+MERCADOLIVRE_CLIENT_ID=seu_app_id
+MERCADOLIVRE_CLIENT_SECRET=sua_secret_key
+MERCADOLIVRE_REDIRECT_URI=https://seu-tunel.ngrok-free.dev/api/mercadolivre/callback
+MERCADOLIVRE_FRONTEND_REDIRECT_URI=http://localhost:5173/conexoes
+MERCADOLIVRE_SHARED_USUARIO_ID=1
+MERCADOLIVRE_AUTO_SYNC_ENABLED=true
+MERCADOLIVRE_AUTO_SYNC_FIXED_DELAY_MS=900000
+MERCADOLIVRE_AUTO_SYNC_INITIAL_DELAY_MS=120000
 ```
 
 ### Observações práticas

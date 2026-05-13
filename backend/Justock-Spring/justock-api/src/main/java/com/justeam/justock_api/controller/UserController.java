@@ -30,7 +30,7 @@ public class UserController {
     public ApiResponseDTO<List<UserResponseDTO>> index() {
         List<UserResponseDTO> users = userService.listAllusers()
                 .stream()
-                .map(u -> new UserResponseDTO(u.getIdUsuario(), u.getNomeUsuario(), u.getEmailCorporativo(), u.getNumero(), u.getSenha()))
+                .map(u -> new UserResponseDTO(u.getIdUsuario(), u.getNomeUsuario(), u.getEmailCorporativo(), u.getNumero()))
                 .collect(Collectors.toList());
         return new ApiResponseDTO<>(200, "Usuários encontrados!", users);
     }
@@ -43,7 +43,7 @@ public class UserController {
         if (user == null) {
             return new ApiResponseDTO<>(404, "Usuário não encontrado!", null);
         }
-        UserResponseDTO dto = new UserResponseDTO(user.getIdUsuario(), user.getNomeUsuario(), user.getEmailCorporativo(), user.getNumero(), user.getSenha());
+        UserResponseDTO dto = new UserResponseDTO(user.getIdUsuario(), user.getNomeUsuario(), user.getEmailCorporativo(), user.getNumero());
         return new ApiResponseDTO<>(200, "Usuário encontrado!", dto);
     }
 
@@ -52,7 +52,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<UserResponseDTO> store(@Valid @RequestBody UserCreateRequest request) {
         User user = userService.createuser(request);
-        UserResponseDTO dto = new UserResponseDTO(user.getIdUsuario(), user.getNomeUsuario(), user.getEmailCorporativo(), user.getNumero(), user.getSenha());
+        UserResponseDTO dto = new UserResponseDTO(user.getIdUsuario(), user.getNomeUsuario(), user.getEmailCorporativo(), user.getNumero());
         return new ApiResponseDTO<>(200, "Usuário cadastrado com sucesso!", dto);
     }
 
@@ -64,7 +64,7 @@ public class UserController {
         if (user == null) {
             return new ApiResponseDTO<>(404, "Usuário não encontrado!", null);
         }
-        UserResponseDTO dto = new UserResponseDTO(user.getIdUsuario(), user.getNomeUsuario(), user.getEmailCorporativo(), user.getNumero(), user.getSenha());
+        UserResponseDTO dto = new UserResponseDTO(user.getIdUsuario(), user.getNomeUsuario(), user.getEmailCorporativo(), user.getNumero());
         return new ApiResponseDTO<>(200, "Usuário atualizado!", dto);
     }
 

@@ -1,7 +1,8 @@
 import { getAuthToken } from "./auth";
+import { getRequiredEnv } from "./env";
 
-const MOCK_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL || "http://localhost:8080";
+const MOCK_API_BASE_URL = getRequiredEnv("VITE_API_BASE_URL");
+const BACKEND_API_BASE_URL = getRequiredEnv("VITE_BACKEND_API_BASE_URL");
 const ORDER_STATUS_OPTIONS = ["EM ANDAMENTO", "CANCELADO", "CONCLUÍDO"];
 const PAYMENT_STATUS_OPTIONS = ["PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO"];
 const DASHBOARD_CHANGED_EVENT = "jt:dashboard-data-changed";

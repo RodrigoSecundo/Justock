@@ -6,11 +6,9 @@ import lombok.Data;
 public class AdministratorResponseDTO {
     private int idAdministrador;
     private String emailCorporativo;
-    private String senha;
 
-    public AdministratorResponseDTO(int idAdministrador, String emailCorporativo, String senha) {
+    public AdministratorResponseDTO(int idAdministrador, String emailCorporativo) {
         this.idAdministrador = idAdministrador;
         this.emailCorporativo = emailCorporativo;
-        this.senha = senha;
     }
 }

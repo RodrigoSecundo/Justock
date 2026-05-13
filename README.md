@@ -148,7 +148,7 @@ Foi corrigido um problema em que um filtro inválido de status do ML zerava todo
 
 ### Backend
 
-- JDK 17
+- JDK 21
 - Maven 3.9+ ou uso do Maven Wrapper incluído no projeto
 
 ## Como rodar localmente
@@ -181,6 +181,10 @@ cd backend/Justock-Spring/justock-api
 ./mvnw.cmd spring-boot:run
 ```
 
+No Windows, o `mvnw.cmd` do projeto tenta selecionar automaticamente um JDK 21 instalado em `%USERPROFILE%\.jdk\jdk-21*`, então o comando acima deve funcionar sem preparação manual do terminal.
+
+Se não houver um JDK 21 nesse caminho, aí sim será necessário configurar `JAVA_HOME`/`Path` manualmente.
+
 API em `http://localhost:8080`
 
 Para validar compilação do backend:
@@ -192,37 +196,46 @@ cd backend/Justock-Spring/justock-api
 
 ## Variáveis de ambiente do frontend
 
-O frontend usa duas bases:
-- `VITE_API_BASE_URL` para o mock local, padrão `http://localhost:3001`
-- `VITE_BACKEND_API_BASE_URL` para o backend real, padrão `http://localhost:8080`
+O frontend lê as URLs locais a partir de `frontend/.env.local`, que já fica fora do versionamento por causa do `.gitignore` do Vite.
 
-Exemplo em PowerShell:
+Use `frontend/.env.example` como base e crie seu arquivo local:
 
 ```powershell
-$env:VITE_API_BASE_URL = "http://localhost:3001"
-$env:VITE_BACKEND_API_BASE_URL = "http://localhost:8080"
-npm run dev
+cd frontend
+Copy-Item .env.example .env.local
 ```
 
-## Configuração do Mercado Livre
+## Configuração sensível do backend
 
-As propriedades principais ficam em `backend/Justock-Spring/justock-api/src/main/resources/application.properties`:
+As propriedades sensíveis do backend não ficam mais no arquivo versionado. Agora o Spring importa um arquivo local opcional em `backend/Justock-Spring/justock-api/application-local.properties`.
+
+Use `backend/Justock-Spring/justock-api/application-local.example.properties` como base:
+
+```powershell
+cd backend/Justock-Spring/justock-api
+Copy-Item application-local.example.properties application-local.properties
+```
+
+Depois de copiar, preencha o `application-local.properties` com os valores reais do seu ambiente antes de rodar o backend.
+
+Exemplo do conteúdo esperado:
 
 ```properties
-mercadolivre.client.id=SEU_APP_ID
-mercadolivre.client.secret=SUA_SECRET_KEY
-mercadolivre.redirect.uri=https://SEU-TUNEL.ngrok-free.dev/api/mercadolivre/callback
-mercadolivre.frontend.redirect-uri=http://localhost:5173/conexoes
-mercadolivre.shared.usuario-id=1
-mercadolivre.auto-sync.enabled=true
-mercadolivre.auto-sync.fixed-delay-ms=900000
-mercadolivre.auto-sync.initial-delay-ms=120000
+SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/database
+SPRING_DATASOURCE_USERNAME=seu_usuario
+SPRING_DATASOURCE_PASSWORD=sua_senha
+JWT_SECRET=sua_chave_jwt_com_pelo_menos_32_caracteres
+MERCADOLIVRE_CLIENT_ID=seu_app_id
+MERCADOLIVRE_CLIENT_SECRET=sua_secret_key
+MERCADOLIVRE_REDIRECT_URI=https://seu-dominio/api/mercadolivre/callback
+MERCADOLIVRE_FRONTEND_REDIRECT_URI=http://localhost:5173/conexoes
 ```
 
 Notas:
 - `mercadolivre.redirect.uri` deve ser idêntico ao callback cadastrado no app do Mercado Livre
 - O callback do ML entra pelo backend público e depois redireciona para o frontend local em `Conexões`
 - Em ngrok free, o navegador pode passar pela tela de aviso do próprio túnel antes do retorno
+- O backend continua exigindo JDK 21; o wrapper só automatiza a escolha desse Java no Windows quando ele já está instalado no caminho esperado
 
 ## Estrutura resumida
 

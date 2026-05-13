@@ -30,7 +30,7 @@ public class AdministratorController {
     public ApiResponseDTO<List<AdministratorResponseDTO>> index() {
         List<AdministratorResponseDTO> administrators = administratorService.listAllAdministrators()
                 .stream()
-                .map(a -> new AdministratorResponseDTO(a.getIdAdministrador(), a.getEmailCorporativo(), a.getSenha()))
+                .map(a -> new AdministratorResponseDTO(a.getIdAdministrador(), a.getEmailCorporativo()))
                 .collect(Collectors.toList());
         return new ApiResponseDTO<>(200, "Administradores encontrados!", administrators);
     }
@@ -43,7 +43,7 @@ public class AdministratorController {
         if (administrator == null) {
             return new ApiResponseDTO<>(404, "Administrador não encontrado!", null);
         }
-        AdministratorResponseDTO dto = new AdministratorResponseDTO(administrator.getIdAdministrador(), administrator.getEmailCorporativo(), administrator.getSenha());
+        AdministratorResponseDTO dto = new AdministratorResponseDTO(administrator.getIdAdministrador(), administrator.getEmailCorporativo());
         return new ApiResponseDTO<>(200, "Administrador encontrado!", dto);
     }
 
@@ -52,7 +52,7 @@ public class AdministratorController {
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<AdministratorResponseDTO> store(@Valid @RequestBody AdministratorCreateRequest request) {
         Administrator administrator = administratorService.createAdministrator(request);
-        AdministratorResponseDTO dto = new AdministratorResponseDTO(administrator.getIdAdministrador(), administrator.getEmailCorporativo(), administrator.getSenha());
+        AdministratorResponseDTO dto = new AdministratorResponseDTO(administrator.getIdAdministrador(), administrator.getEmailCorporativo());
         return new ApiResponseDTO<>(200, "Administrador cadastrado com sucesso!", dto);
     }
 
@@ -64,7 +64,7 @@ public class AdministratorController {
         if (administrator == null) {
             return new ApiResponseDTO<>(404, "Administrador não encontrado!", null);
         }
-        AdministratorResponseDTO dto = new AdministratorResponseDTO(administrator.getIdAdministrador(), administrator.getEmailCorporativo(), administrator.getSenha());
+        AdministratorResponseDTO dto = new AdministratorResponseDTO(administrator.getIdAdministrador(), administrator.getEmailCorporativo());
         return new ApiResponseDTO<>(200, "Administrador atualizado!", dto);
     }
 

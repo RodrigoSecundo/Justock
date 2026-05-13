@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import DialogoReutilizavel from "../common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
-import { Password } from "primereact/password";
 import { InputIcon } from "primereact/inputicon";
 import { getUsuario } from "../../utils/api";
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -41,8 +40,6 @@ function PerfilDialog({ open, onClose }) {
     notifySuccess("Informações de perfil atualizadas.");
     if (onClose) onClose();
   };
-
-  const senhaMascarada = user?.senha ? "•".repeat(String(user.senha).length) : "";
 
   return (
     <DialogoReutilizavel
@@ -125,24 +122,6 @@ function PerfilDialog({ open, onClose }) {
                       placeholder="(opcional)"
                     />
                   </div>
-                </div>
-
-                <div className="perfil-campo-linha">
-                  <label className="perfil-rotulo" htmlFor="perfil-senha">
-                    Senha:
-                  </label>
-                  <div className="perfil-campo-wrapper">
-                    <Password
-                      id="perfil-senha"
-                      value={senhaMascarada}
-                      readOnly
-                      toggleMask={false}
-                      feedback={false}
-                      className="perfil-campo-senha"
-                      inputClassName="perfil-campo"
-                    />
-                  </div>
-                  <span className="perfil-obrigatorio">*</span>
                 </div>
               </div>
             </div>

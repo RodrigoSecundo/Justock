@@ -1,4 +1,6 @@
-const AUTH_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL || "http://localhost:8080";
+import { getRequiredEnv } from "./env";
+
+const AUTH_API_BASE_URL = getRequiredEnv("VITE_BACKEND_API_BASE_URL");
 const AUTH_STORAGE_KEY = "jt:auth";
 
 async function handleResponse(response) {

@@ -8,13 +8,11 @@ public class UserResponseDTO {
     private String nomeUsuario;
     private String emailCorporativo;
     private String numero;
-    private String senha;
 
-    public UserResponseDTO(int idUsuario, String nomeUsuario, String emailCorporativo, String numero, String senha) {
+    public UserResponseDTO(int idUsuario, String nomeUsuario, String emailCorporativo, String numero) {
         this.idUsuario = idUsuario;
         this.nomeUsuario = nomeUsuario;
         this.emailCorporativo = emailCorporativo;
         this.numero = numero;
-        this.senha = senha;
     }
 }
