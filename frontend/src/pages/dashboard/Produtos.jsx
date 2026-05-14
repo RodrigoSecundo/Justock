@@ -2,7 +2,7 @@ import React, { useCallback, useState, useEffect } from "react";
 import { createProduto, deleteProduto, getProdutos, updateProduto } from "../../utils/api";
 import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/produtos.css";
-import { useSrOptimized, srProps } from "../../utils/useA11y";
+import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
 import { notifyError, notifySuccess } from "../../utils/notify";
 import DialogoReutilizavel from "../../components/common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";

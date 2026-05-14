@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../../styles/pages/dashboard/conexoes.css";
 import { notifyError, notifySuccess } from "../../utils/notify";
-import { useSrOptimized, srProps } from "../../utils/useA11y";
+import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
 import { getConexoes, getMercadoLivreAuthUrl, disconnectMercadoLivre, syncMercadoLivre } from "../../utils/api";
 
 

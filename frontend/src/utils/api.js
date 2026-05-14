@@ -1,5 +1,5 @@
-import { getAuthToken } from "./auth";
-import { getRequiredEnv } from "./env";
+import { getAuthToken } from "./auth?v=20260514-3";
+import { getRequiredEnv } from "./env?v=20260514-3";
 
 const MOCK_API_BASE_URL = getRequiredEnv("VITE_API_BASE_URL");
 const BACKEND_API_BASE_URL = getRequiredEnv("VITE_BACKEND_API_BASE_URL");

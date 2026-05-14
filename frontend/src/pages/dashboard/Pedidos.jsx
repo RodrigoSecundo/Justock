@@ -3,7 +3,7 @@ import { createPedido, getPedidos, updatePedido } from "../../utils/api";
 import { Calendar } from "primereact/calendar";
 import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/pedidos.css";
-import { useSrOptimized, srProps } from "../../utils/useA11y";
+import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import DialogoReutilizavel from "../../components/common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";

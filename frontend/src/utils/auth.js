@@ -1,4 +1,4 @@
-import { getRequiredEnv } from "./env";
+import { getRequiredEnv } from "./env?v=20260514-3";
 
 const AUTH_API_BASE_URL = getRequiredEnv("VITE_BACKEND_API_BASE_URL");
 const AUTH_STORAGE_KEY = "jt:auth";

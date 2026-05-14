@@ -15,7 +15,7 @@ import {
 } from "chart.js";
 import { getAccessibilityPrefs } from "../../utils/accessibility";
 import { getThemePref } from "../../utils/appearance";
-import { useSrOptimized, srProps } from "../../utils/useA11y";
+import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
 
 ChartJS.register(
   CategoryScale,

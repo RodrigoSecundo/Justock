@@ -17,7 +17,7 @@ import {
 import { Line, Doughnut } from "react-chartjs-2";
 import { getAccessibilityPrefs } from "../../utils/accessibility";
 import { getThemePref } from "../../utils/appearance";
-import { srProps } from "../../utils/useA11y";
+import { srProps } from "../../utils/useA11y?v=20260514-6";
 
 ChartJS.register(
   CategoryScale,
