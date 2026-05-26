@@ -4,6 +4,7 @@ import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { InputIcon } from "primereact/inputicon";
 import { getUsuario } from "../../utils/api";
+import { getStoredUser } from "../../utils/auth";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import "../../styles/pages/dashboard/perfil.css";
 
@@ -19,8 +20,7 @@ function PerfilDialog({ open, onClose }) {
     async function loadUser() {
       try {
         setLoading(true);
-        const stored = window.localStorage.getItem("jt:user");
-        const parsed = stored ? JSON.parse(stored) : null;
+        const parsed = getStoredUser();
         const id = parsed?.id ?? DEFAULT_USER_ID;
         const data = await getUsuario(id);
         setUser(data);

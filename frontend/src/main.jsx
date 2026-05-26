@@ -8,12 +8,13 @@ import 'primereact/resources/primereact.min.css'
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
 import App from './App.jsx'
-// Backend agora vem do json-server (db.json)
 import { initAppearance } from './utils/appearance.js'
 import { initAccessibility } from './utils/accessibility.js'
+import { initializeAuthSession } from './utils/auth.js'
 
 initAppearance()
 initAccessibility()
+initializeAuthSession()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -7,6 +7,7 @@ import { getAccessibilityPrefs } from "../../utils/accessibility";
 import PerfilDialog from "./PerfilDialog";
 import { Badge } from "primereact/badge";
 import { getDashboardNotifications, markDashboardNotificationAsRead, subscribeDashboardDataChanged } from "../../utils/api";
+import { clearAuth } from "../../utils/auth";
 
 const BarraSuperior = () => {
   const navigate = useNavigate();
@@ -56,7 +57,10 @@ const BarraSuperior = () => {
   };
 
   const handleConfirmLogout = () => {
-    window.location.href = '/login';
+    clearAuth();
+    setShowLogoutModal(false);
+    setShowProfile(false);
+    navigate("/login", { replace: true });
   };
 
   const handleCancelLogout = () => {

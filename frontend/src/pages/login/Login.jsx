@@ -1,8 +1,8 @@
 import "../../styles/pages/login/login.css";
 import logo from "../../assets/logo_preto_baix.png";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { login } from "../../utils/auth";
+import { isAuthenticated, login } from "../../utils/auth";
 
 async function warmDashboardRoute() {
   try {
@@ -16,18 +16,24 @@ async function warmDashboardRoute() {
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+
+  if (isAuthenticated()) {
+    const redirectTo = location.state?.from?.pathname || "/dashboard";
+    return <Navigate to={redirectTo} replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErro("");
     try {
-      const usuario = await login({ email, senha });
-      window.localStorage.setItem("jt:user", JSON.stringify(usuario));
+      await login({ email, senha });
       await warmDashboardRoute();
-      navigate("/dashboard");
+      const redirectTo = location.state?.from?.pathname || "/dashboard";
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       console.error("Login error:", err);
       const mensagem = err?.message || "Usuário ou senha inválidos.";

@@ -1,5 +1,5 @@
-import React, { Suspense, useLayoutEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import React, { Suspense, useEffect, useLayoutEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import BarraNavegacao from "../pages/home/barra_navegacao.jsx";
 import TopoHome from "../pages/home/topo_home.jsx";
 import RecursosDisponiveis from "../pages/home/recursos_home.jsx";
@@ -9,6 +9,7 @@ import PlanosModal from "../pages/home/planos_modal.jsx";
 import Login from "../pages/login/Login.jsx";
 import ErrorBoundary from "../components/common/ErrorBoundary.jsx";
 import { applyAppearance } from "../utils/appearance.js";
+import { clearAuth, isAuthenticated, touchAuthActivity } from "../utils/auth.js";
 import {
   AssinaturaRoute,
   ConfiguracoesRoute,
@@ -56,6 +57,64 @@ const DashboardPage = ({ children }) => (
   </Suspense>
 );
 
+const ACTIVITY_EVENTS = ["click", "keydown", "mousemove", "scroll", "touchstart"];
+const AUTH_CHECK_INTERVAL_MS = 60 * 1000;
+
+const AuthActivityGuard = ({ children }) => {
+  const location = useLocation();
+  const [authenticated, setAuthenticated] = useState(() => isAuthenticated());
+
+  useEffect(() => {
+    const syncAuth = () => {
+      const valid = isAuthenticated();
+      if (valid) {
+        touchAuthActivity();
+      }
+      setAuthenticated(valid);
+    };
+
+    syncAuth();
+
+    if (!authenticated) {
+      return undefined;
+    }
+
+    const handleActivity = () => {
+      const valid = touchAuthActivity();
+      if (!valid) {
+        clearAuth();
+        setAuthenticated(false);
+      }
+    };
+
+    const handleVisibility = () => {
+      syncAuth();
+    };
+
+    ACTIVITY_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, handleActivity, { passive: true });
+    });
+    window.addEventListener("focus", handleVisibility);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const intervalId = window.setInterval(syncAuth, AUTH_CHECK_INTERVAL_MS);
+
+    return () => {
+      ACTIVITY_EVENTS.forEach((eventName) => {
+        window.removeEventListener(eventName, handleActivity);
+      });
+      window.removeEventListener("focus", handleVisibility);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.clearInterval(intervalId);
+    };
+  }, [authenticated, location.pathname]);
+
+  if (!authenticated) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return children;
+};
+
 const Routs = () => {
   const [planosOpen, setPlanosOpen] = useState(false);
   const openPlanos = () => setPlanosOpen(true);
@@ -82,9 +141,11 @@ const Routs = () => {
           <Route path="/login" element={<Login />} />
           <Route
             element={
-              <Suspense fallback={<RouteFallback label="Preparando painel..." />}>
-                <DashboardLayoutRoute />
-              </Suspense>
+              <AuthActivityGuard>
+                <Suspense fallback={<RouteFallback label="Preparando painel..." />}>
+                  <DashboardLayoutRoute />
+                </Suspense>
+              </AuthActivityGuard>
             }
           >
             <Route path="/dashboard" element={<DashboardPage><DashboardRoute /></DashboardPage>} />
