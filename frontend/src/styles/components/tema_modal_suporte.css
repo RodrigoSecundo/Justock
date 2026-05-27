@@ -11,13 +11,15 @@
   --p-dialog-border-radius: 12px;
 }
 
-.dialogo-suporte .p-dialog {
+.dialogo-suporte.jt-dialog.p-dialog {
+  background: #f7fbff;
+  border: 1px solid #d8e4ee;
   box-shadow: 0 10px 30px rgba(2,10,10,0.25);
   border-radius: 12px;
   overflow: hidden;
 }
 
-.dialogo-suporte .p-dialog-header {
+.dialogo-suporte.jt-dialog .p-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -26,30 +28,37 @@
   color: #ffffff;
   border-bottom: 1px solid rgba(255,255,255,0.15);
 }
-.dialogo-suporte .p-dialog-title {
+.dialogo-suporte.jt-dialog .p-dialog-title {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.dialogo-suporte .p-dialog-header .p-dialog-header-icons {
+.dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-icons {
   margin-left: 1rem;
 }
-.dialogo-suporte .p-dialog-header .p-dialog-header-icon,
-.dialogo-suporte .p-dialog-header .p-dialog-header-close {
+.dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-icon,
+.dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-close {
   color: #ffffff;
   background: transparent;
   border: none;
 }
-.dialogo-suporte .p-dialog-header .font-bold {
+.dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-icon:hover,
+.dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-close:hover,
+.dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-icon:focus-visible,
+.dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-close:focus-visible {
+  background: rgba(255,255,255,0.14);
+  color: #ffffff;
+}
+.dialogo-suporte.jt-dialog .p-dialog-header .font-bold {
   font-weight: 700;
   color: #ffffff;
 }
-.dialogo-suporte .p-dialog-header small {
+.dialogo-suporte.jt-dialog .p-dialog-header .subtitulo-header-suporte {
   color: #cfeae7;
 }
 
-.dialogo-suporte .p-dialog-content {
-  background: #ffffff;
+.dialogo-suporte.jt-dialog .p-dialog-content {
+  background: #f8fbff;
   color: #1f2933;
   padding: 1rem;
   max-height: 70vh;
@@ -58,11 +67,11 @@
   border-top-right-radius: 0;
 }
 
-.dialogo-suporte .p-dialog-content .p-button {
+.dialogo-suporte.jt-dialog .p-dialog-content .p-button {
   border-radius: 8px;
 }
 
-.dialogo-suporte .p-dialog-footer {
+.dialogo-suporte.jt-dialog .p-dialog-footer {
   padding: 0.75rem 1rem 1rem 1rem;
   background: transparent;
 }
@@ -90,13 +99,27 @@
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
 }
+.dialogo-suporte.jt-dialog .botao-anexar.p-button.p-button-outlined {
+  background: #182026;
+  border-color: #182026;
+  color: #ffffff;
+}
+.dialogo-suporte.jt-dialog .botao-anexar.p-button.p-button-outlined:hover {
+  background: #0f1720;
+  border-color: #0f1720;
+}
 .textarea-suporte.p-inputtextarea {
   flex: 1 1 auto;
   min-height: 110px;
   max-height: 160px;
   overflow-y: auto;
+  background: #ffffff;
+  color: #1f2933;
   border-width: 2px;
   border-color: var(--justock-green-dark);
+}
+.textarea-suporte.p-inputtextarea::placeholder {
+  color: #7b8b91;
 }
 .textarea-suporte.p-inputtextarea:focus {
   box-shadow: 0 0 0 2px rgba(14,60,58,0.18);
@@ -108,9 +131,18 @@
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
 }
+.dialogo-suporte.jt-dialog .acoes-chat .p-button {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+.dialogo-suporte.jt-dialog .acoes-chat .p-button:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
 
 @media (max-width: 640px) {
-  .dialogo-suporte .p-dialog {
+  .dialogo-suporte.jt-dialog.p-dialog {
     width: 100% !important;
     max-width: 100% !important;
     height: auto !important;
@@ -121,10 +153,32 @@
 /* ——— Modo escuro do Dashboard ——— */
 /* Essas regras só entram em páginas que definem [data-theme="dark"],
    não afetando a Home. */
-[data-theme="dark"] .dialogo-suporte .p-dialog {
+[data-theme="dark"] .dialogo-suporte.jt-dialog.p-dialog {
+  background: #0f1620 !important;
+  border-color: var(--jt-border) !important;
   box-shadow: 0 10px 30px rgba(0,0,0,0.55);
 }
-[data-theme="dark"] .dialogo-suporte .p-dialog-content {
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header {
+  background: linear-gradient(90deg, #0f2230, #111827) !important;
+  border-bottom-color: var(--jt-border);
+}
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header .font-bold {
+  color: #f8fafc;
+}
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header .subtitulo-header-suporte {
+  color: #cbd5e1;
+}
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-icon,
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-close {
+  color: #e5e7eb;
+}
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-icon:hover,
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-close:hover,
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-icon:focus-visible,
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-header .p-dialog-header-close:focus-visible {
+  background: rgba(148,163,184,0.16);
+}
+[data-theme="dark"] .dialogo-suporte.jt-dialog .p-dialog-content {
   background: var(--jt-surface);
   color: var(--jt-text);
   border-top: 1px solid var(--jt-border);
@@ -155,9 +209,14 @@
 [data-theme="dark"] .acoes-chat .p-button:hover {
   background: #3b4a5e;
 }
-[data-theme="dark"] .botao-anexar.p-button.p-button-outlined {
+[data-theme="dark"] .dialogo-suporte.jt-dialog .botao-anexar.p-button.p-button-outlined {
   color: var(--jt-text);
+  background: #1f2937;
   border-color: var(--jt-border);
+}
+[data-theme="dark"] .dialogo-suporte.jt-dialog .botao-anexar.p-button.p-button-outlined:hover {
+  background: #334155;
+  border-color: #475569;
 }
 [data-theme="dark"] .botao-anexar.p-button {
   min-width: 96px;

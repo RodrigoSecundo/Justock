@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiAlertTriangle, FiXCircle } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import "../../styles/pages/dashboard/dashboard.css";
 
 import { getDashboardResumo, getDashboardInventoryOverview, getDashboardRecentActivity, getDashboardAlerts, subscribeDashboardDataChanged } from "../../utils/api";
@@ -255,7 +256,7 @@ const Dashboard = () => {
             <section className="visao-inventario" {...srProps(srOpt, { role: 'region', 'aria-labelledby': 'sec-visao-inventario' })}>
               <div className="cabecalho-secao">
                 <h2 id="sec-visao-inventario">Visão Geral do Inventário</h2>
-                <a href="#">ver mais {'>'}</a>
+                <Link to="/produtos">ver mais {'>'}</Link>
               </div>
               {(chartData?.datasets?.[0]?.data?.length ?? 0) > 0 ? (
                 <Bar data={chartData} options={barOptions} />

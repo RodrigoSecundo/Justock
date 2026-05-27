@@ -13,10 +13,24 @@ Hoje o sistema opera em modo híbrido: parte dos dados vem do backend real e par
 ## Novidades recentes
 
 As mudanças mais relevantes registradas neste estado do projeto são:
+- Autenticação do frontend conectada ao backend real com login e cadastro por API
+- Cadastro público exposto na rota `/cadastro`, inclusive a partir do modal de planos da home
+- Rotas privadas do painel protegidas contra acesso direto sem sessão válida
+- Sessão do frontend com expiração por 1 hora de inatividade e invalidação entre versões do app
+- Logout corrigido para realmente invalidar a sessão antes do redirecionamento
+- Resolução da conta autenticada com distinção entre conta principal e contas isoladas
+- Perfil do usuário conectado com leitura e atualização reais de nome, número e senha
 - Dashboard principal com `Atividade Recente` e `Alertas` vindos do backend real
 - Notificações reais na barra superior, com contador, marcação como visualizada e reaproveitamento dos alertas de estoque
 - Registro persistente de eventos do dashboard para ações de produtos, pedidos, sincronizações e mudanças de configuração/tema
-- Ajustes visuais de tema escuro para notificações, alertas e atividade recente
+- Estados vazios para contas novas em dashboard, relatórios e assinatura
+- Ajustes visuais de tema escuro para dashboard, relatórios, assinatura, produtos e pedidos
+- O link `ver mais >` do gráfico principal do dashboard agora redireciona para `Produtos`
+- A logo da barra lateral foi estabilizada no modo de alto contraste, tanto minimizada quanto expandida
+- O modal de suporte recebeu correções de contraste no tema claro e refinamento visual entre home e dashboard
+- O tema salvo pelo usuário no dashboard agora fica restrito ao painel interno; a home sempre usa o tema padrão
+- O hero da home teve ajuste de quebra de linha para evitar linhas isoladas na chamada principal
+- O frontend agora possui fallback automático de URLs quando `frontend/.env.local` não existe
 - Lint do frontend ajustado para o formato atual do ESLint 9
 
 ## Estado atual dos dados
@@ -24,6 +38,7 @@ As mudanças mais relevantes registradas neste estado do projeto são:
 ### Backend real
 
 Estas áreas já usam o backend Spring + PostgreSQL/Supabase:
+- Login e cadastro
 - Produtos
 - Pedidos
 - Integração com Mercado Livre
@@ -37,29 +52,58 @@ Estas áreas ainda dependem total ou parcialmente do mock:
 - Usuários
 - Amazon e Shopee em Conexões
 
+Observação importante:
+- `Relatórios` e `Assinatura` ainda usam mock, mas agora já distinguem o comportamento da conta principal e de contas novas, inclusive com estados vazios controlados
+
+## Autenticação e sessão
+
+O fluxo atual de autenticação funciona assim:
+- `Login` e `Cadastro` consomem o backend real em `/api/auth`
+- O login retorna informações da conta autenticada, incluindo `dashboardUserId` e indicador de `primaryAdmin`
+- Rotas privadas como `/dashboard`, `/pedidos`, `/produtos`, `/conexoes`, `/relatorios`, `/configuracoes` e `/assinatura` exigem sessão válida
+- A sessão do frontend fica em `sessionStorage`, não em `localStorage`
+- Após 1 hora de inatividade, a sessão expira e o usuário volta para a tela de login
+- Quando a versão interna do frontend muda, sessões antigas são invalidadas para evitar reaproveitamento entre builds
+- O logout limpa a sessão local antes de redirecionar para `/login`
+- O frontend consulta e atualiza o perfil atual em `/api/auth/me` e `/api/auth/me/profile`
+
+Fluxos expostos hoje na interface:
+- `/login` para autenticação
+- `/cadastro` para criação de conta
+
 ## Dashboard hoje
 
 Os cards e gráficos do dashboard principal estão neste estado:
+- A conta principal `testeAdminSEC@exemplo.com` continua acessando o dashboard compartilhado legado
+- As demais contas usam o próprio contexto de dados e não reaproveitam mais o dashboard compartilhado
 - `Total de Produtos`: real, somando o estoque dos produtos vindos do backend
 - `Produtos em Baixa`: real, contando produtos com estoque menor que `3`
 - `Marketplaces Conectadas`: real, hoje fica `1` quando o Mercado Livre está conectado e `0` quando não está
 - `Status da Sincronização`: real, hoje fica `ON` com Mercado Livre conectado e `OFF` sem conexão
 - `Visão Geral do Inventário`: real, usando as 4 categorias com maior ocorrência nos produtos reais; se houver menos de 4 categorias distintas, exibe uma barra default zerada
+- O atalho `ver mais >` deste bloco leva para a tela `Produtos`
 - `Atividade Recente`: real, persistida no backend e limitada aos 5 registros mais recentes exibidos no bloco
 - `Alertas`: real, exibindo apenas produtos esgotados ou em baixa (`estoque < 3`), também limitado aos 5 alertas mais recentes exibidos no bloco
 - `Notificações`: reais na barra superior, com contador de não lidas, lista visual própria e ação de marcar como visualizada
+- Para contas novas ou ainda sem movimentação suficiente, o dashboard mostra estados vazios em vez de dados compartilhados
+
+Comportamentos visuais recentes do frontend:
+- A home mantém sempre o tema padrão, independentemente do tema escolhido dentro do dashboard
+- O modal de suporte da home não reaproveita mais inadvertidamente o tema escuro salvo no painel
+- A sidebar do dashboard preserva proporção correta da logo também em alto contraste
 
 ## Produtos e pedidos
 
 ### Produtos
 
-- CRUD manual usa backend real
+- CRUD manual usa backend real e fica associado ao contexto da conta autenticada
 - Produtos sincronizados do Mercado Livre ficam identificados como origem de marketplace
 - Produtos de marketplace não podem ser editados nem excluídos manualmente, a UI mantém os botões visivelmente bloqueados e exibe erro ao clicar
+- Para contas que não são a principal, as ações manuais de produtos ficam ocultas na interface atual
 
 ### Pedidos
 
-- CRUD manual usa backend real
+- CRUD manual usa backend real e respeita o contexto da conta autenticada
 - Validações manuais ativas:
   - Data de emissão obrigatória e não futura
   - Data de entrega opcional, mas nunca anterior à emissão nem futura
@@ -69,6 +113,7 @@ Os cards e gráficos do dashboard principal estão neste estado:
 - Clique na linha do pedido abre modal de visualização
 - Lápis edita apenas pedidos manuais
 - Pedidos de marketplace exibem observação automática com o número externo do marketplace
+- Para contas que não são a principal, as ações manuais de pedidos ficam ocultas na interface atual
 
 ## Mercado Livre
 
@@ -85,7 +130,9 @@ A integração com Mercado Livre já suporta:
 - Normalização de categoria por `category_id` do ML com fallback por heurística no nome do produto
 
 Detalhes operacionais importantes:
-- O projeto usa um usuário interno compartilhado do Justock para a integração (`mercadolivre.shared.usuario-id`)
+- O projeto mantém um usuário interno compartilhado do Justock para a conta principal (`mercadolivre.shared.usuario-id`)
+- A conta principal é definida por `justock.primary-admin.email` e por padrão é `testeAdminSEC@exemplo.com`
+- Fora essa conta principal, os demais usuários usam o próprio contexto de dashboard e integração
 - A conta conectada do Mercado Livre pode ser trocada
 - A primeira sincronização automática roda 2 minutos após subir o backend
 - As próximas sincronizações automáticas rodam a cada 15 minutos
@@ -205,6 +252,17 @@ cd frontend
 Copy-Item .env.example .env.local
 ```
 
+Valores esperados:
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:3001
+VITE_BACKEND_API_BASE_URL=http://localhost:8080
+```
+
+Se `frontend/.env.local` não existir, o frontend agora usa fallback automático:
+- Em ambiente local: `http://localhost:3001` e `http://localhost:8080`
+- Em `justock.com.br` ou `www.justock.com.br`: `https://mock.justock.com.br` e `https://api.justock.com.br`
+
 ## Configuração sensível do backend
 
 As propriedades sensíveis do backend não ficam mais no arquivo versionado. Agora o Spring importa um arquivo local opcional em `backend/Justock-Spring/justock-api/application-local.properties`.
@@ -234,7 +292,7 @@ MERCADOLIVRE_FRONTEND_REDIRECT_URI=http://localhost:5173/conexoes
 Notas:
 - `mercadolivre.redirect.uri` deve ser idêntico ao callback cadastrado no app do Mercado Livre
 - O callback do ML entra pelo backend público e depois redireciona para o frontend local em `Conexões`
-- Em ngrok free, o navegador pode passar pela tela de aviso do próprio túnel antes do retorno
+- Em qualquer túnel HTTP com interstitial, o navegador pode passar por uma tela intermediária antes do retorno
 - O backend continua exigindo JDK 21; o wrapper só automatiza a escolha desse Java no Windows quando ele já está instalado no caminho esperado
 
 ## Estrutura resumida

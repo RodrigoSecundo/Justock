@@ -3,7 +3,7 @@ import "../../styles/pages/home/rodape_home.css";
 function RodapeHome() {
   return (
     <footer className="footer">
-      <p>© 2025 JusTock - Todos os direitos reservados</p>
+      <p>© 2026 Justock - Todos os direitos reservados</p>
     </footer>
   );
 }

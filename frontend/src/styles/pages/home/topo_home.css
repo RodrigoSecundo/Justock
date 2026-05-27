@@ -33,6 +33,11 @@
   margin-bottom: 2rem;
 }
 
+.topo-frase-sem-quebra {
+  display: inline-block;
+  white-space: nowrap;
+}
+
 .topo-conteudo button {
   background: #2563eb;
   color: white;

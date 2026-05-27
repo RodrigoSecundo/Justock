@@ -175,7 +175,7 @@ const BarraLateral = () => {
         <img
           src={logoShowsExpanded ? (highContrast ? logoTitleContrast : logoDetailed) : (highContrast ? logoContrast : logoCompact)}
           alt="Logo Justock"
-          className="barra_lateral-logo-img"
+          className={`barra_lateral-logo-img ${logoShowsExpanded ? "barra_lateral-logo-expandida" : "barra_lateral-logo-compacta"}`}
         />
       </NavLink>
 

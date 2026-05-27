@@ -37,8 +37,8 @@ function TopoHome({ onOpenPlanos }) {
       <div className="topo-conteudo">
         <h1>Gestão de estoque rápida e eficaz</h1>
         <p>
-          Integre seu inventário com as maiores marketplaces do mercado
-          <br />e automatize suas operações!
+          Integre seu inventário com as maiores marketplaces do mercado e{" "}
+          <span className="topo-frase-sem-quebra">automatize suas operações!</span>
         </p>
         <button onClick={onOpenPlanos}>Comece agora o TESTE GRÁTIS!</button>
       </div>

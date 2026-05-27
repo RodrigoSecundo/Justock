@@ -1,6 +1,7 @@
 const FONT_KEY = 'jt-font';
 const SIDEBAR_KEY = 'jt-sidebar';
-const THEME_KEY = 'jt-theme';
+const DASHBOARD_THEME_KEY = 'jt-dashboard-theme';
+const LEGACY_THEME_KEY = 'jt-theme';
 
 export function getFontPref() {
   const v = typeof window !== 'undefined' ? window.localStorage.getItem(FONT_KEY) : null;
@@ -14,7 +15,7 @@ export function getSidebarPref() {
 
 export function getThemePref() {
   if (typeof window === 'undefined') return 'light';
-  const v = window.localStorage.getItem(THEME_KEY);
+  const v = window.localStorage.getItem(DASHBOARD_THEME_KEY) || window.localStorage.getItem(LEGACY_THEME_KEY);
   if (v === 'light' || v === 'dark') return v;
   try {
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -35,7 +36,10 @@ export function setSidebarPref(v) {
 }
 
 export function setThemePref(v) {
-  try { window.localStorage.setItem(THEME_KEY, v); } catch { void 0; }
+  try {
+    window.localStorage.setItem(DASHBOARD_THEME_KEY, v);
+    window.localStorage.removeItem(LEGACY_THEME_KEY);
+  } catch { void 0; }
   applyAppearance();
 }
 
@@ -56,11 +60,13 @@ export function applyAppearance() {
   body.classList.toggle('sidebar-detalhada', sidebar === 'detalhada');
   body.classList.toggle('sidebar-mista', sidebar === 'mista');
 
-  const theme = getThemePref();
-  if (body.classList.contains('dashboard-scope')) {
+  const isDashboardScope = body.classList.contains('dashboard-scope');
+  const theme = isDashboardScope ? getThemePref() : 'light';
+  if (isDashboardScope) {
     body.setAttribute('data-theme', theme);
   } else {
     body.removeAttribute('data-theme');
+    if (html) html.removeAttribute('data-theme');
   }
 
   try {
@@ -75,7 +81,7 @@ export function initAppearance() {
   applyAppearance();
   if (typeof window !== 'undefined') {
     window.addEventListener('storage', (e) => {
-      if (e.key === FONT_KEY || e.key === SIDEBAR_KEY || e.key === THEME_KEY) {
+      if (e.key === FONT_KEY || e.key === SIDEBAR_KEY || e.key === DASHBOARD_THEME_KEY || e.key === LEGACY_THEME_KEY) {
         applyAppearance();
       }
     });

@@ -4,9 +4,24 @@ Frontend da aplicação JusTock, construído com React + Vite. O projeto consome
 
 ## Novidades recentes
 
+- Login e cadastro agora usam o backend real via `/api/auth`
+- Cadastro público disponível em `/cadastro`, inclusive a partir do modal de planos da home
+- Rotas privadas do painel foram protegidas contra acesso direto sem autenticação
+- Sessão do frontend agora expira com 1 hora de inatividade
+- Logout agora invalida a sessão antes do redirecionamento
+- Sessão do frontend agora guarda `dashboardUserId` e `primaryAdmin`
+- Perfil do usuário no dashboard agora carrega e salva dados reais
+- Dashboard deixou de compartilhar dados com contas não principais
 - Dashboard principal agora consome atividade recente e alertas reais do backend
 - Barra superior ganhou notificações reais com contador, lista visual e marcação como visualizada
-- Tema escuro foi ajustado para notificações, alertas e atividade recente
+- Relatórios e assinatura agora mostram estado vazio para contas novas
+- Tema escuro foi ajustado para dashboard, relatórios, assinatura, produtos e pedidos
+- O link `ver mais >` do gráfico principal do dashboard agora navega para `/produtos`
+- A logo da sidebar foi corrigida no modo de alto contraste, evitando escala incorreta quando minimizada ou expandida
+- O modal de suporte teve o contraste corrigido no tema claro
+- O tema salvo no dashboard passou a valer apenas dentro do painel; a home sempre usa o tema padrão
+- O hero da home teve ajuste na quebra da chamada principal para evitar uma linha isolada
+- O frontend agora usa fallback automático de URLs quando `.env.local` está ausente
 - Configurações do dashboard agora registram eventos de atividade no backend
 - Configuração de lint do frontend foi atualizada e o projeto volta a validar com `npm run lint`
 
@@ -62,10 +77,17 @@ Onde:
 - `VITE_API_BASE_URL`: mock local
 - `VITE_BACKEND_API_BASE_URL`: backend real
 
+Fallback automático quando `.env.local` não existe:
+- Em `localhost`: `VITE_API_BASE_URL=http://localhost:3001` e `VITE_BACKEND_API_BASE_URL=http://localhost:8080`
+- Em `justock.com.br` e `www.justock.com.br`: `VITE_API_BASE_URL=https://mock.justock.com.br` e `VITE_BACKEND_API_BASE_URL=https://api.justock.com.br`
+
 ## Estado atual do frontend
 
 ### Já usando backend real
 
+- Login
+- Cadastro
+- Perfil atual da conta autenticada
 - Produtos
 - Pedidos
 - Status e ações do Mercado Livre em Conexões
@@ -78,19 +100,62 @@ Onde:
 - Usuários
 - Amazon e Shopee em Conexões
 
+Observação:
+- `Relatórios` e `Assinatura` ainda vêm do mock, mas já respeitam o comportamento de conta principal versus conta nova por meio de estados vazios específicos
+
+## Autenticação e rotas privadas
+
+O frontend agora trabalha com sessão autenticada nestes termos:
+- `POST /api/auth/login` para login
+- `POST /api/auth/register` para cadastro
+- `GET /api/auth/me` para carregar o perfil atual
+- `PUT /api/auth/me/profile` para atualizar nome, número e senha
+- Sessão guardada em `sessionStorage`
+- Expiração automática após 1 hora sem atividade do usuário
+- Invalidação de sessão quando a versão interna da aplicação muda
+- Redirecionamento automático para `/login` ao tentar acessar rotas privadas sem sessão válida
+- Redirecionamento de volta para a rota original após login, quando aplicável
+- O frontend usa `dashboardUserId` e `primaryAdmin` para decidir o contexto visível do dashboard
+
+Rotas públicas atuais:
+- `/`
+- `/login`
+- `/cadastro`
+
+Rotas privadas atuais:
+- `/dashboard`
+- `/dashboard/conexoes`
+- `/conexoes`
+- `/produtos`
+- `/pedidos`
+- `/relatorios`
+- `/configuracoes`
+- `/assinatura`
+
+Observação: o logout da barra superior limpa a sessão local antes de navegar para `/login`.
+
 ## Dashboard principal
 
 Hoje o dashboard está assim:
+- A conta principal `testeAdminSEC@exemplo.com` continua acessando o dashboard compartilhado legado
+- As demais contas passam a usar o próprio contexto de dados
 - `Total de Produtos`: real
 - `Produtos em Baixa`: real, com regra `estoque < 3`
 - `Marketplaces Conectadas`: real, hoje refletindo o status do Mercado Livre (`1` conectado, `0` desconectado)
 - `Status da Sincronização`: real, `ON` ou `OFF` conforme conexão do Mercado Livre
 - `Visão Geral do Inventário`: real, usando as 4 categorias com maior contagem entre os produtos reais
+- O CTA `ver mais >` deste card leva o usuário para `/produtos`
 - `Atividade Recente`: real, atualizada a partir dos eventos persistidos no backend e exibindo até 5 itens no bloco
 - `Alertas`: reais, mostrando apenas estoque baixo e produto esgotado, também limitados aos 5 itens mais recentes do bloco
 - `Notificações` na barra superior: reais, com contador de não lidas, dropdown próprio e ação de marcar como visualizada
+- Para contas novas ou ainda sem dados suficientes, dashboard, relatórios e assinatura exibem estados vazios em vez de reaproveitar dados compartilhados
 
 O gráfico de inventário já aplica marcações inteiras no eixo Y, com step adaptativo (`1`, `5`, `10`, `25`, `50`, `100`) conforme o maior valor.
+
+Ajustes recentes de experiência e tema:
+- A home sempre renderiza no tema padrão, sem herdar a preferência visual salva no dashboard
+- O modal de suporte possui aparência própria e contraste legível no tema claro
+- A troca entre logo expandida e compacta da sidebar não depende mais do nome do asset, evitando regressões no alto contraste
 
 Os blocos do dashboard reagem automaticamente a mudanças vindas de:
 - criação, edição e exclusão de produtos
@@ -111,13 +176,13 @@ O frontend já implementa:
 Observações:
 - O callback OAuth do Mercado Livre entra no backend público exposto por túnel HTTP
 - Depois do callback, o backend redireciona o navegador para `http://localhost:5173/conexoes`
-- Em ngrok free, o navegador pode passar pela página de aviso do próprio túnel
+- Em qualquer túnel HTTP com interstitial, o navegador pode passar por uma página intermediária
 
 ### Fluxo de teste pela interface
 
 Para testar a integração fim a fim no frontend:
 
-1. Entrar no Justock
+1. Criar conta em `Cadastro` ou entrar pelo `Login`
 2. Ir para `Conexões`
 3. Clicar em `Conectar` no card do Mercado Livre
 4. Fazer login no Mercado Livre com o vendedor de teste
@@ -154,7 +219,7 @@ Foi corrigido um problema no backend que fazia os totais permanecerem zerados qu
 
 - Produtos sincronizados de marketplace aparecem identificados
 - Produtos de marketplace não podem ser editados ou excluídos manualmente
-- Os botões continuam com aparência bloqueada e exibem toast de erro ao clicar
+- Para contas não principais, as ações manuais ficam ocultas na interface atual
 
 ### Pedidos
 
@@ -162,7 +227,7 @@ Foi corrigido um problema no backend que fazia os totais permanecerem zerados qu
 - O lápis edita apenas pedidos manuais
 - Pedidos de marketplace exibem observação automática com o número externo
 - Pedidos de marketplace não podem ser editados manualmente
-- O botão bloqueado continua clicável só para exibir o toast de erro
+- Para contas não principais, as ações manuais ficam ocultas na interface atual
 
 ## Estrutura do projeto
 
@@ -208,5 +273,6 @@ frontend/
 
 - Use `npm run api` + `npm run dev` quando estiver mexendo em telas ainda híbridas ou mockadas
 - Para validar apenas produtos, pedidos e Mercado Livre, backend + frontend costumam ser suficientes
+- Para validar autenticação, confirme também acesso direto a URLs privadas como `/pedidos` e `/produtos`
 - Verifique `frontend/db.json` quando precisar reproduzir cenários nas partes ainda mockadas
 

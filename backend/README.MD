@@ -4,6 +4,9 @@ Backend da aplicação JusTock, construído com Spring Boot, Spring Security, JP
 
 ## Novidades recentes
 
+- Endpoints de autenticação para login e cadastro integrados ao frontend
+- Endpoints para consultar e atualizar o perfil da conta autenticada
+- Resolução centralizada da conta atual com distinção entre conta principal e contas isoladas
 - Nova persistência de eventos do dashboard com Flyway `V10`
 - Endpoints reais para atividade recente, alertas e notificações do dashboard
 - Registro automático de eventos em produtos, pedidos, sincronização do Mercado Livre e mudanças de configuração/tema
@@ -65,6 +68,8 @@ Para rodar testes:
 
 ## O que já está real no backend
 
+- Login e cadastro com emissão de token
+- Leitura e atualização do perfil atual via autenticação JWT
 - CRUD de produtos
 - CRUD de pedidos
 - Integração com Mercado Livre
@@ -75,8 +80,26 @@ Para rodar testes:
 
 ## Regras de negócio atuais
 
+### Autenticação
+
+- `POST /api/auth/login` autentica o usuário e retorna o token consumido pelo frontend
+- `POST /api/auth/register` cria uma nova conta
+- `GET /api/auth/me` retorna os dados atuais da conta autenticada
+- `PUT /api/auth/me/profile` atualiza nome, número e senha da conta atual
+- O login e o endpoint de perfil retornam `dashboardUserId` e `primaryAdmin` para o frontend decidir o contexto de dados
+- O frontend usa esse token para proteger o acesso ao painel e APIs autenticadas
+
+### Conta principal e isolamento de dados
+
+- A conta principal é definida pela propriedade `justock.primary-admin.email`
+- Por padrão, a conta principal é `testeAdminSEC@exemplo.com`
+- Apenas a conta principal reaproveita o dashboard compartilhado legado via `mercadolivre.shared.usuario-id`
+- As demais contas usam o próprio `id` como contexto de dashboard, produtos, pedidos e integração
+- A resolução desse contexto fica concentrada em `CurrentAccountService`
+
 ### Produtos
 
+- Leituras e gravações usam o contexto resolvido da conta autenticada
 - Produtos manuais podem ser criados, editados e excluídos
 - Produtos sincronizados de marketplace não podem ser editados ou excluídos manualmente via API do Justock
 - Produtos sincronizados do Mercado Livre são identificados por `marketplace_source`, `marketplace_resource_id` e marcador `ML`
@@ -84,6 +107,7 @@ Para rodar testes:
 
 ### Pedidos
 
+- Leituras e gravações usam o contexto resolvido da conta autenticada
 - Pedidos manuais seguem validações de data e status
 - Pedidos sincronizados de marketplace não podem ser editados ou excluídos manualmente via API do Justock
 - Pedidos do Mercado Livre recebem observação automática com o número externo do marketplace
@@ -115,6 +139,7 @@ Para rodar testes:
 - Extração de marca por atributos do item
 - Normalização de categoria do item com `category_id` do ML e fallback por heurística no título
 - Resumo de conexão com totais de pedidos e inventário para a tela `Conexões`
+- Resolução do usuário de dashboard a partir da conta autenticada antes de consultar status, sincronizar ou desconectar
 
 ### O que ainda não está implementado
 
@@ -129,6 +154,13 @@ Para rodar testes:
 - `POST /api/mercadolivre/sync`
 - `POST /api/mercadolivre/disconnect`
 - `POST /api/mercadolivre/webhook`
+
+## Endpoints de autenticação
+
+- `POST /api/auth/login`
+- `POST /api/auth/register`
+- `GET /api/auth/me`
+- `PUT /api/auth/me/profile`
 
 ## Endpoints do dashboard
 
@@ -167,6 +199,7 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/database
 SPRING_DATASOURCE_USERNAME=seu_usuario
 SPRING_DATASOURCE_PASSWORD=sua_senha
 JWT_SECRET=sua_chave_jwt_com_pelo_menos_32_caracteres
+JUSTOCK_PRIMARY_ADMIN_EMAIL=testeAdminSEC@exemplo.com
 MERCADOLIVRE_CLIENT_ID=seu_app_id
 MERCADOLIVRE_CLIENT_SECRET=sua_secret_key
 MERCADOLIVRE_REDIRECT_URI=https://seu-tunel.ngrok-free.dev/api/mercadolivre/callback
@@ -181,8 +214,8 @@ MERCADOLIVRE_AUTO_SYNC_INITIAL_DELAY_MS=120000
 
 - `mercadolivre.redirect.uri` precisa bater exatamente com a URL cadastrada no app do Mercado Livre
 - O backend recebe o callback pelo túnel HTTP público e redireciona para o frontend local
-- Em ngrok free, o navegador pode passar pela página de aviso/interstitial antes do callback final
-- O projeto usa hoje um usuário interno compartilhado (`mercadolivre.shared.usuario-id=1`)
+- Em qualquer túnel HTTP com interstitial, o navegador pode passar por uma página intermediária antes do callback final
+- O projeto usa hoje um usuário interno compartilhado (`mercadolivre.shared.usuario-id=1`) apenas para a conta principal
 - Ao trocar a conta do Mercado Livre conectada, os produtos e pedidos antigos da conta anterior são removidos quando a nova sincronização roda
 - O bloqueio manual de edição e exclusão não interfere na própria sincronização automática/manual do Mercado Livre, porque ela usa o serviço interno de sync e não o CRUD manual do Justock
 

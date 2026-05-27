@@ -41,15 +41,13 @@
     width .54s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.barra_lateral-logo-img[src*="logo_sem.png"],
-.barra_lateral-logo-img[src*="logo_sem_contraste.png"] {
+.barra_lateral-logo-img.barra_lateral-logo-expandida {
   width: 112px;
   transform: translateX(-1px) translateY(1px);
 }
 
-.barra_lateral-logo-img[src*="logo_sem_titulo.png"],
-.barra_lateral-logo-img[src*="logo_sem_titulo_contraste.png"] {
-  width: 60px; /* ligeiramente maior que antes para compensar ausência do texto */
+.barra_lateral-logo-img.barra_lateral-logo-compacta {
+  width: 60px;
   transform: translateX(4px) translateY(3px);
 }
 

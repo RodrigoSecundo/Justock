@@ -22,7 +22,7 @@ function SuporteModal({ open, onClose }) {
       header={
         <div className="flex flex-column">
           <span className="font-bold">Suporte JusTock</span>
-          <small className="text-600">Equipe disponível para ajudar</small>
+          <small className="subtitulo-header-suporte">Equipe disponível para ajudar</small>
         </div>
       }
       width="420px"
