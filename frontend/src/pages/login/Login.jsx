@@ -4,6 +4,16 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { isAuthenticated, login } from "../../utils/auth";
 
+const cadastroSucessoStyle = {
+  color: "#166534",
+  background: "#dcfce7",
+  border: "1px solid #86efac",
+  borderRadius: "0.5rem",
+  padding: "0.85rem 1rem",
+  fontWeight: 700,
+  textAlign: "center",
+};
+
 async function warmDashboardRoute() {
   try {
     const { preloadDashboardRoutes, preloadDashboardShell } = await import("../../routers/dashboardPreload.js");
@@ -17,9 +27,10 @@ async function warmDashboardRoute() {
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => location.state?.email || "");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const mensagemCadastro = location.state?.registrationSuccess || "";
 
   if (isAuthenticated()) {
     const redirectTo = location.state?.from?.pathname || "/dashboard";
@@ -58,6 +69,12 @@ function Login() {
         </div>
 
         <form className="formulario-login" onSubmit={handleSubmit}>
+          {mensagemCadastro && (
+            <div role="status" style={cadastroSucessoStyle}>
+              {mensagemCadastro}
+            </div>
+          )}
+
           <div className="grupo-formulario">
             <input
               type="email"

@@ -1,4 +1,4 @@
-import { getAuthToken } from "./auth?v=20260514-3";
+import { getAuthToken, getDashboardUserId, getStoredUser, isPrimaryAdminUser, setStoredUser } from "./auth?v=20260514-3";
 import { getRequiredEnv } from "./env?v=20260514-3";
 
 const MOCK_API_BASE_URL = getRequiredEnv("VITE_API_BASE_URL");
@@ -26,6 +26,15 @@ const MOCK_MARKETPLACE_CONNECTIONS = [
     source: "mock",
   },
 ];
+
+const EMPTY_MESSAGES = {
+  dashboard: "Sua conta ainda não possui dados no dashboard.",
+  inventory: "Sua conta ainda não possui inventário para exibir.",
+  activity: "Sua conta ainda não possui atividades recentes.",
+  alerts: "Sua conta ainda não possui alertas ativos.",
+  reports: "Sua conta ainda não possui dados suficientes para gerar relatórios.",
+  subscription: "Sua conta ainda não possui assinatura ativa nem histórico de cobranças.",
+};
 
 async function handleResponse(response) {
   if (!response.ok) {
@@ -61,6 +70,11 @@ async function fetchBackend(path, { method = "GET", body } = {}) {
 
   const payload = await handleResponse(res);
   return normalizeApiEnvelope(payload);
+}
+
+async function fetchMock(path) {
+  const res = await fetch(`${MOCK_API_BASE_URL}${path}`);
+  return handleResponse(res);
 }
 
 function emitDashboardDataChanged(detail = {}) {
@@ -288,6 +302,8 @@ export async function getDashboardResumo() {
     lowStock: lowStockFromDatabase,
     connectedMarketplaces: mlStatus.connected ? 1 : 0,
     syncStatus: mlStatus.connected ? "ON" : "OFF",
+    isEmpty: totalFromDatabase === 0 && lowStockFromDatabase === 0 && !mlStatus.connected,
+    emptyMessage: totalFromDatabase === 0 && lowStockFromDatabase === 0 && !mlStatus.connected ? EMPTY_MESSAGES.dashboard : "",
   };
 }
 
@@ -316,23 +332,39 @@ export async function getDashboardInventoryOverview() {
 
   if (categories.length < 4) {
     return {
-      labels: ["Sem categorias suficientes"],
-      values: [0],
+      labels: [],
+      values: [],
+      isEmpty: true,
+      emptyMessage: EMPTY_MESSAGES.inventory,
     };
   }
 
   return {
     labels: categories.map(([categoryName]) => categoryName),
     values: categories.map(([, count]) => count),
+    isEmpty: false,
+    emptyMessage: "",
   };
 }
 
 export async function getDashboardRecentActivity() {
-  return fetchBackend(`/api/dashboard/recent-activity`);
+  const data = await fetchBackend(`/api/dashboard/recent-activity`).catch(() => ({ activities: [] }));
+  const activities = Array.isArray(data?.activities) ? data.activities : [];
+  return {
+    activities,
+    isEmpty: activities.length === 0,
+    emptyMessage: activities.length === 0 ? EMPTY_MESSAGES.activity : "",
+  };
 }
 
 export async function getDashboardAlerts() {
-  return fetchBackend(`/api/dashboard/alerts`);
+  const data = await fetchBackend(`/api/dashboard/alerts`).catch(() => ({ alerts: [] }));
+  const alerts = Array.isArray(data?.alerts) ? data.alerts : [];
+  return {
+    alerts,
+    isEmpty: alerts.length === 0,
+    emptyMessage: alerts.length === 0 ? EMPTY_MESSAGES.alerts : "",
+  };
 }
 
 export async function getDashboardNotifications() {
@@ -394,7 +426,7 @@ export async function createProduto(productInput) {
     quantidade: Number(productInput?.estoque ?? productInput?.quantidade ?? 0),
     quantidadeReservada: Number(productInput?.quantidadeReservada ?? 0),
     marcador: productInput?.marcador ?? "MANUAL",
-    usuario: Number(productInput?.usuario ?? 1),
+    usuario: Number(productInput?.usuario ?? getDashboardUserId() ?? 1),
   };
 
   const created = await fetchBackend(`/api/products/cadastrar`, {
@@ -417,7 +449,7 @@ export async function updateProduto(productId, productInput) {
     quantidade: Number(productInput?.estoque ?? productInput?.quantidade ?? 0),
     quantidadeReservada: Number(productInput?.quantidadeReservada ?? 0),
     marcador: productInput?.marcador ?? "MANUAL",
-    usuario: Number(productInput?.usuario ?? 1),
+    usuario: Number(productInput?.usuario ?? getDashboardUserId() ?? 1),
   };
 
   const updated = await fetchBackend(`/api/products/atualizar/${productId}`, {
@@ -503,8 +535,10 @@ export async function updatePedido(orderId, orderInput) {
 }
 
 export async function getRelatoriosPorAno(ano) {
-  const res = await fetch(`${MOCK_API_BASE_URL}/relatorios?ano=${ano}`);
-  const data = await handleResponse(res);
+  const path = isPrimaryAdminUser()
+    ? `/relatorios?ano=${ano}`
+    : `/relatorios_conta_nova?ano=${ano}`;
+  const data = await fetchMock(path);
   const relatorio = Array.isArray(data) ? data[0] : data;
   if (!relatorio) {
     throw new Error("Relatório não encontrado");
@@ -513,8 +547,37 @@ export async function getRelatoriosPorAno(ano) {
 }
 
 export async function getAssinatura() {
-  const res = await fetch(`${MOCK_API_BASE_URL}/assinatura`);
-  const data = await handleResponse(res);
+  const path = isPrimaryAdminUser() ? "/assinatura" : "/assinatura_conta_nova";
+  return fetchMock(path);
+}
+
+export async function getCurrentProfile() {
+  return fetchBackend(`/api/auth/me`);
+}
+
+export async function updateCurrentProfile(profileInput) {
+  const data = await fetchBackend(`/api/auth/me/profile`, {
+    method: "PUT",
+    body: {
+      name: profileInput?.nome ?? null,
+      numero: profileInput?.numero ?? null,
+      password: profileInput?.senha || null,
+      passwordConfirmation: profileInput?.senha || null,
+    },
+  });
+
+  const currentUser = getStoredUser() || {};
+  setStoredUser({
+    ...currentUser,
+    id: data?.id ?? currentUser.id ?? null,
+    dashboardUserId: data?.dashboardUserId ?? currentUser.dashboardUserId ?? currentUser.id ?? null,
+    nome: data?.name ?? currentUser.nome ?? "",
+    email: data?.email ?? currentUser.email ?? "",
+    role: data?.role ?? currentUser.role ?? "",
+    numero: data?.numero ?? "",
+    primaryAdmin: Boolean(data?.primaryAdmin ?? currentUser.primaryAdmin),
+  });
+
   return data;
 }
 

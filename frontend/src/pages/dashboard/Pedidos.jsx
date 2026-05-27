@@ -5,6 +5,7 @@ import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/pedidos.css";
 import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
 import { notifySuccess, notifyError } from "../../utils/notify";
+import { isPrimaryAdminUser } from "../../utils/auth";
 import DialogoReutilizavel from "../../components/common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
@@ -53,6 +54,7 @@ const Pedidos = () => {
     marketplace: "Todos",
     status: "Todos",
   });
+  const canManageOrders = isPrimaryAdminUser();
 
   const sortOrders = useCallback((list) => {
     const data = [...list];
@@ -466,7 +468,7 @@ const Pedidos = () => {
             header=""
             style={{ width: "3rem", textAlign: "center" }}
             body={(order) => (
-              <Button
+              canManageOrders ? <Button
                 icon="pi pi-pencil"
                 className={`p-button-sm p-button-rounded p-button-text btn-acao-editar ${order.isReadOnly ? "btn-acao-bloqueada" : ""}`.trim()}
                 onClick={(event) => {
@@ -476,14 +478,18 @@ const Pedidos = () => {
                 tooltip={order.isReadOnly ? null : "Editar pedido"}
                 tooltipOptions={{ position: "top" }}
                 aria-label={`Editar pedido ${order.numeroPedido}`}
-              />
+              /> : null
             )}
           />
         </DataTable>
       </div>
 
       <div className="pedidos-footer flex justify-content-between align-items-center mt-3">
-        <button className="add-button" onClick={openAdd} {...srProps(srOpt, { "aria-label": "Adicionar pedido" })}>Adicionar Pedido</button>
+        {canManageOrders ? (
+          <button className="add-button" onClick={openAdd} {...srProps(srOpt, { "aria-label": "Adicionar pedido" })}>Adicionar Pedido</button>
+        ) : (
+          <span className="text-600">Pedidos manuais ficam disponíveis apenas para a conta principal.</span>
+        )}
         <span className="text-600">Total: {filteredOrders.length}</span>
       </div>
 

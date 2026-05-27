@@ -4,6 +4,7 @@ import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/produtos.css";
 import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
 import { notifyError, notifySuccess } from "../../utils/notify";
+import { isPrimaryAdminUser } from "../../utils/auth";
 import DialogoReutilizavel from "../../components/common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
@@ -244,6 +245,7 @@ const Produtos = () => {
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
+  const canManageProducts = isPrimaryAdminUser();
 
   const sortProducts = useCallback((list) => {
     const data = [...list];
@@ -490,7 +492,7 @@ const Produtos = () => {
                 header=""
                 style={{ width: '6rem', textAlign: 'center' }}
                 body={(product) => (
-                  <div className="flex gap-1 justify-content-center">
+                  canManageProducts ? <div className="flex gap-1 justify-content-center">
                     <Button
                       icon="pi pi-pencil"
                       className={`p-button-sm p-button-rounded p-button-text btn-acao-editar ${product.isReadOnly ? 'btn-acao-bloqueada' : ''}`.trim()}
@@ -509,14 +511,18 @@ const Produtos = () => {
                       loading={deletingProductId === product.id}
                       disabled={deletingProductId === product.id}
                     />
-                  </div>
+                  </div> : null
                 )}
               />
             </DataTable>
           </div>
           <div className="produtos-footer flex justify-content-between align-items-center mt-3">
             <div className="flex gap-2">
-              <button className="add-button" onClick={() => setIsModalOpen(true)} {...srProps(srOpt, { 'aria-label': 'Adicionar novo produto' })}>Adicionar Produto</button>
+              {canManageProducts ? (
+                <button className="add-button" onClick={() => setIsModalOpen(true)} {...srProps(srOpt, { 'aria-label': 'Adicionar novo produto' })}>Adicionar Produto</button>
+              ) : (
+                <span className="text-600">Produtos manuais ficam disponíveis apenas para a conta principal.</span>
+              )}
             </div>
             <span className="text-600">Total: {filteredProducts.length}</span>
           </div>

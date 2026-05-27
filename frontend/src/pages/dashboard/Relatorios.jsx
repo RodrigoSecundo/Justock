@@ -48,10 +48,24 @@ const COLORS = {
 const GREYS = ["#243b53", "#7b8794", "#e4e7ec"];
 
 const DEFAULT_MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const EMPTY_SERIES = DEFAULT_MONTHS.map(() => 0);
 
 function sum(arr) { return arr.reduce((a, b) => a + b, 0); }
 function formatBRL(v) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
+}
+
+function createEmptyMarketplaceStats() {
+  return {
+    completed: [...EMPTY_SERIES],
+    canceled: [...EMPTY_SERIES],
+    revenue: [...EMPTY_SERIES],
+    totalCompleted: 0,
+    totalCanceled: 0,
+    totalRevenue: 0,
+    avg: 0,
+    conv: 0,
+  };
 }
 
 const Relatorios = () => {
@@ -96,12 +110,31 @@ const Relatorios = () => {
 
   const agg = useMemo(() => {
     if (!raw) return null;
-    const mk = raw.marketplaces;
+    const mk = raw?.marketplaces && typeof raw.marketplaces === "object" ? raw.marketplaces : null;
+
+    if (!mk || Object.keys(mk).length === 0) {
+      return {
+        empty: true,
+        byMkt: {
+          Amazon: createEmptyMarketplaceStats(),
+          Shopee: createEmptyMarketplaceStats(),
+          "Mercado Livre": createEmptyMarketplaceStats(),
+        },
+        allCompletedMonthly: [...EMPTY_SERIES],
+        allRevenueMonthly: [...EMPTY_SERIES],
+        allCanceledMonthly: [...EMPTY_SERIES],
+        totals: { completed: 0, canceled: 0, revenue: 0 },
+        avg: 0,
+        conv: 0,
+        categories: [],
+        topCategory: "-",
+      };
+    }
 
     const byMkt = Object.fromEntries(Object.keys(mk).map(k => {
-      const completed = mk[k].completed;
-      const canceled = mk[k].canceled;
-      const revenue = mk[k].revenue;
+      const completed = Array.isArray(mk[k]?.completed) ? mk[k].completed : [...EMPTY_SERIES];
+      const canceled = Array.isArray(mk[k]?.canceled) ? mk[k].canceled : [...EMPTY_SERIES];
+      const revenue = Array.isArray(mk[k]?.revenue) ? mk[k].revenue : [...EMPTY_SERIES];
       const totalCompleted = sum(completed);
       const totalCanceled = sum(canceled);
       const totalRevenue = sum(revenue);
@@ -169,11 +202,11 @@ const Relatorios = () => {
 
     if (filters.marketplace === "Todas as lojas") {
       names.forEach((n, idx) => {
-        const m = agg.byMkt[n];
+        const m = agg.byMkt[n] || createEmptyMarketplaceStats();
         sets.push(buildDataset(n, colors[idx], m.completed, m.canceled, m.revenue));
       });
     } else {
-      const m = agg.byMkt[filters.marketplace];
+      const m = agg.byMkt[filters.marketplace] || createEmptyMarketplaceStats();
       const idx = names.indexOf(filters.marketplace);
       const color = (isDark ? GREYS : [COLORS.blue, COLORS.orange, COLORS.green])[Math.max(0, idx)];
       sets.push(buildDataset(filters.marketplace, color, m.completed, m.canceled, m.revenue));
@@ -252,7 +285,7 @@ const Relatorios = () => {
   const pieData = useMemo(() => {
     if (!agg) return { labels: [], datasets: [] };
     const names = ["Amazon", "Shopee", "Mercado Livre"];
-    const values = names.map(n => agg.byMkt[n].totalCompleted);
+    const values = names.map(n => (agg.byMkt[n] || createEmptyMarketplaceStats()).totalCompleted);
     return {
       labels: names,
       datasets: [{
@@ -313,6 +346,28 @@ const Relatorios = () => {
   const applyFilters = (e) => {
     e?.preventDefault?.();
   };
+
+  if (raw?.emptyState || agg?.empty) {
+    return (
+      <div>
+        <div className="relatorios-filtros">
+          <div className="filtros-centro">
+            <div className="filtro-item">
+              <label>Ano de análise:</label>
+              <select className="select-ano" value={filters.year} onChange={e => setFilters(f => ({ ...f, year: Number(e.target.value) }))}>
+                {YEARS.map(y => (<option key={y} value={y}>{y}</option>))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="relatorios-vazio">
+          <h3>Relatórios</h3>
+          <p>{raw?.message || "Sua conta ainda não possui dados suficientes para gerar relatórios."}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

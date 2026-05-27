@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order, Integer> {
 	Optional<Order> findByMarketplaceResourceIdAndMarketplaceSource(String marketplaceResourceId, String marketplaceSource);
 	List<Order> findByMarketplaceSource(String marketplaceSource);
+	List<Order> findByUsuarioMarketplaceIdIn(List<Integer> usuarioMarketplaceIds);
 }

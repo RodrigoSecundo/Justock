@@ -186,6 +186,26 @@
       ]
     }
   ],
+  "relatorios_conta_nova": [
+    {
+      "id": 2025,
+      "ano": 2025,
+      "emptyState": true,
+      "message": "Sua conta ainda não possui dados suficientes para gerar relatórios. Assim que houver movimentação no seu painel, os indicadores aparecerão aqui."
+    },
+    {
+      "id": 2024,
+      "ano": 2024,
+      "emptyState": true,
+      "message": "Sua conta ainda não possui dados suficientes para gerar relatórios. Assim que houver movimentação no seu painel, os indicadores aparecerão aqui."
+    },
+    {
+      "id": 2023,
+      "ano": 2023,
+      "emptyState": true,
+      "message": "Sua conta ainda não possui dados suficientes para gerar relatórios. Assim que houver movimentação no seu painel, os indicadores aparecerão aqui."
+    }
+  ],
   "assinatura": {
     "planoAtual": {
       "id": "empresarial",
@@ -232,6 +252,10 @@
         "metodo": "Cartão de Crédito"
       }
     ]
+  },
+  "assinatura_conta_nova": {
+    "emptyState": true,
+    "message": "Sua conta ainda não possui assinatura ativa nem histórico de cobranças. Quando uma assinatura for vinculada, os detalhes aparecerão aqui."
   },
   "usuarios": [
     {

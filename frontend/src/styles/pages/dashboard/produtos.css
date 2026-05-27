@@ -18,18 +18,18 @@
 .grupo-filtro label {
   font-weight: bold;
   font-size: 14px;
-  color: #333;
+  color: var(--jt-text, #333);
   text-align: center;
 }
 
 .selecao-filtro {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--jt-border, #ddd);
   border-radius: 4px;
   font-size: 14px;
-  background: white;
+  background: var(--jt-surface, white);
   text-align: center;
-  color: black;
+  color: var(--jt-text, black);
 }
 
 .botao-filtro {
@@ -64,7 +64,7 @@
   overflow-x: auto;
   flex: 1;
   margin-bottom: 20px;
-  background: white;
+  background: var(--jt-surface, white);
   border-radius: 6px;
   box-shadow: 0 0 5px rgba(0,0,0,0.1);
   display: flex;
@@ -90,13 +90,13 @@
 
 .produtos-table td {
   padding: 12px 8px;
-  border: 1px solid #e0e0e0;
-  color: #000;
+  border: 1px solid var(--jt-border, #e0e0e0);
+  color: var(--jt-text, #000);
   text-align: center;
 }
 
 .produtos-table tr:hover {
-  background: #f8f9fa;
+  background: var(--jt-surface-2, #f8f9fa);
 }
 
 .produtos-table tr:last-child td {
@@ -133,21 +133,21 @@
 
 .page-button {
   padding: 6px 10px;
-  border: 1px solid #ddd;
-  background: #e8650e;
-  background: #f5f5f5;
+  border: 1px solid var(--jt-border, #ddd);
+  background: var(--jt-surface-2, #f5f5f5);
   cursor: pointer;
   font-size: 20px;
   font-weight: bold
+  color: var(--jt-text, #1a3a3a);
 }
 
 .page-button:hover {
-  background: #f5f5f5;
+  background: var(--jt-surface, #f5f5f5);
 }
 
 .page-info {
   font-size: 14px;
-  color: #666;
+  color: var(--jt-text-muted, #666);
 }
 
 .marker {
@@ -197,7 +197,7 @@
 }
 
 .modal-content {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: linear-gradient(135deg, var(--jt-surface, #ffffff) 0%, var(--jt-surface-2, #f8f9fa) 100%);
   padding: 30px;
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 91, 255, 0.1);
@@ -232,7 +232,7 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333;
+  color: var(--jt-text, #333);
   font-size: 14px;
 }
 
@@ -240,13 +240,13 @@
 .form-group input {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--jt-border, #e0e0e0);
   border-radius: 8px;
   font-size: 16px;
   box-sizing: border-box;
   transition: all 0.3s ease;
-  background: #fff;
-  color: #000;
+  background: var(--jt-surface, #fff);
+  color: var(--jt-text, #000);
 }
 
 .form-group input:focus,
@@ -258,8 +258,8 @@
 }
 
 select option {
-  color: #000;
-  background-color: #fff;
+  color: var(--jt-text, #000);
+  background-color: var(--jt-surface, #fff);
 }
 
 .modal-buttons {

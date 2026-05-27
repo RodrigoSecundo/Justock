@@ -7,6 +7,7 @@ import SobreNos from "../pages/home/sobre_nos.jsx";
 import RodapeHome from "../pages/home/rodape_home.jsx";
 import PlanosModal from "../pages/home/planos_modal.jsx";
 import Login from "../pages/login/Login.jsx";
+import Cadastro from "../pages/login/Cadastro.jsx";
 import ErrorBoundary from "../components/common/ErrorBoundary.jsx";
 import { applyAppearance } from "../utils/appearance.js";
 import { clearAuth, isAuthenticated, touchAuthActivity } from "../utils/auth.js";
@@ -139,6 +140,7 @@ const Routs = () => {
             }
           />
           <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Cadastro />} />
           <Route
             element={
               <AuthActivityGuard>

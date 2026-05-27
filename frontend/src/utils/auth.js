@@ -6,12 +6,17 @@ const USER_STORAGE_KEY = "jt:user";
 const AUTH_LAST_ACTIVITY_KEY = "jt:auth:last-activity";
 const AUTH_BUILD_KEY = "jt:auth:build";
 const AUTH_TIMEOUT_MS = 60 * 60 * 1000;
-const AUTH_BUILD_VERSION = "20260526-1";
+const AUTH_BUILD_VERSION = "20260526-2";
+
+export const PRIMARY_ADMIN_EMAIL = "testeAdminSEC@exemplo.com";
 
 async function handleResponse(response) {
   if (!response.ok) {
     const errorBody = await response.json().catch(() => undefined);
-    const message = errorBody?.message || errorBody?.error || errorBody?.data?.message || `Erro HTTP ${response.status}`;
+    const validationMessage = errorBody?.data && typeof errorBody.data === "object"
+      ? Object.values(errorBody.data).find((value) => typeof value === "string" && value.trim())
+      : undefined;
+    const message = validationMessage || errorBody?.message || errorBody?.error || errorBody?.data?.message || `Erro HTTP ${response.status}`;
     throw new Error(message);
   }
   return response.json();
@@ -141,6 +146,25 @@ export function getStoredUser() {
   }
 }
 
+export function setStoredUser(user) {
+  const storage = getStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  storage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+}
+
+export function isPrimaryAdminUser(user = getStoredUser()) {
+  return Boolean(user?.primaryAdmin || user?.email?.toLowerCase() === PRIMARY_ADMIN_EMAIL);
+}
+
+export function getDashboardUserId() {
+  const user = getStoredUser();
+  return user?.dashboardUserId ?? user?.id ?? null;
+}
+
 export async function login({ email, senha }) {
   const res = await fetch(`${AUTH_API_BASE_URL}/api/auth/login`, {
     method: "POST",
@@ -162,16 +186,23 @@ export async function login({ email, senha }) {
 
   const authData = {
     token: data.token,
+    id: data.id,
+    dashboardUserId: data.dashboardUserId,
     email: data.email,
     role: data.role,
     name: data.name,
+    numero: data.numero,
+    primaryAdmin: data.primaryAdmin,
   };
 
   const usuario = {
-    id: null,
+    id: data.id ?? null,
+    dashboardUserId: data.dashboardUserId ?? data.id ?? null,
     nome: data.name || "",
     email: data.email || email,
     role: data.role || "",
+    numero: data.numero || "",
+    primaryAdmin: Boolean(data.primaryAdmin),
   };
 
   const storage = getStorage();
@@ -180,10 +211,28 @@ export async function login({ email, senha }) {
   }
 
   storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
-  storage.setItem(USER_STORAGE_KEY, JSON.stringify(usuario));
+  setStoredUser(usuario);
   touchAuthActivity();
 
   return usuario;
+}
+
+export async function register({ nome, email, senha }) {
+  const res = await fetch(`${AUTH_API_BASE_URL}/api/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: nome,
+      email,
+      password: senha,
+      passwordConfirmation: senha,
+    }),
+  });
+
+  const payload = await handleResponse(res);
+  return normalizeApiEnvelope(payload);
 }
 
 export async function getCurrentUser(id) {

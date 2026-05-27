@@ -255,6 +255,69 @@ body.sidebar-no-transition .barra_lateral-texto {
   color: var(--jt-text) !important;
 }
 
+[data-theme="dark"] .relatorios-filtros select,
+[data-theme="dark"] .line-metric,
+[data-theme="dark"] .selecao-filtro,
+[data-theme="dark"] .filter-select,
+[data-theme="dark"] .filter-search,
+[data-theme="dark"] .filter-date-range,
+[data-theme="dark"] .page-button {
+  background: var(--jt-surface-2) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+
+[data-theme="dark"] .produtos-table-container,
+[data-theme="dark"] .pedidos-table-container,
+[data-theme="dark"] .grafico,
+[data-theme="dark"] .relatorios-vazio,
+[data-theme="dark"] .dashboard-empty-state-banner,
+[data-theme="dark"] .dashboard-empty-list-item {
+  background: var(--jt-surface) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+
+[data-theme="dark"] .dashboard-empty-state-message,
+[data-theme="dark"] .relatorios-vazio p,
+[data-theme="dark"] .page-info,
+[data-theme="dark"] .proxima-cobranca,
+[data-theme="dark"] .card-assinatura-vazia p {
+  color: var(--jt-text-muted) !important;
+}
+
+[data-theme="dark"] .grupo-filtro label,
+[data-theme="dark"] .filter-group label,
+[data-theme="dark"] .relatorios-filtros label,
+[data-theme="dark"] .section-header h3,
+[data-theme="dark"] .titulo-historico,
+[data-theme="dark"] .metodo-header h3,
+[data-theme="dark"] .plano-nome,
+[data-theme="dark"] .produtos-footer,
+[data-theme="dark"] .pedidos-footer {
+  color: var(--jt-text) !important;
+}
+
+[data-theme="dark"] .produtos-table td,
+[data-theme="dark"] .pedidos-table td,
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr > td,
+[data-theme="dark"] .p-datatable .p-datatable-thead > tr > th {
+  background: var(--jt-surface) !important;
+  color: var(--jt-text) !important;
+  border-color: var(--jt-border) !important;
+}
+
+[data-theme="dark"] .p-datatable .p-datatable-tbody > tr:hover > td,
+[data-theme="dark"] .produtos-table tr:hover,
+[data-theme="dark"] .pedidos-table tr:hover {
+  background: var(--jt-surface-2) !important;
+}
+
+[data-theme="dark"] .modal-conteudo.export-modal,
+[data-theme="dark"] .modal-conteudo.export-modal p {
+  color: var(--jt-text) !important;
+}
+
 [data-theme="dark"] .barra_lateral { background-color: #0b1f28 !important; }
 [data-theme="dark"] .barra_lateral-ico { color: #c9d7e3 !important; }
 [data-theme="dark"] .barra_lateral-item:hover,

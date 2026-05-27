@@ -3,27 +3,28 @@ import DialogoReutilizavel from "../common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { InputIcon } from "primereact/inputicon";
-import { getUsuario } from "../../utils/api";
-import { getStoredUser } from "../../utils/auth";
+import { getCurrentProfile, updateCurrentProfile } from "../../utils/api";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import "../../styles/pages/dashboard/perfil.css";
-
-const DEFAULT_USER_ID = 1;
 
 function PerfilDialog({ open, onClose }) {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
-  const [editing, setEditing] = useState({ nome: false, numero: false });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     async function loadUser() {
       try {
         setLoading(true);
-        const parsed = getStoredUser();
-        const id = parsed?.id ?? DEFAULT_USER_ID;
-        const data = await getUsuario(id);
-        setUser(data);
+        const data = await getCurrentProfile();
+        setUser({
+          id: data?.id ?? null,
+          nome: data?.name ?? "",
+          email: data?.email ?? "",
+          numero: data?.numero ?? "",
+          senha: "",
+        });
       } catch (err) {
         console.error("Erro ao carregar usuário:", err);
         notifyError("Não foi possível carregar os dados do perfil.");
@@ -36,9 +37,29 @@ function PerfilDialog({ open, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // No momento não persiste no backend, apenas feedback visual
-    notifySuccess("Informações de perfil atualizadas.");
-    if (onClose) onClose();
+    if (!user) {
+      return;
+    }
+
+    setSaving(true);
+    updateCurrentProfile(user)
+      .then((data) => {
+        setUser((prev) => ({
+          ...prev,
+          nome: data?.name ?? prev?.nome ?? "",
+          email: data?.email ?? prev?.email ?? "",
+          numero: data?.numero ?? prev?.numero ?? "",
+          senha: "",
+        }));
+        notifySuccess("Informações de perfil atualizadas.");
+        if (onClose) onClose();
+      })
+      .catch((err) => {
+        notifyError(err?.message || "Não foi possível atualizar o perfil.");
+      })
+      .finally(() => {
+        setSaving(false);
+      });
   };
 
   return (
@@ -75,14 +96,10 @@ function PerfilDialog({ open, onClose }) {
                   <label className="perfil-rotulo" htmlFor="perfil-nome">
                     Nome Completo:
                   </label>
-                  <div
-                    className="perfil-campo-wrapper perfil-campo-wrapper--clicavel"
-                    onClick={() => setEditing((prev) => ({ ...prev, nome: true }))}
-                  >
+                  <div className="perfil-campo-wrapper perfil-campo-wrapper--clicavel">
                     <InputText
                       id="perfil-nome"
                       value={user?.nome || ""}
-                      readOnly={!editing.nome}
                       className="perfil-campo"
                       onChange={(e) => setUser((prev) => ({ ...prev, nome: e.target.value }))}
                     />
@@ -103,31 +120,46 @@ function PerfilDialog({ open, onClose }) {
                     />
                     <InputIcon className="pi pi-lock perfil-icone-cadeado" aria-hidden="true" />
                   </div>
+                  <span className="perfil-hint-opcional" />
                 </div>
 
                 <div className="perfil-campo-linha">
                   <label className="perfil-rotulo" htmlFor="perfil-numero">
                     Número:
                   </label>
-                  <div
-                    className="perfil-campo-wrapper perfil-campo-wrapper--clicavel"
-                    onClick={() => setEditing((prev) => ({ ...prev, numero: true }))}
-                  >
+                  <div className="perfil-campo-wrapper perfil-campo-wrapper--clicavel">
                     <InputText
                       id="perfil-numero"
                       value={user?.numero ?? ""}
-                      readOnly={!editing.numero}
                       onChange={(e) => setUser((prev) => ({ ...prev, numero: e.target.value }))}
                       className="perfil-campo"
                       placeholder="(opcional)"
                     />
                   </div>
+                  <span className="perfil-hint-opcional">opcional</span>
+                </div>
+
+                <div className="perfil-campo-linha">
+                  <label className="perfil-rotulo" htmlFor="perfil-senha">
+                    Senha:
+                  </label>
+                  <div className="perfil-campo-wrapper perfil-campo-senha">
+                    <InputText
+                      id="perfil-senha"
+                      type="password"
+                      value={user?.senha ?? ""}
+                      onChange={(e) => setUser((prev) => ({ ...prev, senha: e.target.value }))}
+                      className="perfil-campo"
+                      placeholder="Nova senha"
+                    />
+                  </div>
+                  <span className="perfil-hint-opcional">opcional</span>
                 </div>
               </div>
             </div>
 
             <div className="perfil-rodape">
-              <Button type="submit" label="SALVAR" className="perfil-botao-salvar" />
+              <Button type="submit" label="SALVAR" className="perfil-botao-salvar" loading={saving} disabled={saving} />
             </div>
           </form>
         )}

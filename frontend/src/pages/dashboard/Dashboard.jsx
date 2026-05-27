@@ -54,7 +54,9 @@ const Dashboard = () => {
   const [lowStockProducts, setLowStockProducts] = useState(0);
   const [connectedMarketplaces, setConnectedMarketplaces] = useState(0);
   const [syncStatus, setSyncStatus] = useState("OFF");
+  const [summaryMessage, setSummaryMessage] = useState("");
   const [chartFontWeight, setChartFontWeight] = useState(() => (getAccessibilityPrefs().altoContraste ? "bold" : "normal"));
+  const [inventoryMessage, setInventoryMessage] = useState("");
 
   const [chartData, setChartData] = useState(() => {
     const dark = (() => { try { return getThemePref() === 'dark'; } catch { return false; } })();
@@ -78,20 +80,34 @@ const Dashboard = () => {
   // validado/novo/sincronizado/atualizado: verificado, baixo/reembolsado: exclamação, fora-estoque: X, etc.
   const [recentActivity, setRecentActivity] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [recentActivityMessage, setRecentActivityMessage] = useState("");
+  const [alertsMessage, setAlertsMessage] = useState("");
   const [isDark, setIsDark] = useState(() => {
     try { return getThemePref() === 'dark'; } catch { return false; }
   });
 
   const loadRecentActivity = () => {
     getDashboardRecentActivity()
-      .then((data) => setRecentActivity(Array.isArray(data.activities) ? data.activities : []))
-      .catch(() => setRecentActivity([]));
+      .then((data) => {
+        setRecentActivity(Array.isArray(data.activities) ? data.activities : []);
+        setRecentActivityMessage(data?.emptyMessage || "");
+      })
+      .catch(() => {
+        setRecentActivity([]);
+        setRecentActivityMessage("");
+      });
   };
 
   const loadAlerts = () => {
     getDashboardAlerts()
-      .then((data) => setAlerts(Array.isArray(data.alerts) ? data.alerts : []))
-      .catch(() => setAlerts([]));
+      .then((data) => {
+        setAlerts(Array.isArray(data.alerts) ? data.alerts : []);
+        setAlertsMessage(data?.emptyMessage || "");
+      })
+      .catch(() => {
+        setAlerts([]);
+        setAlertsMessage("");
+      });
   };
 
   // Carrega dados dependentes de tema (paleta) sempre que 'isDark' alterar
@@ -100,6 +116,7 @@ const Dashboard = () => {
     getDashboardInventoryOverview()
       .then((data) => {
         if (cancelled) return;
+        setInventoryMessage(data?.emptyMessage || "");
         setChartData({
           labels: (data && Array.isArray(data.labels)) ? data.labels : [],
           datasets: [
@@ -135,12 +152,14 @@ const Dashboard = () => {
         setLowStockProducts(typeof data.lowStock === "number" ? data.lowStock : 0);
         setConnectedMarketplaces(typeof data.connectedMarketplaces === "number" ? data.connectedMarketplaces : 0);
         setSyncStatus(typeof data.syncStatus === "string" ? data.syncStatus : "OFF");
+        setSummaryMessage(data?.emptyMessage || "");
       })
       .catch(() => {
         setTotalProducts(0);
         setLowStockProducts(0);
         setConnectedMarketplaces(0);
         setSyncStatus("OFF");
+        setSummaryMessage("");
       });
 
     // inventory-overview é carregado em um effect separado que respeita 'isDark'
@@ -160,6 +179,7 @@ const Dashboard = () => {
           setLowStockProducts(typeof data.lowStock === "number" ? data.lowStock : 0);
           setConnectedMarketplaces(typeof data.connectedMarketplaces === "number" ? data.connectedMarketplaces : 0);
           setSyncStatus(typeof data.syncStatus === "string" ? data.syncStatus : "OFF");
+          setSummaryMessage(data?.emptyMessage || "");
         })
         .catch(() => {});
     });
@@ -227,20 +247,28 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {summaryMessage && (
+            <div className="dashboard-empty-state-banner">{summaryMessage}</div>
+          )}
+
           <div className="conteudo-painel">
             <section className="visao-inventario" {...srProps(srOpt, { role: 'region', 'aria-labelledby': 'sec-visao-inventario' })}>
               <div className="cabecalho-secao">
                 <h2 id="sec-visao-inventario">Visão Geral do Inventário</h2>
                 <a href="#">ver mais {'>'}</a>
               </div>
-              <Bar data={chartData} options={barOptions} />
+              {(chartData?.datasets?.[0]?.data?.length ?? 0) > 0 ? (
+                <Bar data={chartData} options={barOptions} />
+              ) : (
+                <p className="dashboard-empty-state-message">{inventoryMessage || "Sua conta ainda não possui inventário para exibir."}</p>
+              )}
             </section>
 
             <section className="secoes-lateral">
               <div className="atividade-recente caixa-secao">
                 <h3>Atividade Recente</h3>
                 <ul>
-                  {recentActivity.map((item, index) => (
+                  {recentActivity.length > 0 ? recentActivity.map((item, index) => (
                     <li key={item.id ?? index} className={`item-atividade ${item.type}`}>
                       <span className="icone-atividade" aria-hidden="true">
                         {item.type === 'reembolsado' ? <FiAlertTriangle size={18} /> : <FiCheckCircle size={18} />}
@@ -248,14 +276,16 @@ const Dashboard = () => {
                       <span className="texto-atividade">{item.text}</span>
                       <span className="tempo-atividade">{item.time}</span>
                     </li>
-                  ))}
+                  )) : (
+                    <li className="dashboard-empty-list-item">{recentActivityMessage || "Sua conta ainda não possui atividades recentes."}</li>
+                  )}
                 </ul>
               </div>
 
               <div className="alertas caixa-secao">
                 <h3>Alertas</h3>
                 <ul>
-                  {alerts.map((alert, index) => (
+                  {alerts.length > 0 ? alerts.map((alert, index) => (
                     <li key={alert.id ?? index} className={`item-alerta ${alert.type}`}>
                       <span className="icone-alerta" aria-hidden="true">
                         {alert.type === 'fora-estoque' ? <FiXCircle size={18} /> : alert.type === 'atualizado' ? <FiCheckCircle size={18} /> : <FiAlertTriangle size={18} />}
@@ -263,7 +293,9 @@ const Dashboard = () => {
                       <span className="texto-alerta">{alert.text}</span>
                       <span className="tempo-alerta">{alert.time}</span>
                     </li>
-                  ))}
+                  )) : (
+                    <li className="dashboard-empty-list-item">{alertsMessage || "Sua conta ainda não possui alertas ativos."}</li>
+                  )}
                 </ul>
               </div>
             </section>

@@ -5,6 +5,7 @@ import com.justeam.justock_api.dto.ProductResponseDTO;
 import com.justeam.justock_api.model.Product;
 import com.justeam.justock_api.request.ProductCreateRequest;
 import com.justeam.justock_api.request.ProductUpdateRequest;
+import com.justeam.justock_api.service.CurrentAccountService;
 import com.justeam.justock_api.service.ProductService;
 
 import jakarta.validation.Valid;
@@ -24,11 +25,15 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
+    @Autowired
+    private CurrentAccountService currentAccountService;
+
     // GET /api/products
     @GetMapping("/")
     @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<ProductResponseDTO>> index() {
-        List<ProductResponseDTO> products = productService.listAllProducts()
+        Integer usuarioId = currentAccountService.getDashboardUserId();
+        List<ProductResponseDTO> products = productService.listProductsByUsuario(usuarioId)
                 .stream()
             .map(p -> new ProductResponseDTO(p.getIdProduto(), p.getCategoria(), p.getMarca(), p.getNomeDoProduto(), p.getEstado(), p.getPreco(), p.getCodigoDeBarras(), p.getQuantidade(), p.getQuantidadeReservada(), p.getMarcador(), p.getUsuario(), p.getMarketplaceResourceId(), p.getMarketplaceSource()))
                 .collect(Collectors.toList());
@@ -39,8 +44,9 @@ public class ProductController {
     @GetMapping("/visualizar/{id}")
     @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<ProductResponseDTO> show(@PathVariable Integer id) {
+        Integer usuarioId = currentAccountService.getDashboardUserId();
         Product product = productService.findProduct(id);
-        if (product == null) {
+        if (product == null || !usuarioId.equals(product.getUsuario())) {
             return new ApiResponseDTO<>(404, "Produto não encontrado!", null);
         }
         ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
@@ -51,6 +57,7 @@ public class ProductController {
     @PostMapping("/cadastrar")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<ProductResponseDTO> store(@Valid @RequestBody ProductCreateRequest request) {
+        request.setUsuario(currentAccountService.getDashboardUserId());
         Product product = productService.createProduct(request);
         ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
         return new ApiResponseDTO<>(200, "Produto cadastrado com sucesso!", dto);
@@ -60,6 +67,11 @@ public class ProductController {
     @PutMapping("/atualizar/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<ProductResponseDTO> update(@PathVariable Integer id, @Valid @RequestBody ProductUpdateRequest request) {
+        Integer usuarioId = currentAccountService.getDashboardUserId();
+        Product existingProduct = productService.findProduct(id);
+        if (existingProduct == null || !usuarioId.equals(existingProduct.getUsuario())) {
+            return new ApiResponseDTO<>(404, "Produto não encontrado!", null);
+        }
         Product product = productService.updateProduct(id, request);
         if (product == null) {
             return new ApiResponseDTO<>(404, "Produto não encontrado!", null);
@@ -72,6 +84,11 @@ public class ProductController {
     @DeleteMapping("/deletar/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable Integer id) {
+        Integer usuarioId = currentAccountService.getDashboardUserId();
+        Product existingProduct = productService.findProduct(id);
+        if (existingProduct == null || !usuarioId.equals(existingProduct.getUsuario())) {
+            return new ApiResponseDTO<>(404, "Produto não encontrado!", null);
+        }
         boolean deleted = productService.deleteProduct(id);
         if (!deleted) {
             return new ApiResponseDTO<>(404, "Produto não encontrado!", null);

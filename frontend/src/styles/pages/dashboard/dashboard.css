@@ -2,7 +2,8 @@
   display: flex;
   height: 100vh;
   font-family: Arial, sans-serif;
-  background-color: #f5f9fa;
+  background-color: var(--jt-bg, #f5f9fa);
+  color: var(--jt-text, #1a3a3a);
 }
 
 .painel-principal {
@@ -60,9 +61,33 @@
   gap: 20px;
 }
 
+.dashboard-empty-state-banner {
+  margin: -4px 0 18px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--jt-surface-2, #eef5ff) 84%, var(--jt-accent, #2563eb) 16%);
+  border: 1px solid color-mix(in srgb, var(--jt-border, #cfe0ff) 82%, var(--jt-accent, #2563eb) 18%);
+  color: var(--jt-text, #1f3b73);
+}
+
+.dashboard-empty-state-message {
+  margin: 0;
+  padding: 28px 12px;
+  color: var(--jt-text-muted, #4b5563);
+  text-align: center;
+}
+
+.dashboard-empty-list-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--jt-surface-2, #f8fbfc);
+  border: 1px solid var(--jt-border, #e6eef2);
+  color: var(--jt-text-muted, #4b5563);
+}
+
 .visao-inventario {
   flex: 2;
-  background: white;
+  background: var(--jt-surface, white);
   border-radius: 6px;
   padding: 15px;
   box-shadow: 0 0 5px rgba(0,0,0,0.1);
@@ -78,12 +103,12 @@
 .cabecalho-secao h2 {
   margin: 0;
   font-size: 1.2rem;
-  color: #1a3a3a;
+  color: var(--jt-text, #1a3a3a);
 }
 
 .cabecalho-secao a {
   font-size: 0.9rem;
-  color: #007bff;
+  color: var(--jt-accent, #007bff);
   text-decoration: none;
   cursor: pointer;
 }
@@ -96,7 +121,7 @@
 }
 
 .caixa-secao {
-  background: white;
+  background: var(--jt-surface, white);
   border-radius: 6px;
   padding: 15px;
   box-shadow: 0 0 5px rgba(0,0,0,0.1);
@@ -104,7 +129,7 @@
 
 .caixa-secao h3 {
   margin-top: 0;
-  color: #1a3a3a;
+  color: var(--jt-text, #1a3a3a);
   font-size: 1.1rem;
   margin-bottom: 10px;
 }
@@ -126,8 +151,8 @@
   font-size: 0.9rem;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #f8fbfc;
-  border: 1px solid #e6eef2;
+  background: var(--jt-surface-2, #f8fbfc);
+  border: 1px solid var(--jt-border, #e6eef2);
 }
 
 .icone-atividade,
@@ -140,13 +165,13 @@
 .texto-atividade,
 .texto-alerta {
   flex-grow: 1;
-  color: #334155;
+  color: var(--jt-text, #334155);
   line-height: 1.4;
 }
 
 .tempo-atividade,
 .tempo-alerta {
-  color: #999;
+  color: var(--jt-text-muted, #999);
   font-size: 0.8rem;
   margin-left: 0;
   white-space: nowrap;

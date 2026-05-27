@@ -1,6 +1,7 @@
 package com.justeam.justock_api.service;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -9,7 +10,9 @@ import org.springframework.stereotype.Service;
 
 import com.justeam.justock_api.exception.BadRequestException;
 import com.justeam.justock_api.model.Order;
+import com.justeam.justock_api.model.UserMarketplace;
 import com.justeam.justock_api.repository.OrderRepository;
+import com.justeam.justock_api.repository.UserMarketplaceRepository;
 import com.justeam.justock_api.request.OrderCreateRequest;
 import com.justeam.justock_api.request.OrderUpdateRequest;
 
@@ -22,10 +25,12 @@ public class OrderService {
     private static final Set<String> ALLOWED_PAYMENT_STATUS = Set.of("PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO");
 
     private final OrderRepository orderRepository;
+    private final UserMarketplaceRepository userMarketplaceRepository;
     private final DashboardEventService dashboardEventService;
 
-    public OrderService(OrderRepository orderRepository, DashboardEventService dashboardEventService) {
+    public OrderService(OrderRepository orderRepository, UserMarketplaceRepository userMarketplaceRepository, DashboardEventService dashboardEventService) {
         this.orderRepository = orderRepository;
+        this.userMarketplaceRepository = userMarketplaceRepository;
         this.dashboardEventService = dashboardEventService;
     }
 
@@ -33,8 +38,46 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
+    public List<Order> listOrdersByUsuario(Integer usuarioId, boolean includeAllOrders) {
+        if (includeAllOrders) {
+            return orderRepository.findAll();
+        }
+
+        List<Integer> marketplaceIds = userMarketplaceRepository.findByUsuario(usuarioId)
+                .stream()
+                .map(UserMarketplace::getUsuarioMarketplaceId)
+                .toList();
+
+        if (marketplaceIds.isEmpty()) {
+            return List.of();
+        }
+
+        return orderRepository.findByUsuarioMarketplaceIdIn(marketplaceIds);
+    }
+
     public Order findOrder(int id) {
         return orderRepository.findById(id).orElse(null);
+    }
+
+    public Order findOrderVisibleToUsuario(int id, Integer usuarioId, boolean includeAllOrders) {
+        Order order = findOrder(id);
+        if (order == null) {
+            return null;
+        }
+        if (includeAllOrders) {
+            return order;
+        }
+
+        Set<Integer> marketplaceIds = new HashSet<>(userMarketplaceRepository.findByUsuario(usuarioId)
+                .stream()
+                .map(UserMarketplace::getUsuarioMarketplaceId)
+                .toList());
+
+        if (order.getUsuarioMarketplaceId() == null || !marketplaceIds.contains(order.getUsuarioMarketplaceId())) {
+            return null;
+        }
+
+        return order;
     }
 
     public Order createOrder(OrderCreateRequest dto) {

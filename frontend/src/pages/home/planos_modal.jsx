@@ -3,6 +3,7 @@ import DialogoReutilizavel from "../../components/common/DialogoReutilizavel";
 import { Card } from "primereact/card";
 import { Button } from "primereact/button";
 import { Tag } from "primereact/tag";
+import { useNavigate } from "react-router-dom";
 import "../../styles/pages/home/tema_modal_planos.css";
 
 const planos = [
@@ -36,6 +37,13 @@ const planos = [
 ];
 
 const PlanosModal = ({ open, onClose }) => {
+  const navigate = useNavigate();
+
+  const handleChoosePlan = (plano) => {
+    onClose?.();
+    navigate("/cadastro", { state: { plano: plano.nome } });
+  };
+
   return (
   <DialogoReutilizavel
       visible={open}
@@ -69,7 +77,11 @@ const PlanosModal = ({ open, onClose }) => {
                 <li><span className="icone-check">✓</span>{plano.suporte}</li>
               </ul>
               <div className="acoes-plano">
-                <Button label="Escolher Plano" className="botao-plano w-full" />
+                <Button
+                  label="Escolher Plano"
+                  className="botao-plano w-full"
+                  onClick={() => handleChoosePlan(plano)}
+                />
               </div>
             </Card>
           </div>

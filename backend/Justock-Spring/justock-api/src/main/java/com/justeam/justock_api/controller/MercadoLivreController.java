@@ -1,6 +1,7 @@
 package com.justeam.justock_api.controller;
 
 import com.justeam.justock_api.service.MercadoLivreService;
+import com.justeam.justock_api.service.CurrentAccountService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,20 +15,22 @@ import java.util.Map;
 public class MercadoLivreController {
 
     private final MercadoLivreService mercadoLivreService;
+    private final CurrentAccountService currentAccountService;
 
-    public MercadoLivreController(MercadoLivreService mercadoLivreService) {
+    public MercadoLivreController(MercadoLivreService mercadoLivreService, CurrentAccountService currentAccountService) {
         this.mercadoLivreService = mercadoLivreService;
+        this.currentAccountService = currentAccountService;
     }
 
     @GetMapping("/auth-url")
     public ResponseEntity<Map<String, String>> getAuthUrl() {
-        Integer usuarioId = mercadoLivreService.getIntegrationUserId();
+        Integer usuarioId = currentAccountService.getDashboardUserId();
         return ResponseEntity.ok(Map.of("url", mercadoLivreService.getAuthorizationUrl(usuarioId)));
     }
 
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getStatus() {
-        Integer usuarioId = mercadoLivreService.getIntegrationUserId();
+        Integer usuarioId = currentAccountService.getDashboardUserId();
         return ResponseEntity.ok(mercadoLivreService.getConnectionSummary(usuarioId));
     }
 
@@ -48,7 +51,7 @@ public class MercadoLivreController {
     @PostMapping("/sync")
     public ResponseEntity<Map<String, Object>> syncInventory() {
         try {
-            Integer usuarioId = mercadoLivreService.getIntegrationUserId();
+            Integer usuarioId = currentAccountService.getDashboardUserId();
             Map<String, Object> summary = mercadoLivreService.syncMarketplaceData(usuarioId);
             return ResponseEntity.ok(Map.of(
                     "message", "Pedidos e produtos sincronizados com o banco local.",
@@ -63,7 +66,7 @@ public class MercadoLivreController {
     @PostMapping("/disconnect")
     public ResponseEntity<Map<String, String>> disconnect() {
         try {
-            Integer usuarioId = mercadoLivreService.getIntegrationUserId();
+            Integer usuarioId = currentAccountService.getDashboardUserId();
             mercadoLivreService.disconnect(usuarioId);
             return ResponseEntity.ok(Map.of("message", "Desconectado com sucesso."));
         } catch (Exception e) {

@@ -37,6 +37,17 @@ const Assinatura = () => {
     return <p>Nenhuma informação de assinatura encontrada.</p>;
   }
 
+  if (dados?.emptyState) {
+    return (
+      <div className="pagina-assinatura">
+        <Card className="card-historico card-assinatura-vazia">
+          <h3 className="titulo-historico">Assinatura</h3>
+          <p>{dados.message}</p>
+        </Card>
+      </div>
+    );
+  }
+
   const { planoAtual, metodoPagamento, historicoCobrancas } = dados;
 
   const validadeFormatada = (() => {

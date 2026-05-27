@@ -5,8 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class LoginResponseDTO {
-    private String token;
+public class CurrentAccountResponseDTO {
     private Integer id;
     private Integer dashboardUserId;
     private String email;

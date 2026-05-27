@@ -1,24 +1,26 @@
 package com.justeam.justock_api.controller;
 
 import com.justeam.justock_api.dto.ApiResponseDTO;
+import com.justeam.justock_api.dto.CurrentAccountResponseDTO;
 import com.justeam.justock_api.dto.LoginResponseDTO;
-import com.justeam.justock_api.model.Administrator;
+import com.justeam.justock_api.dto.UserResponseDTO;
 import com.justeam.justock_api.model.User;
-import com.justeam.justock_api.repository.AdministratorRepository;
-import com.justeam.justock_api.repository.UserRepository;
 import com.justeam.justock_api.request.LoginRequest;
+import com.justeam.justock_api.request.ProfileUpdateRequest;
+import com.justeam.justock_api.request.UserCreateRequest;
 import com.justeam.justock_api.security.CustomUserDetailsService;
 import com.justeam.justock_api.security.JwtBlacklistService;
 import com.justeam.justock_api.security.JwtUtil;
+import com.justeam.justock_api.service.CurrentAccountService;
+import com.justeam.justock_api.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -38,13 +40,10 @@ public class AuthenticationController {
     private JwtBlacklistService jwtBlacklistService;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Autowired
-    private AdministratorRepository administratorRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private CurrentAccountService currentAccountService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponseDTO<LoginResponseDTO>> login(@RequestBody LoginRequest request) {
@@ -59,23 +58,52 @@ public class AuthenticationController {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
 
-        String token = jwtUtil.generateToken(userDetails.getUsername(), userDetails.getAuthorities().toString().replace("ROLE_", "").replace("[", "").replace("]", ""));
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(authority -> authority.getAuthority().replace("ROLE_", ""))
+                .orElse("USER");
+        String token = jwtUtil.generateToken(userDetails.getUsername(), role);
+        CurrentAccountResponseDTO account = currentAccountService.resolveForLogin(request.getEmail(), role);
 
-        String name = "";
-        Optional<Administrator> adminOpt = administratorRepository.findByEmailCorporativo(request.getEmail());
-        if (adminOpt.isPresent()) {
-            name = "Administrator";
-        } else {
-            Optional<User> userOpt = userRepository.findByEmailCorporativo(request.getEmail());
-            if (userOpt.isPresent()) {
-                name = userOpt.get().getNomeUsuario();
-            }
-        }
-
-        String role = userDetails.getAuthorities().toString().replace("ROLE_", "").replace("[", "").replace("]", "");
-
-        LoginResponseDTO response = new LoginResponseDTO(token, request.getEmail(), name, role);
+        LoginResponseDTO response = new LoginResponseDTO(
+                token,
+                account.getId(),
+                account.getDashboardUserId(),
+                account.getEmail(),
+                account.getName(),
+                account.getNumero(),
+                account.getRole(),
+                account.isPrimaryAdmin()
+        );
         return ResponseEntity.ok(new ApiResponseDTO<>(200, "Login realizado com sucesso!", response));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponseDTO<UserResponseDTO>> register(@Valid @RequestBody UserCreateRequest request) {
+        User user = userService.createuser(request);
+        UserResponseDTO response = new UserResponseDTO(
+                user.getIdUsuario(),
+                user.getNomeUsuario(),
+                user.getEmailCorporativo(),
+                user.getNumero()
+        );
+
+        return ResponseEntity.status(201)
+                .body(new ApiResponseDTO<>(201, "Conta criada com sucesso!", response));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponseDTO<CurrentAccountResponseDTO>> me() {
+        CurrentAccountResponseDTO response = currentAccountService.getCurrentAccount();
+        return ResponseEntity.ok(new ApiResponseDTO<>(200, "Perfil carregado com sucesso!", response));
+    }
+
+    @PutMapping("/me/profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponseDTO<CurrentAccountResponseDTO>> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
+        CurrentAccountResponseDTO response = currentAccountService.updateCurrentProfile(request);
+        return ResponseEntity.ok(new ApiResponseDTO<>(200, "Perfil atualizado com sucesso!", response));
     }
 
     @PostMapping("/logout")

@@ -60,6 +60,12 @@
   color:#fff; border:2px solid #1ed760; box-shadow:0 6px 26px rgba(30,215,96,0.13); position:relative;
 }
 
+.cartao-plano.recomendado.p-card:hover {
+  border-color:#3cf08a;
+  box-shadow:0 12px 34px rgba(30,215,96,0.22);
+  transform:translateY(-2px);
+}
+
 .cabecalho-plano { display:flex; align-items:center; justify-content:center; gap:8px; margin:10px 0 6px; position:relative; }
 .nome-plano { font-size:1.42rem; font-weight:700; margin:0; width:100%; text-align:center; }
 .cartao-plano.recomendado .nome-plano { color:#fff; }

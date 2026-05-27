@@ -5,6 +5,7 @@ import com.justeam.justock_api.dto.OrderResponseDTO;
 import com.justeam.justock_api.model.Order;
 import com.justeam.justock_api.request.OrderCreateRequest;
 import com.justeam.justock_api.request.OrderUpdateRequest;
+import com.justeam.justock_api.service.CurrentAccountService;
 import com.justeam.justock_api.service.OrderService;
 
 import jakarta.validation.Valid;
@@ -24,11 +25,16 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private CurrentAccountService currentAccountService;
+
     // GET /api/Order
     @GetMapping("/")
     @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<OrderResponseDTO>> index() {
-        List<OrderResponseDTO> orders = orderService.listAllOrders()
+        Integer usuarioId = currentAccountService.getDashboardUserId();
+        boolean includeAllOrders = currentAccountService.isPrimaryAdmin();
+        List<OrderResponseDTO> orders = orderService.listOrdersByUsuario(usuarioId, includeAllOrders)
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
@@ -39,7 +45,9 @@ public class OrderController {
     @GetMapping("/visualizar/{id}")
     @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<OrderResponseDTO> show(@PathVariable int id) {
-        Order order = orderService.findOrder(id);
+        Integer usuarioId = currentAccountService.getDashboardUserId();
+        boolean includeAllOrders = currentAccountService.isPrimaryAdmin();
+        Order order = orderService.findOrderVisibleToUsuario(id, usuarioId, includeAllOrders);
         if (order == null) {
             return new ApiResponseDTO<>(404, "Order não encontrado!", null);
         }
