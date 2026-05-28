@@ -23,6 +23,7 @@ As mudanças mais relevantes registradas neste estado do projeto são:
 - Dashboard principal com `Atividade Recente` e `Alertas` vindos do backend real
 - Notificações reais na barra superior, com contador, marcação como visualizada e reaproveitamento dos alertas de estoque
 - Registro persistente de eventos do dashboard para ações de produtos, pedidos, sincronizações e mudanças de configuração/tema
+- Importação de estoque em `Produtos` com modal próprio, download de modelos `.xlsx` e `.csv`, validação integral do arquivo e envio em lote
 - Estados vazios para contas novas em dashboard, relatórios e assinatura
 - Ajustes visuais de tema escuro para dashboard, relatórios, assinatura, produtos e pedidos
 - O link `ver mais >` do gráfico principal do dashboard agora redireciona para `Produtos`
@@ -97,6 +98,11 @@ Comportamentos visuais recentes do frontend:
 ### Produtos
 
 - CRUD manual usa backend real e fica associado ao contexto da conta autenticada
+- Importação de estoque usa backend real e aceita apenas arquivos `.xlsx` e `.csv`
+- A importação valida o arquivo inteiro antes de salvar qualquer item no banco
+- O modelo ignora a primeira linha como cabeçalho e exige as colunas `Categoria`, `Marca`, `Nome do Produto`, `Estoque (Inteiro)`, `Preço` e `Código de Barras`
+- Linhas vazias, colunas ausentes ou campos inválidos fazem a importação inteira ser recusada
+- Importações concluídas também alimentam `Atividade Recente` no dashboard
 - Produtos sincronizados do Mercado Livre ficam identificados como origem de marketplace
 - Produtos de marketplace não podem ser editados nem excluídos manualmente, a UI mantém os botões visivelmente bloqueados e exibe erro ao clicar
 - Para contas que não são a principal, as ações manuais de produtos ficam ocultas na interface atual
@@ -258,6 +264,18 @@ Valores esperados:
 VITE_API_BASE_URL=http://localhost:3001
 VITE_BACKEND_API_BASE_URL=http://localhost:8080
 ```
+
+## Importação de estoque
+
+O fluxo atual de importação em `Produtos` funciona assim:
+
+- O usuário pode baixar modelos prontos em `.xlsx` e `.csv`
+- O upload aceita apenas `.xlsx` e `.csv`
+- O frontend lê o arquivo localmente, reconhece o cabeçalho do modelo e valida todo o conteúdo antes de enviar
+- A primeira linha é sempre tratada como cabeçalho e não entra na importação
+- Se qualquer linha estiver vazia ou com campo obrigatório faltando, nada é salvo
+- O backend recebe o lote completo em `POST /api/products/importar` e persiste em transação, evitando importação parcial
+- Após sucesso, a atividade recente do dashboard recebe um evento resumido de importação concluída
 
 Se `frontend/.env.local` não existir, o frontend agora usa fallback automático:
 - Em ambiente local: `http://localhost:3001` e `http://localhost:8080`

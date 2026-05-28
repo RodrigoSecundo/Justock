@@ -12,6 +12,7 @@ Backend da aplicação JusTock, construído com Spring Boot, Spring Security, JP
 - Registro automático de eventos em produtos, pedidos, sincronização do Mercado Livre e mudanças de configuração/tema
 - Contador de notificações não lidas e marcação individual como visualizada
 - Exibição limitada dos blocos de atividade recente e alertas aos 5 itens mais novos, sem perder a persistência dos eventos
+- Importação em lote de produtos com endpoint dedicado e gravação transacional
 
 ## Stack
 
@@ -101,9 +102,12 @@ Para rodar testes:
 
 - Leituras e gravações usam o contexto resolvido da conta autenticada
 - Produtos manuais podem ser criados, editados e excluídos
+- Produtos também podem ser importados em lote por `POST /api/products/importar`
+- A importação usa os mesmos campos obrigatórios do cadastro manual e aplica defaults compatíveis (`estado=ATIVO`, `quantidadeReservada=0`, `marcador=MANUAL`)
+- O fluxo de importação em lote é transacional para evitar gravação parcial
 - Produtos sincronizados de marketplace não podem ser editados ou excluídos manualmente via API do Justock
 - Produtos sincronizados do Mercado Livre são identificados por `marketplace_source`, `marketplace_resource_id` e marcador `ML`
-- Criação, edição, exclusão e sincronização de produtos alimentam os eventos do dashboard
+- Criação, importação, edição, exclusão e sincronização de produtos alimentam os eventos do dashboard
 
 ### Pedidos
 
@@ -169,6 +173,15 @@ Para rodar testes:
 - `GET /api/dashboard/notifications`
 - `POST /api/dashboard/notifications/{eventId}/read`
 - `POST /api/dashboard/activity`
+
+## Endpoints de produtos
+
+- `GET /api/products/`
+- `GET /api/products/visualizar/{id}`
+- `POST /api/products/cadastrar`
+- `POST /api/products/importar`
+- `PUT /api/products/atualizar/{id}`
+- `DELETE /api/products/deletar/{id}`
 
 ### Sincronização automática
 

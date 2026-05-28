@@ -14,6 +14,7 @@ Frontend da aplicação JusTock, construído com React + Vite. O projeto consome
 - Dashboard deixou de compartilhar dados com contas não principais
 - Dashboard principal agora consome atividade recente e alertas reais do backend
 - Barra superior ganhou notificações reais com contador, lista visual e marcação como visualizada
+- Tela `Produtos` agora possui importação de estoque por `.xlsx` e `.csv` com download de modelos, validação completa e envio em lote
 - Relatórios e assinatura agora mostram estado vazio para contas novas
 - Tema escuro foi ajustado para dashboard, relatórios, assinatura, produtos e pedidos
 - O link `ver mais >` do gráfico principal do dashboard agora navega para `/produtos`
@@ -159,6 +160,7 @@ Ajustes recentes de experiência e tema:
 
 Os blocos do dashboard reagem automaticamente a mudanças vindas de:
 - criação, edição e exclusão de produtos
+- importação de estoque em lote
 - criação, edição e exclusão de pedidos
 - sincronização manual ou automática do Mercado Livre
 - salvamento de configurações e troca de tema
@@ -217,6 +219,11 @@ Foi corrigido um problema no backend que fazia os totais permanecerem zerados qu
 
 ### Produtos
 
+- A tela possui modal `Importar Estoque` com download dos modelos `.xlsx` e `.csv`
+- O upload aceita apenas `.xlsx` e `.csv`
+- O frontend valida o arquivo inteiro antes de enviar, ignorando a primeira linha como cabeçalho do modelo
+- Se existir linha vazia, coluna faltante ou campo inválido, a importação inteira é cancelada
+- Após sucesso, o dashboard recarrega a atividade recente automaticamente
 - Produtos sincronizados de marketplace aparecem identificados
 - Produtos de marketplace não podem ser editados ou excluídos manualmente
 - Para contas não principais, as ações manuais ficam ocultas na interface atual
@@ -257,6 +264,11 @@ frontend/
 - `npm run preview`: visualiza build localmente
 - `npm run api`: sobe o `json-server` usando `db.json`
 - `npm run lint`: valida o código do frontend com ESLint 9
+
+## Dependências relevantes do fluxo atual
+
+- `primereact`: base dos componentes e modais do dashboard
+- `xlsx`: leitura de arquivos Excel no fluxo de importação de estoque
 
 ## Principais tecnologias
 
