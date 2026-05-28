@@ -2,6 +2,7 @@ package com.justeam.justock_api.controller;
 
 import com.justeam.justock_api.dto.ApiResponseDTO;
 import com.justeam.justock_api.dto.ProductResponseDTO;
+import com.justeam.justock_api.exception.BadRequestException;
 import com.justeam.justock_api.model.Product;
 import com.justeam.justock_api.request.ProductCreateRequest;
 import com.justeam.justock_api.request.ProductUpdateRequest;
@@ -61,6 +62,25 @@ public class ProductController {
         Product product = productService.createProduct(request);
         ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
         return new ApiResponseDTO<>(200, "Produto cadastrado com sucesso!", dto);
+    }
+
+    // POST /api/products/importar
+    @PostMapping("/importar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponseDTO<List<ProductResponseDTO>> importBatch(@Valid @RequestBody List<@Valid ProductCreateRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            throw new BadRequestException("Nenhum produto válido foi enviado para importação.");
+        }
+
+        Integer usuarioId = currentAccountService.getDashboardUserId();
+        requests.forEach(request -> request.setUsuario(usuarioId));
+
+        List<ProductResponseDTO> products = productService.createProducts(requests)
+                .stream()
+                .map(product -> new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource()))
+                .collect(Collectors.toList());
+
+        return new ApiResponseDTO<>(200, "Produtos importados com sucesso!", products);
     }
 
     // PUT /api/products/atualizar/{id}

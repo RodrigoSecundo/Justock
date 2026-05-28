@@ -438,6 +438,29 @@ export async function createProduto(productInput) {
   return mapBackendProduct(created);
 }
 
+export async function importProdutos(productInputs) {
+  const payload = (Array.isArray(productInputs) ? productInputs : []).map((productInput) => ({
+    categoria: productInput?.categoria ?? "",
+    marca: productInput?.marca ?? "",
+    nomeDoProduto: productInput?.nome ?? productInput?.nomeDoProduto ?? "",
+    estado: productInput?.estado ?? "ATIVO",
+    preco: parseCurrencyToNumber(productInput?.preco ?? productInput?.precoValor ?? 0),
+    codigoDeBarras: productInput?.codigoBarras ?? productInput?.codigoDeBarras ?? "",
+    quantidade: Number(productInput?.estoque ?? productInput?.quantidade ?? 0),
+    quantidadeReservada: Number(productInput?.quantidadeReservada ?? 0),
+    marcador: productInput?.marcador ?? "MANUAL",
+    usuario: Number(productInput?.usuario ?? getDashboardUserId() ?? 1),
+  }));
+
+  const created = await fetchBackend(`/api/products/importar`, {
+    method: "POST",
+    body: payload,
+  });
+
+  emitDashboardDataChanged({ source: "product-imported", total: payload.length });
+  return Array.isArray(created) ? created.map(mapBackendProduct) : [];
+}
+
 export async function updateProduto(productId, productInput) {
   const payload = {
     categoria: productInput?.categoria ?? "",

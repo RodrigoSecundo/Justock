@@ -9,6 +9,7 @@ import com.justeam.justock_api.request.ProductUpdateRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.transaction.Transactional;
@@ -37,6 +38,31 @@ public class ProductService {
     }
 
     public Product createProduct(ProductCreateRequest dto) {
+        Product savedProduct = saveProduct(dto);
+        dashboardEventService.recordProductCreated(savedProduct);
+        return savedProduct;
+    }
+
+    @Transactional
+    public List<Product> createProducts(List<ProductCreateRequest> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            throw new BadRequestException("Nenhum produto válido foi enviado para importação.");
+        }
+
+        List<Product> createdProducts = new ArrayList<>();
+        for (ProductCreateRequest dto : dtos) {
+            createdProducts.add(saveProduct(dto));
+        }
+
+        Integer usuario = createdProducts.isEmpty() ? null : createdProducts.get(0).getUsuario();
+        if (usuario != null) {
+            dashboardEventService.recordProductImported(usuario, createdProducts);
+        }
+
+        return createdProducts;
+    }
+
+    private Product saveProduct(ProductCreateRequest dto) {
         Product product = new Product();
         product.setCategoria(dto.getCategoria());
         product.setMarca(dto.getMarca());
@@ -48,9 +74,7 @@ public class ProductService {
         product.setQuantidadeReservada(dto.getQuantidadeReservada());
         product.setMarcador(dto.getMarcador());
         product.setUsuario(dto.getUsuario());
-        Product savedProduct = productRepository.save(product);
-        dashboardEventService.recordProductCreated(savedProduct);
-        return savedProduct;
+        return productRepository.save(product);
     }
 
     @Transactional

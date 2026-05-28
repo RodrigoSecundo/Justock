@@ -2,6 +2,7 @@ package com.justeam.justock_api.model;
 
 public enum DashboardEventType {
     PRODUCT_CREATED,
+    PRODUCT_IMPORTED,
     PRODUCT_UPDATED,
     PRODUCT_DELETED,
     PRODUCT_LOW_STOCK,

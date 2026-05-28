@@ -1,5 +1,6 @@
-import React, { useCallback, useState, useEffect } from "react";
-import { createProduto, deleteProduto, getProdutos, updateProduto } from "../../utils/api";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import * as XLSX from "xlsx";
+import { createProduto, deleteProduto, getProdutos, importProdutos, updateProduto } from "../../utils/api";
 import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/produtos.css";
 import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
@@ -232,9 +233,425 @@ const ModalEditarProduto = ({ isOpen, onClose, product, onSave, isSaving }) => {
   );
 };
 
+const DOWNLOAD_FILES = {
+  excel: {
+    nome: "estoque.xlsx",
+    url: "/downloads/estoque.xlsx",
+  },
+  csv: {
+    nome: "estoque.csv",
+    url: "/downloads/estoque.csv",
+  },
+};
+
+const FILE_ACCEPT = ".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv";
+const IMPORT_ALLOWED_EXTENSIONS = new Set(["csv", "xlsx"]);
+const IMPORT_REQUIRED_FIELDS = ["categoria", "marca", "nome", "estoque", "preco", "codigoBarras"];
+const IMPORT_HEADER_ALIASES = {
+  categoria: "categoria",
+  marca: "marca",
+  nomedoproduto: "nome",
+  estoqueinteiro: "estoque",
+  estoque: "estoque",
+  preco: "preco",
+  codigodebarras: "codigoBarras",
+};
+
+function getFileExtension(fileName) {
+  return String(fileName || "").split(".").pop()?.toLowerCase() || "";
+}
+
+function normalizeImportHeader(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo CSV."));
+    reader.readAsText(file, "utf-8");
+  });
+}
+
+function readFileAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo Excel."));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function splitCsvLine(line) {
+  const values = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ";" && !inQuotes) {
+      values.push(current);
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current);
+  return values;
+}
+
+function trimTrailingEmptyRows(rows) {
+  let lastNonEmptyIndex = rows.length - 1;
+
+  while (lastNonEmptyIndex >= 0) {
+    const row = Array.isArray(rows[lastNonEmptyIndex]) ? rows[lastNonEmptyIndex] : [];
+    const hasValue = row.some((cell) => String(cell ?? "").trim() !== "");
+    if (hasValue) {
+      break;
+    }
+    lastNonEmptyIndex -= 1;
+  }
+
+  return lastNonEmptyIndex >= 0 ? rows.slice(0, lastNonEmptyIndex + 1) : [];
+}
+
+function mapImportHeaders(headerRow) {
+  const columnIndexByField = {};
+
+  headerRow.forEach((headerCell, index) => {
+    const normalizedHeader = normalizeImportHeader(headerCell);
+    const field = IMPORT_HEADER_ALIASES[normalizedHeader];
+    if (!field) return;
+
+    if (field in columnIndexByField) {
+      throw new Error(`O arquivo possui a coluna "${headerCell}" repetida.`);
+    }
+
+    columnIndexByField[field] = index;
+  });
+
+  const missingFields = IMPORT_REQUIRED_FIELDS.filter((field) => !(field in columnIndexByField));
+  if (missingFields.length > 0) {
+    throw new Error("O arquivo não contém todas as colunas obrigatórias do modelo de importação.");
+  }
+
+  return columnIndexByField;
+}
+
+function parseImportPrice(value, rowNumber) {
+  const text = String(value ?? "").trim();
+  if (!text) {
+    throw new Error(`A linha ${rowNumber} está com o preço vazio.`);
+  }
+
+  let normalized = text.replace(/\s/g, "");
+  if (normalized.includes(",")) {
+    normalized = normalized.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  } else {
+    normalized = normalized.replace(/[^\d.-]/g, "");
+  }
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`A linha ${rowNumber} possui um preço inválido.`);
+  }
+
+  return parsed;
+}
+
+function parseImportStock(value, rowNumber) {
+  const text = String(value ?? "").trim();
+  if (!/^\d+$/.test(text)) {
+    throw new Error(`A linha ${rowNumber} possui um estoque inválido. Use apenas números inteiros maiores ou iguais a zero.`);
+  }
+
+  return Number(text);
+}
+
+function getRequiredCellValue(row, headerMap, field, rowNumber, label) {
+  const value = String(row[headerMap[field]] ?? "").trim();
+  if (!value) {
+    throw new Error(`A linha ${rowNumber} está com o campo ${label} vazio.`);
+  }
+  return value;
+}
+
+function mapRowsToImportedProducts(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error("O arquivo está vazio.");
+  }
+
+  const [headerRow, ...dataRows] = trimTrailingEmptyRows(rows);
+  if (!headerRow || headerRow.length === 0) {
+    throw new Error("Não foi possível identificar o cabeçalho do arquivo.");
+  }
+
+  if (dataRows.length === 0) {
+    throw new Error("O arquivo não possui linhas de dados para importar.");
+  }
+
+  const headerMap = mapImportHeaders(headerRow);
+
+  return dataRows.map((row, dataIndex) => {
+    const rowNumber = dataIndex + 2;
+    const normalizedRow = Array.isArray(row) ? row : [];
+    const hasAnyValue = normalizedRow.some((cell) => String(cell ?? "").trim() !== "");
+
+    if (!hasAnyValue) {
+      throw new Error(`A linha ${rowNumber} está vazia. Remova linhas vazias antes de importar.`);
+    }
+
+    const categoria = getRequiredCellValue(normalizedRow, headerMap, "categoria", rowNumber, "Categoria");
+    const marca = getRequiredCellValue(normalizedRow, headerMap, "marca", rowNumber, "Marca");
+    const nome = getRequiredCellValue(normalizedRow, headerMap, "nome", rowNumber, "Nome do Produto");
+    const estoque = parseImportStock(normalizedRow[headerMap.estoque], rowNumber);
+    const preco = parseImportPrice(normalizedRow[headerMap.preco], rowNumber);
+    const codigoBarras = getRequiredCellValue(normalizedRow, headerMap, "codigoBarras", rowNumber, "Código de Barras");
+
+    return {
+      categoria,
+      marca,
+      nome,
+      estoque,
+      preco,
+      codigoBarras,
+    };
+  });
+}
+
+async function parseCsvImportFile(file) {
+  const text = (await readFileAsText(file)).replace(/^\uFEFF/, "").replace(/\r/g, "").trimEnd();
+  const lines = text.split("\n");
+  const rows = lines.map((line) => splitCsvLine(line).map((value) => String(value ?? "").trim()));
+  return mapRowsToImportedProducts(rows);
+}
+
+async function parseXlsxImportFile(file) {
+  const buffer = await readFileAsArrayBuffer(file);
+  const workbook = XLSX.read(buffer, { type: "array", cellText: true, cellDates: false });
+  const firstSheetName = workbook.SheetNames?.[0];
+
+  if (!firstSheetName) {
+    throw new Error("Não foi possível identificar uma planilha válida no arquivo Excel.");
+  }
+
+  const worksheet = workbook.Sheets[firstSheetName];
+  const rows = XLSX.utils.sheet_to_json(worksheet, {
+    header: 1,
+    raw: false,
+    defval: "",
+    blankrows: true,
+  });
+
+  return mapRowsToImportedProducts(rows);
+}
+
+async function parseImportedStockFile(file) {
+  const extension = getFileExtension(file?.name);
+
+  if (!IMPORT_ALLOWED_EXTENSIONS.has(extension)) {
+    throw new Error("Selecione apenas arquivos .xlsx ou .csv.");
+  }
+
+  if (extension === "csv") {
+    return parseCsvImportFile(file);
+  }
+
+  if (extension === "xlsx") {
+    return parseXlsxImportFile(file);
+  }
+
+  throw new Error("Formato de arquivo não suportado para importação.");
+}
+
+const ModalImportarEstoque = ({ isOpen, onClose, onImport, isImporting }) => {
+  const inputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  const clearSelection = useCallback(() => {
+    setSelectedFile(null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      clearSelection();
+      setIsDragActive(false);
+    }
+  }, [clearSelection, isOpen]);
+
+  const triggerFileSelect = () => {
+    inputRef.current?.click();
+  };
+
+  const selectFile = (file) => {
+    if (!file) return;
+
+    const extension = getFileExtension(file.name);
+
+    if (!IMPORT_ALLOWED_EXTENSIONS.has(extension)) {
+      clearSelection();
+      notifyError("Selecione apenas arquivos .xlsx ou .csv.");
+      return;
+    }
+
+    setSelectedFile(file);
+    setIsDragActive(false);
+  };
+
+  const handleInputChange = (event) => {
+    const [file] = event.target.files || [];
+    selectFile(file);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragActive(false);
+    const [file] = event.dataTransfer.files || [];
+    selectFile(file);
+  };
+
+  const handleImportClick = async () => {
+    if (!selectedFile || isImporting) return;
+    const imported = await onImport(selectedFile);
+    if (imported) {
+      clearSelection();
+    }
+  };
+
+  const handleDownload = ({ nome, url }) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nome;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  return (
+    <DialogoReutilizavel
+      visible={isOpen}
+      onHide={onClose}
+      header="Importar Estoque"
+      position="top"
+      width="min(720px, 96vw)"
+      className="modal-importar-estoque"
+      contentClassName="modal-importar-estoque-content"
+    >
+      <div className="importar-estoque-modal">
+        <div className="importar-estoque-downloads">
+          <Button
+            type="button"
+            label="Baixar Modelo Excel"
+            icon="pi pi-file-excel"
+            onClick={() => handleDownload(DOWNLOAD_FILES.excel)}
+          />
+          <Button
+            type="button"
+            label="Baixar Modelo CSV"
+            icon="pi pi-download"
+            severity="secondary"
+            outlined
+            onClick={() => handleDownload(DOWNLOAD_FILES.csv)}
+          />
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept={FILE_ACCEPT}
+          className="importar-estoque-input"
+          onChange={handleInputChange}
+        />
+
+        <div
+          className={`importar-estoque-dropzone ${isDragActive ? "is-drag-active" : ""}`.trim()}
+          onClick={triggerFileSelect}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDragActive(true);
+          }}
+          onDragLeave={() => setIsDragActive(false)}
+          onDrop={handleDrop}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              triggerFileSelect();
+            }
+          }}
+          aria-label="Selecionar arquivo para importação de estoque"
+        >
+          <i className="pi pi-upload importar-estoque-icone" aria-hidden="true" />
+          <strong>Arraste o arquivo para cá</strong>
+          <span>ou clique para selecionar um CSV ou XLSX</span>
+          <Button
+            type="button"
+            label="Selecionar Arquivo"
+            icon="pi pi-folder-open"
+            className="importar-estoque-escolher"
+            onClick={(event) => {
+              event.stopPropagation();
+              triggerFileSelect();
+            }}
+          />
+          {selectedFile ? (
+            <div className="importar-estoque-arquivo" aria-live="polite">
+              <span className="importar-estoque-arquivo-nome">{selectedFile.name}</span>
+              <span className="importar-estoque-arquivo-tamanho">
+                {(selectedFile.size / 1024).toFixed(1)} KB selecionado(s)
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        <p className="importar-estoque-observacao">
+          Obs: Recomendamos o uso do modelo em xlsx (Excel) para maior compatibilidade e facilidade na alocação nos campos.
+        </p>
+
+        <div className="importar-estoque-acoes">
+          <Button type="button" label="Fechar" severity="secondary" onClick={onClose} disabled={isImporting} />
+          <Button
+            type="button"
+            label="Importar Estoque"
+            icon="pi pi-upload"
+            onClick={handleImportClick}
+            disabled={!selectedFile || isImporting}
+            loading={isImporting}
+          />
+        </div>
+      </div>
+    </DialogoReutilizavel>
+  );
+};
+
 const Produtos = () => {
   const itemsPerPage = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const srOpt = useSrOptimized();
@@ -243,6 +660,7 @@ const Produtos = () => {
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [isImportingProducts, setIsImportingProducts] = useState(false);
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
   const canManageProducts = isPrimaryAdminUser();
@@ -315,6 +733,34 @@ const Produtos = () => {
       return false;
     } finally {
       setIsCreatingProduct(false);
+    }
+  };
+
+  const handleImportProducts = async (file) => {
+    try {
+      setIsImportingProducts(true);
+      const importedProducts = await parseImportedStockFile(file);
+
+      if (!Array.isArray(importedProducts) || importedProducts.length === 0) {
+        throw new Error("Nenhum produto válido foi encontrado no arquivo enviado.");
+      }
+
+      await importProdutos(importedProducts.map((product) => ({
+        ...product,
+        estado: "ATIVO",
+        quantidadeReservada: 0,
+        marcador: "MANUAL",
+      })));
+
+      await loadProducts();
+      notifySuccess(`${importedProducts.length} produto(s) importado(s) com sucesso!`);
+      setIsImportModalOpen(false);
+      return true;
+    } catch (error) {
+      notifyError(error?.message || "Não foi possível importar o arquivo de estoque.");
+      return false;
+    } finally {
+      setIsImportingProducts(false);
     }
   };
 
@@ -519,7 +965,10 @@ const Produtos = () => {
           <div className="produtos-footer flex justify-content-between align-items-center mt-3">
             <div className="flex gap-2">
               {canManageProducts ? (
-                <button className="add-button" onClick={() => setIsModalOpen(true)} {...srProps(srOpt, { 'aria-label': 'Adicionar novo produto' })}>Adicionar Produto</button>
+                <>
+                  <button className="import-button" onClick={() => setIsImportModalOpen(true)} {...srProps(srOpt, { 'aria-label': 'Importar estoque' })}>Importar Estoque</button>
+                  <button className="add-button" onClick={() => setIsModalOpen(true)} {...srProps(srOpt, { 'aria-label': 'Adicionar novo produto' })}>Adicionar Produto</button>
+                </>
               ) : (
                 <span className="text-600">Produtos manuais ficam disponíveis apenas para a conta principal.</span>
               )}
@@ -531,6 +980,12 @@ const Produtos = () => {
         onClose={() => setIsModalOpen(false)}
         onAddProduct={handleAddProduct}
         isSaving={isCreatingProduct}
+      />
+      <ModalImportarEstoque
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportProducts}
+        isImporting={isImportingProducts}
       />
       <ModalEditarProduto
         key={editProduct?.id ?? "novo-produto"}

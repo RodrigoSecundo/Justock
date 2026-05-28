@@ -84,6 +84,22 @@ public class DashboardEventService {
         refreshStockAlerts(product);
     }
 
+    public void recordProductImported(Integer usuario, List<Product> products) {
+        int importedCount = products == null ? 0 : products.size();
+        recordActivity(usuario, DashboardEventType.PRODUCT_IMPORTED,
+                "Importação de estoque concluída",
+                importedCount == 1
+                        ? "1 produto foi importado para o estoque."
+                        : importedCount + " produtos foram importados para o estoque.",
+                "product-import",
+                usuario + ":import:" + System.currentTimeMillis(),
+                Map.of("count", importedCount));
+
+        if (products != null) {
+            products.forEach(this::refreshStockAlerts);
+        }
+    }
+
     public void recordProductUpdated(Product previousProduct, Product product) {
         recordActivity(product.getUsuario(), DashboardEventType.PRODUCT_UPDATED,
                 "Produto atualizado",
