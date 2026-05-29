@@ -2,10 +2,15 @@ package com.justeam.justock_api.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.justeam.justock_api.model.MarketplaceListing;
+import com.justeam.justock_api.model.OrderItem;
+import com.justeam.justock_api.model.OrderItemId;
 import com.justeam.justock_api.model.Order;
 import com.justeam.justock_api.model.Product;
 import com.justeam.justock_api.model.UserMarketplace;
 import com.justeam.justock_api.model.WebhookEvent;
+import com.justeam.justock_api.repository.MarketplaceListingRepository;
+import com.justeam.justock_api.repository.OrderItemRepository;
 import com.justeam.justock_api.repository.OrderRepository;
 import com.justeam.justock_api.repository.ProductRepository;
 import com.justeam.justock_api.repository.UserMarketplaceRepository;
@@ -18,6 +23,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -30,7 +36,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +55,26 @@ public class MercadoLivreService {
             "payment_in_process",
             "partially_paid",
             "paid");
+    private static final Set<String> STOP_TOKENS = Set.of("de", "do", "da", "dos", "das", "para", "por", "com", "sem", "e", "a", "o", "um", "uma", "na", "no", "em");
+    private static final Set<String> CRITICAL_MODEL_TOKENS = Set.of("ti", "super", "xt", "xtx", "oc", "mini", "pro", "max", "ultra", "8gb", "12gb", "16gb", "24gb", "lhr");
+        private static final Map<String, String> NORMALIZED_BRAND_BY_TOKEN = Map.ofEntries(
+            Map.entry("asus", "ASUS"),
+            Map.entry("galax", "Galax"),
+            Map.entry("gigabyte", "Gigabyte"),
+            Map.entry("msi", "MSI"),
+            Map.entry("kingston", "Kingston"),
+            Map.entry("corsair", "Corsair"),
+            Map.entry("samsung", "Samsung"),
+            Map.entry("seagate", "Seagate"),
+            Map.entry("netac", "Netac"),
+            Map.entry("intel", "Intel"),
+            Map.entry("amd", "AMD"),
+            Map.entry("nvidia", "NVIDIA"),
+            Map.entry("wd", "WD"),
+            Map.entry("western digital", "WD"),
+            Map.entry("g skill", "G.Skill"),
+            Map.entry("gskill", "G.Skill"),
+            Map.entry("xpg", "XPG"));
 
     @Value("${mercadolivre.client.id}")
     private String clientId;
@@ -65,6 +93,8 @@ public class MercadoLivreService {
 
     private final RestTemplate restTemplate;
     private final UserMarketplaceRepository userMarketplaceRepository;
+    private final MarketplaceListingRepository marketplaceListingRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
     private final WebhookEventRepository webhookEventRepository;
@@ -74,6 +104,8 @@ public class MercadoLivreService {
     private final Map<String, String> categoryNameCache = new ConcurrentHashMap<>();
 
     public MercadoLivreService(RestTemplate restTemplate, UserMarketplaceRepository userMarketplaceRepository,
+        MarketplaceListingRepository marketplaceListingRepository,
+            OrderItemRepository orderItemRepository,
             ProductRepository productRepository,
             OrderRepository orderRepository,
             WebhookEventRepository webhookEventRepository,
@@ -81,6 +113,8 @@ public class MercadoLivreService {
             ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.userMarketplaceRepository = userMarketplaceRepository;
+        this.marketplaceListingRepository = marketplaceListingRepository;
+        this.orderItemRepository = orderItemRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.webhookEventRepository = webhookEventRepository;
@@ -247,7 +281,7 @@ public class MercadoLivreService {
                         for (Map<String, Object> itemWrapper : itemsList) {
                             if (Integer.valueOf(200).equals(itemWrapper.get("code"))) {
                                 Map<String, Object> itemMap = (Map<String, Object>) itemWrapper.get("body");
-                                saveOrUpdateProduct(itemMap, usuarioId);
+                                saveOrUpdateListing(itemMap, usuarioId);
                                 processedItems++;
                             }
                         }
@@ -255,7 +289,7 @@ public class MercadoLivreService {
                 }
             }
 
-            removeProductsMissingFromLatestSync(usuarioId, syncedItemIds);
+            removeListingsMissingFromLatestSync(usuarioId, syncedItemIds);
             return processedItems;
         }
 
@@ -268,13 +302,14 @@ public class MercadoLivreService {
         Set<String> syncedOrderIds = new HashSet<>();
         int processedOrders = 0;
 
-        for (Map<String, Object> orderMap : orders) {
-            Object orderId = orderMap.get("id");
+        for (Map<String, Object> orderSummary : orders) {
+            Object orderId = orderSummary.get("id");
             if (orderId == null) {
                 continue;
             }
 
             String resourceId = String.valueOf(orderId);
+            Map<String, Object> orderMap = fetchOrderDetails(connection, resourceId);
             syncedOrderIds.add(resourceId);
             saveOrUpdateOrder(orderMap, connection, resourceId);
             processedOrders++;
@@ -284,7 +319,7 @@ public class MercadoLivreService {
         return processedOrders;
     }
 
-    private void saveOrUpdateProduct(Map<String, Object> itemMap, Integer usuarioId) {
+    private void saveOrUpdateListing(Map<String, Object> itemMap, Integer usuarioId) {
         String mlId = (String) itemMap.get("id");
         String title = (String) itemMap.get("title");
         Number priceNum = (Number) itemMap.get("price");
@@ -292,33 +327,76 @@ public class MercadoLivreService {
 
         BigDecimal price = new BigDecimal(priceNum.toString());
         Integer quantity = availableQty.intValue();
-        String brand = extractBrand(itemMap);
+        String brand = resolveNormalizedBrand(itemMap, title);
+        String barcode = extractBarcode(itemMap);
         String category = resolveNormalizedCategory(itemMap, title);
 
-        boolean created = productRepository.findByMarketplaceResourceIdAndUsuario(mlId, usuarioId).isEmpty();
-        Product product = productRepository.findByMarketplaceResourceIdAndUsuario(mlId, usuarioId)
-            .orElseGet(Product::new);
-        product.setCategoria(category);
-        product.setMarca(brand);
-        product.setNomeDoProduto(title);
-        product.setEstado("Ativo");
-        product.setPreco(price);
-        product.setCodigoDeBarras(mlId);
-        product.setQuantidade(quantity);
-        product.setQuantidadeReservada(0);
-        product.setMarcador("ML");
-        product.setUsuario(usuarioId);
-        product.setMarketplaceResourceId(mlId);
-        product.setMarketplaceSource("MERCADO_LIVRE");
+        boolean created = marketplaceListingRepository
+                .findByUsuarioAndMarketplaceSourceAndMarketplaceResourceId(usuarioId, "MERCADO_LIVRE", mlId)
+                .isEmpty();
+        MarketplaceListing listing = marketplaceListingRepository
+                .findByUsuarioAndMarketplaceSourceAndMarketplaceResourceId(usuarioId, "MERCADO_LIVRE", mlId)
+                .orElseGet(MarketplaceListing::new);
+        listing.setUsuario(usuarioId);
+        listing.setMarketplaceSource("MERCADO_LIVRE");
+        listing.setMarketplaceResourceId(mlId);
+        listing.setTitulo(title);
+        listing.setCategoria(category);
+        listing.setMarca(brand);
+        listing.setCodigoDeBarras(barcode);
+        listing.setPreco(price);
+        listing.setQuantidadeDisponivel(quantity);
+        if (listing.getSeparadoManualmente() == null) {
+            listing.setSeparadoManualmente(Boolean.FALSE);
+        }
+        if (!Boolean.TRUE.equals(listing.getSeparadoManualmente()) && listing.getProdutoVinculadoId() == null) {
+            autoLinkListing(listing, usuarioId);
+        }
 
-        Product savedProduct = productRepository.save(product);
-        dashboardEventService.recordSyncedProduct(savedProduct, created);
+        MarketplaceListing savedListing = marketplaceListingRepository.save(listing);
+        synchronizeShadowInventoryProduct(savedListing, quantity);
+        dashboardEventService.recordSyncedMarketplaceListing(savedListing, created);
+    }
+
+    private MarketplaceListing ensureListingExistsForOrderItem(Map<?, ?> itemData, Map<?, ?> itemMap, Integer usuarioId) {
+        Object itemIdRaw = itemData.get("id");
+        if (itemIdRaw == null) {
+            return null;
+        }
+
+        String itemId = String.valueOf(itemIdRaw);
+        MarketplaceListing existingListing = marketplaceListingRepository
+                .findByUsuarioAndMarketplaceSourceAndMarketplaceResourceId(usuarioId, "MERCADO_LIVRE", itemId)
+                .orElse(null);
+        if (existingListing != null) {
+            return existingListing;
+        }
+
+        MarketplaceListing listing = new MarketplaceListing();
+        listing.setUsuario(usuarioId);
+        listing.setMarketplaceSource("MERCADO_LIVRE");
+        listing.setMarketplaceResourceId(itemId);
+        listing.setTitulo(itemData.get("title") == null ? itemId : String.valueOf(itemData.get("title")));
+        listing.setCategoria(resolveNormalizedCategory((Map<String, Object>) itemData, listing.getTitulo()));
+        listing.setMarca(resolveNormalizedBrand((Map<String, Object>) itemData, listing.getTitulo()));
+        listing.setCodigoDeBarras(extractBarcode((Map<String, Object>) itemData));
+        BigDecimal unitPrice = convertToBigDecimal(itemMap.get("unit_price"));
+        listing.setPreco(unitPrice == null ? BigDecimal.ZERO : unitPrice);
+        listing.setQuantidadeDisponivel(0);
+        listing.setSeparadoManualmente(Boolean.FALSE);
+        autoLinkListing(listing, usuarioId);
+
+        MarketplaceListing savedListing = marketplaceListingRepository.save(listing);
+        synchronizeShadowInventoryProduct(savedListing, 0);
+        dashboardEventService.recordSyncedMarketplaceListing(savedListing, true);
+        return savedListing;
     }
 
     private void saveOrUpdateOrder(Map<String, Object> orderMap, UserMarketplace connection, String resourceId) {
         boolean created = orderRepository.findByMarketplaceResourceIdAndMarketplaceSource(resourceId, "MERCADO_LIVRE").isEmpty();
         Order order = orderRepository.findByMarketplaceResourceIdAndMarketplaceSource(resourceId, "MERCADO_LIVRE")
             .orElseGet(Order::new);
+        boolean inventoryWasApplied = Boolean.TRUE.equals(order.getInventoryApplied());
 
         order.setIdPedidoMarketplace(1);
         order.setUsuarioMarketplaceId(connection.getUsuarioMarketplaceId());
@@ -329,8 +407,12 @@ public class MercadoLivreService {
         order.setMarketplaceSource("MERCADO_LIVRE");
         order.setMarketplaceResourceId(resourceId);
         order.setObservacao(buildMarketplaceOrderObservation(orderMap, resourceId));
+        if (order.getInventoryApplied() == null) {
+            order.setInventoryApplied(Boolean.FALSE);
+        }
 
         Order savedOrder = orderRepository.save(order);
+        syncMarketplaceOrderItems(savedOrder, orderMap, connection.getUsuario(), inventoryWasApplied);
         dashboardEventService.recordSyncedOrder(savedOrder, created);
     }
 
@@ -359,13 +441,15 @@ public class MercadoLivreService {
         userMarketplaceRepository.deleteAll(list);
     }
 
-    private void removeProductsMissingFromLatestSync(Integer usuarioId, Set<String> syncedItemIds) {
-        List<Product> existingProducts = productRepository.findByUsuarioAndMarketplaceSource(usuarioId, "MERCADO_LIVRE");
+    private void removeListingsMissingFromLatestSync(Integer usuarioId, Set<String> syncedItemIds) {
+        List<MarketplaceListing> existingListings = marketplaceListingRepository.findByUsuarioAndMarketplaceSource(usuarioId, "MERCADO_LIVRE");
 
-        for (Product product : existingProducts) {
-            String resourceId = product.getMarketplaceResourceId();
+        for (MarketplaceListing listing : existingListings) {
+            String resourceId = listing.getMarketplaceResourceId();
             if (resourceId == null || !syncedItemIds.contains(resourceId)) {
-                productRepository.delete(product);
+                listing.setQuantidadeDisponivel(0);
+                marketplaceListingRepository.save(listing);
+                synchronizeShadowInventoryProduct(listing, 0);
             }
         }
     }
@@ -376,8 +460,486 @@ public class MercadoLivreService {
         for (Order order : existingOrders) {
             String resourceId = order.getMarketplaceResourceId();
             if (resourceId == null || !syncedOrderIds.contains(resourceId)) {
+                if (Boolean.TRUE.equals(order.getInventoryApplied())) {
+                    applyInventoryAdjustment(orderItemRepository.findByIdIdPedido(order.getIdPedido()), 1, null);
+                }
+                orderItemRepository.deleteByIdIdPedido(order.getIdPedido());
                 orderRepository.delete(order);
             }
+        }
+    }
+
+    private void autoLinkListing(MarketplaceListing listing, Integer usuarioId) {
+        List<Product> candidates = productRepository.findByUsuario(usuarioId)
+                .stream()
+                .filter(product -> !isLegacyMarketplaceProduct(product))
+                .filter(product -> !isListingInventoryShadow(product))
+                .toList();
+
+        Product exactNameMatch = findUniqueExactNameMatch(listing, candidates);
+        if (exactNameMatch != null) {
+            listing.setProdutoVinculadoId(exactNameMatch.getIdProduto());
+            return;
+        }
+
+        Product similarNameMatch = findSafeSimilarNameMatch(listing, candidates);
+        if (similarNameMatch != null) {
+            listing.setProdutoVinculadoId(similarNameMatch.getIdProduto());
+            return;
+        }
+
+        Product barcodeMatch = findUniqueBarcodeMatch(listing, candidates);
+        if (barcodeMatch != null) {
+            listing.setProdutoVinculadoId(barcodeMatch.getIdProduto());
+        }
+    }
+
+    private Product findUniqueBarcodeMatch(MarketplaceListing listing, List<Product> candidates) {
+        String barcode = normalizeComparableBarcode(listing.getCodigoDeBarras());
+        if (barcode == null) {
+            return null;
+        }
+
+        List<Product> matches = candidates.stream()
+                .filter(product -> barcode.equals(normalizeComparableBarcode(product.getCodigoDeBarras())))
+                .toList();
+
+        return matches.size() == 1 ? matches.get(0) : null;
+    }
+
+    private Product findUniqueExactNameMatch(MarketplaceListing listing, List<Product> candidates) {
+        String normalizedTitle = normalizeText(listing.getTitulo());
+        if (normalizedTitle.isBlank()) {
+            return null;
+        }
+
+        List<Product> matches = candidates.stream()
+                .filter(product -> normalizedTitle.equals(normalizeText(product.getNomeDoProduto())))
+                .toList();
+
+        if (matches.size() == 1) {
+            return matches.get(0);
+        }
+
+        String normalizedBrand = normalizeText(listing.getMarca());
+        if (normalizedBrand.isBlank()) {
+            return null;
+        }
+
+        List<Product> brandMatches = matches.stream()
+                .filter(product -> normalizedBrand.equals(normalizeText(product.getMarca())))
+                .toList();
+        return brandMatches.size() == 1 ? brandMatches.get(0) : null;
+    }
+
+    private Product findSafeSimilarNameMatch(MarketplaceListing listing, List<Product> candidates) {
+        String normalizedTitle = normalizeText(listing.getTitulo());
+        if (normalizedTitle.isBlank()) {
+            return null;
+        }
+
+        double bestScore = 0d;
+        double secondBestScore = 0d;
+        Product bestProduct = null;
+        for (Product candidate : candidates) {
+            if (!hasCompatibleModelTokens(listing, candidate)) {
+                continue;
+            }
+            double score = computeSimilarityScore(listing, candidate);
+            if (score > bestScore) {
+                secondBestScore = bestScore;
+                bestScore = score;
+                bestProduct = candidate;
+            } else if (score > secondBestScore) {
+                secondBestScore = score;
+            }
+        }
+
+        if (bestProduct == null) {
+            return null;
+        }
+        if (bestScore < 0.92d) {
+            return null;
+        }
+        if ((bestScore - secondBestScore) < 0.08d) {
+            return null;
+        }
+        return bestProduct;
+    }
+
+    private double computeSimilarityScore(MarketplaceListing listing, Product product) {
+        String normalizedTitle = normalizeText(listing.getTitulo());
+        String normalizedProductName = normalizeText(product.getNomeDoProduto());
+        if (normalizedTitle.isBlank() || normalizedProductName.isBlank()) {
+            return 0d;
+        }
+        if (normalizedTitle.equals(normalizedProductName)) {
+            return 1d;
+        }
+
+        Set<String> titleTokens = tokenizeNormalizedText(normalizedTitle);
+        Set<String> productTokens = tokenizeNormalizedText(normalizedProductName);
+        int intersection = 0;
+        for (String token : titleTokens) {
+            if (productTokens.contains(token)) {
+                intersection++;
+            }
+        }
+        int union = titleTokens.size() + productTokens.size() - intersection;
+        double jaccard = union == 0 ? 0d : (double) intersection / (double) union;
+
+        double containment = 0d;
+        if (normalizedTitle.contains(normalizedProductName) || normalizedProductName.contains(normalizedTitle)) {
+            int maxLength = Math.max(normalizedTitle.length(), normalizedProductName.length());
+            int minLength = Math.min(normalizedTitle.length(), normalizedProductName.length());
+            containment = maxLength == 0 ? 0d : (double) minLength / (double) maxLength;
+        }
+
+        double brandBoost = normalizeText(listing.getMarca()).equals(normalizeText(product.getMarca())) ? 0.08d : 0d;
+        return Math.max(jaccard, containment) + brandBoost;
+    }
+
+    private boolean hasCompatibleModelTokens(MarketplaceListing listing, Product product) {
+        Set<String> listingTokens = extractModelTokens(normalizeText(listing.getTitulo()));
+        Set<String> productTokens = extractModelTokens(normalizeText(product.getNomeDoProduto()));
+        if (listingTokens.isEmpty() || productTokens.isEmpty()) {
+            return true;
+        }
+
+        Set<String> listingOnly = new HashSet<>(listingTokens);
+        listingOnly.removeAll(productTokens);
+        Set<String> productOnly = new HashSet<>(productTokens);
+        productOnly.removeAll(listingTokens);
+
+        return listingOnly.stream().noneMatch(this::isCriticalModelToken)
+                && productOnly.stream().noneMatch(this::isCriticalModelToken);
+    }
+
+    private Set<String> extractModelTokens(String normalizedText) {
+        if (normalizedText == null || normalizedText.isBlank()) {
+            return Set.of();
+        }
+
+        Set<String> tokens = new LinkedHashSet<>();
+        for (String token : tokenizeNormalizedText(normalizedText)) {
+            if (STOP_TOKENS.contains(token)) {
+                continue;
+            }
+            if (token.matches(".*\\d.*") || CRITICAL_MODEL_TOKENS.contains(token)) {
+                tokens.add(token);
+            }
+        }
+        return tokens;
+    }
+
+    private boolean isCriticalModelToken(String token) {
+        return CRITICAL_MODEL_TOKENS.contains(token) || token.matches(".*\\d.*");
+    }
+
+    private Set<String> tokenizeNormalizedText(String normalizedText) {
+        if (normalizedText == null || normalizedText.isBlank()) {
+            return Set.of();
+        }
+
+        return Arrays.stream(normalizedText.split(" "))
+                .map(String::trim)
+                .filter(token -> !token.isBlank())
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private String normalizeComparableBarcode(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.replaceAll("[^0-9A-Za-z]", "").trim();
+        if (normalized.isEmpty() || "N/A".equalsIgnoreCase(normalized)) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private boolean isLegacyMarketplaceProduct(Product product) {
+        return (product.getMarketplaceSource() != null && !product.getMarketplaceSource().isBlank())
+                || (product.getMarketplaceResourceId() != null && !product.getMarketplaceResourceId().isBlank())
+                || "ML".equalsIgnoreCase(product.getMarcador());
+    }
+
+    private boolean isListingInventoryShadow(Product product) {
+        return ProductService.LISTING_INVENTORY_MARKER.equalsIgnoreCase(String.valueOf(product.getMarcador()));
+    }
+
+    private Integer resolveInventoryProductId(MarketplaceListing listing) {
+        if (listing == null) {
+            return null;
+        }
+        if (listing.getProdutoVinculadoId() != null) {
+            return listing.getProdutoVinculadoId();
+        }
+        Product shadowInventoryProduct = findShadowInventoryProduct(listing);
+        return shadowInventoryProduct == null ? null : shadowInventoryProduct.getIdProduto();
+    }
+
+    private Product findShadowInventoryProduct(MarketplaceListing listing) {
+        if (listing == null || listing.getMarketplaceResourceId() == null || listing.getUsuario() == null) {
+            return null;
+        }
+        return productRepository.findByUsuario(listing.getUsuario())
+                .stream()
+                .filter(this::isListingInventoryShadow)
+                .filter(product -> listing.getMarketplaceResourceId().equals(product.getMarketplaceResourceId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void synchronizeShadowInventoryProduct(MarketplaceListing listing, Integer quantity) {
+        if (listing == null || listing.getMarketplaceResourceId() == null || listing.getUsuario() == null) {
+            return;
+        }
+        if (listing.getProdutoVinculadoId() != null) {
+            return;
+        }
+
+        Product product = findShadowInventoryProduct(listing);
+        if (product == null) {
+            product = new Product();
+            product.setUsuario(listing.getUsuario());
+            product.setMarcador(ProductService.LISTING_INVENTORY_MARKER);
+            product.setMarketplaceSource(listing.getMarketplaceSource());
+            product.setMarketplaceResourceId(listing.getMarketplaceResourceId());
+            product.setQuantidadeReservada(0);
+            product.setEstado("ATIVO");
+        }
+
+        product.setCategoria(listing.getCategoria() == null || listing.getCategoria().isBlank() ? "Marketplace" : listing.getCategoria());
+        product.setMarca(listing.getMarca() == null || listing.getMarca().isBlank() ? "Marketplace" : listing.getMarca());
+        product.setNomeDoProduto(listing.getTitulo());
+        product.setPreco(listing.getPreco() == null ? BigDecimal.ZERO : listing.getPreco());
+        product.setCodigoDeBarras(listing.getCodigoDeBarras() == null || listing.getCodigoDeBarras().isBlank() ? "N/A" : listing.getCodigoDeBarras());
+        product.setQuantidade(quantity == null ? 0 : quantity);
+        productRepository.save(product);
+    }
+
+    public void syncManualInventoryForProduct(Product product) {
+        if (product == null || product.getUsuario() == null) {
+            return;
+        }
+
+        if (isListingInventoryShadow(product)
+                && "MERCADO_LIVRE".equalsIgnoreCase(product.getMarketplaceSource())
+                && product.getMarketplaceResourceId() != null) {
+            marketplaceListingRepository
+                    .findByUsuarioAndMarketplaceSourceAndMarketplaceResourceId(product.getUsuario(), "MERCADO_LIVRE", product.getMarketplaceResourceId())
+                    .ifPresent(listing -> syncListingQuantityToMarketplace(listing, product.getQuantidade() == null ? 0 : product.getQuantidade()));
+            return;
+        }
+
+        for (MarketplaceListing listing : marketplaceListingRepository.findByUsuarioAndProdutoVinculadoId(product.getUsuario(), product.getIdProduto())) {
+            syncListingQuantityToMarketplace(listing, product.getQuantidade() == null ? 0 : product.getQuantidade());
+        }
+    }
+
+    private void syncListingQuantityToMarketplace(MarketplaceListing listing, int quantity) {
+        if (listing == null || listing.getUsuario() == null) {
+            return;
+        }
+
+        UserMarketplace connection = ensureValidAccessToken(getConnectionOrThrow(listing.getUsuario()));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(connection.getAccessToken());
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        int safeQuantity = Math.max(quantity, 0);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        if (safeQuantity <= 0) {
+            payload.put("status", "paused");
+        } else {
+            payload.put("available_quantity", safeQuantity);
+            if ((listing.getQuantidadeDisponivel() == null ? 0 : listing.getQuantidadeDisponivel()) <= 0) {
+                payload.put("status", "active");
+            }
+        }
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+        restTemplate.exchange(
+                "https://api.mercadolibre.com/items/" + listing.getMarketplaceResourceId(),
+                HttpMethod.PUT,
+                request,
+                Map.class);
+
+        listing.setQuantidadeDisponivel(safeQuantity);
+        marketplaceListingRepository.save(listing);
+    }
+
+    private void syncMarketplaceOrderItems(Order order, Map<String, Object> orderMap, Integer usuarioId, boolean inventoryWasApplied) {
+        List<OrderItem> existingItems = orderItemRepository.findByIdIdPedido(order.getIdPedido());
+        List<OrderItem> desiredItems = buildMarketplaceOrderItems(order, orderMap, usuarioId);
+
+        boolean itemsChanged = !haveSameMarketplaceOrderItems(existingItems, desiredItems);
+        if (itemsChanged) {
+            if (inventoryWasApplied) {
+                applyInventoryAdjustment(existingItems, 1, usuarioId);
+                order.setInventoryApplied(Boolean.FALSE);
+                orderRepository.save(order);
+                inventoryWasApplied = false;
+            }
+            orderItemRepository.deleteByIdIdPedido(order.getIdPedido());
+            for (OrderItem desiredItem : desiredItems) {
+                orderItemRepository.save(desiredItem);
+            }
+        }
+
+        reconcileMarketplaceOrderInventory(order, desiredItems, inventoryWasApplied, usuarioId);
+    }
+
+    private List<OrderItem> buildMarketplaceOrderItems(Order order, Map<String, Object> orderMap, Integer usuarioId) {
+        Object rawItems = orderMap.get("order_items");
+        if (!(rawItems instanceof List<?> orderItemsList)) {
+            return List.of();
+        }
+
+        List<OrderItem> items = new ArrayList<>();
+        for (Object rawItem : orderItemsList) {
+            if (!(rawItem instanceof Map<?, ?> itemMap)) {
+                continue;
+            }
+            Object itemDataObj = itemMap.get("item");
+            if (!(itemDataObj instanceof Map<?, ?> itemData)) {
+                continue;
+            }
+
+            Object itemIdRaw = itemData.get("id");
+            if (itemIdRaw == null) {
+                continue;
+            }
+            String itemId = String.valueOf(itemIdRaw);
+
+                MarketplaceListing listing = marketplaceListingRepository
+                    .findByUsuarioAndMarketplaceSourceAndMarketplaceResourceId(usuarioId, "MERCADO_LIVRE", itemId)
+                    .orElseGet(() -> ensureListingExistsForOrderItem(itemData, itemMap, usuarioId));
+            Integer inventoryProductId = resolveInventoryProductId(listing);
+            if (listing == null || inventoryProductId == null) {
+                continue;
+            }
+
+            Number quantityRaw = itemMap.get("quantity") instanceof Number quantity ? quantity : null;
+            int quantity = quantityRaw == null ? 0 : quantityRaw.intValue();
+            if (quantity <= 0) {
+                continue;
+            }
+
+            BigDecimal unitPrice = convertToBigDecimal(itemMap.get("unit_price"));
+            if (unitPrice == null) {
+                unitPrice = listing.getPreco() == null ? BigDecimal.ZERO : listing.getPreco();
+            }
+
+            OrderItem orderItem = new OrderItem();
+            OrderItemId id = new OrderItemId();
+            id.setIdPedido(order.getIdPedido());
+            id.setIdProduto(inventoryProductId);
+            orderItem.setId(id);
+            orderItem.setQuantidade(quantity);
+            orderItem.setPrecoUnitario(unitPrice);
+            orderItem.setSubtotal(unitPrice.multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP));
+            orderItem.setIdItemMarketplace(itemId);
+            orderItem.setItemStatus(itemMap.get("item_status") == null ? "ACTIVE" : String.valueOf(itemMap.get("item_status")));
+            items.add(orderItem);
+        }
+        return items;
+    }
+
+    private boolean haveSameMarketplaceOrderItems(List<OrderItem> currentItems, List<OrderItem> desiredItems) {
+        if (currentItems.size() != desiredItems.size()) {
+            return false;
+        }
+
+        Map<String, OrderItem> currentByMarketplaceId = new LinkedHashMap<>();
+        for (OrderItem currentItem : currentItems) {
+            currentByMarketplaceId.put(currentItem.getIdItemMarketplace(), currentItem);
+        }
+
+        for (OrderItem desiredItem : desiredItems) {
+            OrderItem currentItem = currentByMarketplaceId.get(desiredItem.getIdItemMarketplace());
+            if (currentItem == null) {
+                return false;
+            }
+            Integer currentProductId = currentItem.getId() == null ? null : currentItem.getId().getIdProduto();
+            Integer desiredProductId = desiredItem.getId() == null ? null : desiredItem.getId().getIdProduto();
+            if (!java.util.Objects.equals(currentProductId, desiredProductId)) {
+                return false;
+            }
+            if (!java.util.Objects.equals(currentItem.getQuantidade(), desiredItem.getQuantidade())) {
+                return false;
+            }
+            if (!java.util.Objects.equals(currentItem.getPrecoUnitario(), desiredItem.getPrecoUnitario())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void reconcileMarketplaceOrderInventory(Order order, List<OrderItem> orderItems, boolean inventoryWasApplied, Integer usuarioId) {
+        boolean shouldApplyInventory = !"CANCELADO".equalsIgnoreCase(order.getStatusPedido());
+
+        if (shouldApplyInventory && !inventoryWasApplied) {
+            applyInventoryAdjustment(orderItems, -1, usuarioId);
+            order.setInventoryApplied(Boolean.TRUE);
+            orderRepository.save(order);
+            return;
+        }
+
+        if (!shouldApplyInventory && inventoryWasApplied) {
+            applyInventoryAdjustment(orderItems, 1, usuarioId);
+            order.setInventoryApplied(Boolean.FALSE);
+            orderRepository.save(order);
+        }
+    }
+
+    private void applyInventoryAdjustment(List<OrderItem> orderItems, int direction, Integer usuarioId) {
+        for (OrderItem orderItem : orderItems) {
+            Integer productId = orderItem.getId() == null ? null : orderItem.getId().getIdProduto();
+            if (productId == null) {
+                continue;
+            }
+
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Produto vinculado ao pedido do marketplace não encontrado."));
+
+            if (usuarioId != null && !usuarioId.equals(product.getUsuario())) {
+                throw new RuntimeException("Produto vinculado ao pedido do marketplace não pertence ao usuário esperado.");
+            }
+
+            int currentQuantity = product.getQuantidade() == null ? 0 : product.getQuantidade();
+            int quantityDelta = (orderItem.getQuantidade() == null ? 0 : orderItem.getQuantidade()) * direction;
+            int nextQuantity = currentQuantity + quantityDelta;
+            if (nextQuantity < 0 && direction < 0 && isListingInventoryShadow(product)) {
+                currentQuantity += Math.abs(nextQuantity);
+                product.setQuantidade(currentQuantity);
+                productRepository.save(product);
+                nextQuantity = currentQuantity + quantityDelta;
+            }
+            if (nextQuantity < 0) {
+                throw new RuntimeException("Estoque insuficiente para sincronizar pedido do marketplace.");
+            }
+
+            product.setQuantidade(nextQuantity);
+            productRepository.save(product);
+        }
+    }
+
+    private BigDecimal convertToBigDecimal(Object rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+        if (rawValue instanceof BigDecimal bigDecimal) {
+            return bigDecimal;
+        }
+        if (rawValue instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue()).setScale(2, RoundingMode.HALF_UP);
+        }
+        try {
+            return new BigDecimal(String.valueOf(rawValue)).setScale(2, RoundingMode.HALF_UP);
+        } catch (NumberFormatException exception) {
+            return null;
         }
     }
 
@@ -519,6 +1081,21 @@ public class MercadoLivreService {
         return results;
     }
 
+    private Map<String, Object> fetchOrderDetails(UserMarketplace connection, String orderId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(connection.getAccessToken());
+        HttpEntity<String> request = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "https://api.mercadolibre.com/orders/" + orderId,
+                HttpMethod.GET,
+                request,
+                Map.class);
+
+        Map<String, Object> body = response.getBody();
+        return body == null ? Map.of("id", orderId) : body;
+    }
+
     private int extractPagingTotal(Map body) {
         if (body == null) {
             return 0;
@@ -604,32 +1181,163 @@ public class MercadoLivreService {
         return "EM PROCESSAMENTO";
     }
 
-    private String extractBrand(Map<String, Object> itemMap) {
-        Object attributesObj = itemMap.get("attributes");
-        if (attributesObj instanceof List<?> attributes) {
-            for (Object attributeObj : attributes) {
-                if (!(attributeObj instanceof Map<?, ?> attributeMap)) {
+    private String resolveNormalizedBrand(Map<String, Object> itemMap, String title) {
+        String brand = extractBrandFromAttributes(itemMap.get("attributes"));
+        if (isMeaningfulMarketplaceValue(brand)) {
+            return normalizeBrandName(brand);
+        }
+
+        Object variationsObj = itemMap.get("variations");
+        if (variationsObj instanceof List<?> variations) {
+            for (Object variationObj : variations) {
+                if (!(variationObj instanceof Map<?, ?> variationMap)) {
                     continue;
                 }
 
-                Object attributeId = attributeMap.get("id");
-                if (attributeId == null) {
+                brand = extractBrandFromAttributes(variationMap.get("attributes"));
+                if (isMeaningfulMarketplaceValue(brand)) {
+                    return normalizeBrandName(brand);
+                }
+            }
+        }
+
+        brand = inferBrandFromTitle(title);
+        if (isMeaningfulMarketplaceValue(brand)) {
+            return brand;
+        }
+
+        return "N/A";
+    }
+
+    private String extractBrandFromAttributes(Object attributesObj) {
+        if (!(attributesObj instanceof List<?> attributes)) {
+            return "";
+        }
+
+        for (Object attributeObj : attributes) {
+            if (!(attributeObj instanceof Map<?, ?> attributeMap)) {
+                continue;
+            }
+
+            Object attributeId = attributeMap.get("id");
+            if (attributeId == null) {
+                continue;
+            }
+
+            String normalizedAttributeId = String.valueOf(attributeId).toUpperCase();
+            if (!"BRAND".equals(normalizedAttributeId) && !"MANUFACTURER".equals(normalizedAttributeId)) {
+                continue;
+            }
+
+            Object valueName = attributeMap.get("value_name");
+            if (valueName != null && !String.valueOf(valueName).isBlank()) {
+                return String.valueOf(valueName).trim();
+            }
+        }
+
+        return "";
+    }
+
+    private String inferBrandFromTitle(String title) {
+        if (title == null || title.isBlank()) {
+            return "N/A";
+        }
+
+        String normalizedTitle = normalizeText(title);
+        for (Map.Entry<String, String> entry : NORMALIZED_BRAND_BY_TOKEN.entrySet()) {
+            if (containsWholeToken(normalizedTitle, entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        return "N/A";
+    }
+
+    private String normalizeBrandName(String rawValue) {
+        if (!isMeaningfulMarketplaceValue(rawValue)) {
+            return "N/A";
+        }
+
+        String normalized = normalizeText(rawValue);
+        for (Map.Entry<String, String> entry : NORMALIZED_BRAND_BY_TOKEN.entrySet()) {
+            if (normalized.equals(entry.getKey()) || containsWholeToken(normalized, entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        return rawValue.trim();
+    }
+
+    private boolean containsWholeToken(String normalizedValue, String normalizedCandidate) {
+        if (normalizedValue == null || normalizedValue.isBlank() || normalizedCandidate == null || normalizedCandidate.isBlank()) {
+            return false;
+        }
+
+        return (" " + normalizedValue + " ").contains(" " + normalizedCandidate + " ");
+    }
+
+    private boolean isMeaningfulMarketplaceValue(String value) {
+        return value != null && !value.isBlank() && !"N/A".equalsIgnoreCase(value.trim());
+    }
+
+    private String extractBarcode(Map<String, Object> itemMap) {
+        String barcode = extractBarcodeFromAttributes(itemMap.get("attributes"));
+        if (!barcode.isBlank()) {
+            return barcode;
+        }
+
+        Object variationsObj = itemMap.get("variations");
+        if (variationsObj instanceof List<?> variations) {
+            for (Object variationObj : variations) {
+                if (!(variationObj instanceof Map<?, ?> variationMap)) {
                     continue;
                 }
 
-                String normalizedAttributeId = String.valueOf(attributeId).toUpperCase();
-                if (!"BRAND".equals(normalizedAttributeId) && !"MANUFACTURER".equals(normalizedAttributeId)) {
-                    continue;
-                }
-
-                Object valueName = attributeMap.get("value_name");
-                if (valueName != null && !String.valueOf(valueName).isBlank()) {
-                    return String.valueOf(valueName);
+                barcode = extractBarcodeFromAttributes(variationMap.get("attributes"));
+                if (!barcode.isBlank()) {
+                    return barcode;
                 }
             }
         }
 
         return "N/A";
+    }
+
+    private String extractBarcodeFromAttributes(Object attributesObj) {
+        if (!(attributesObj instanceof List<?> attributes)) {
+            return "";
+        }
+
+        for (Object attributeObj : attributes) {
+            if (!(attributeObj instanceof Map<?, ?> attributeMap)) {
+                continue;
+            }
+
+            Object attributeId = attributeMap.get("id");
+            if (attributeId == null) {
+                continue;
+            }
+
+            String normalizedAttributeId = String.valueOf(attributeId).toUpperCase();
+            if (!"EAN".equals(normalizedAttributeId)
+                    && !"GTIN".equals(normalizedAttributeId)
+                    && !"UPC".equals(normalizedAttributeId)
+                    && !"ISBN".equals(normalizedAttributeId)) {
+                continue;
+            }
+
+            Object valueName = attributeMap.get("value_name");
+            if (valueName != null && !String.valueOf(valueName).isBlank()) {
+                return String.valueOf(valueName).trim();
+            }
+
+            Object valueId = attributeMap.get("value_id");
+            if (valueId != null && !String.valueOf(valueId).isBlank()) {
+                return String.valueOf(valueId).trim();
+            }
+        }
+
+        return "";
     }
 
     private String resolveNormalizedCategory(Map<String, Object> itemMap, String title) {

@@ -271,6 +271,137 @@
   line-height: 1.5;
 }
 
+.pedido-itens-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--jt-border, #d6e6ff);
+  background: var(--jt-surface-2, #f8fbff);
+}
+
+.pedido-itens-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pedido-itens-header-copy {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.pedido-itens-header span {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--jt-text-muted, #5b6f92);
+  font-size: 0.92rem;
+}
+
+.pedido-adicionar-item {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.pedido-itens-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pedido-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: 12px;
+  background: var(--jt-surface, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--jt-border, #d6e6ff) 82%, var(--jt-accent, #2563eb) 18%);
+}
+
+.pedido-item-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(120px, 0.7fr) minmax(145px, 0.9fr) minmax(145px, 0.9fr);
+  grid-template-areas:
+    "produto produto quantidade quantidade"
+    "preco preco subtotal subtotal";
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.pedido-item-campo {
+  min-width: 0;
+}
+
+.pedido-item-campo label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--jt-text-muted, #5b6f92);
+}
+
+.pedido-item-campo .p-inputtext,
+.pedido-item-campo .p-inputnumber,
+.pedido-item-campo .p-inputnumber-input,
+.pedido-item-campo .p-dropdown {
+  width: 100%;
+}
+
+.pedido-item-campo .p-dropdown-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pedido-item-campo-produto {
+  grid-area: produto;
+}
+
+.pedido-item-quantidade {
+  grid-area: quantidade;
+}
+
+.pedido-item-preco {
+  grid-area: preco;
+}
+
+.pedido-item-subtotal {
+  grid-area: subtotal;
+}
+
+.pedido-item-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pedido-total-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(0, 91, 255, 0.08) 0%, rgba(0, 91, 255, 0.02) 100%);
+  border: 1px solid rgba(0, 91, 255, 0.12);
+}
+
+.pedido-itens-visualizacao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pedido-item-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: var(--jt-surface-2, #f8fbff);
+  border: 1px solid var(--jt-border, #d6e6ff);
+}
+
 @media (max-width: 768px) {
   .pedidos-header {
     flex-direction: column;
@@ -292,5 +423,24 @@
 
   .pedido-detalhe-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pedido-itens-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pedido-adicionar-item {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pedido-item-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "produto"
+      "quantidade"
+      "preco"
+      "subtotal";
   }
 }

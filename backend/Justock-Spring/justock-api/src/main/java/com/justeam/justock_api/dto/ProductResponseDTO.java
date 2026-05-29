@@ -18,6 +18,14 @@ public class ProductResponseDTO {
     private Integer usuario;
     private String marketplaceResourceId;
     private String marketplaceSource;
+    private String tipoRegistro;
+    private String statusVinculo;
+    private Integer produtoVinculadoId;
+    private String produtoVinculadoNome;
+    private Integer inventoryProductId;
+    private Integer quantidadeAnunciosVinculados;
+    private Boolean permiteEscolherProduto;
+    private Boolean permiteManterSeparado;
 
     public ProductResponseDTO(Integer idProduto, String categoria, String marca, String nomeDoProduto, String estado, BigDecimal preco, String codigoDeBarras, Integer quantidade, Integer quantidadeReservada, String marcador, Integer usuario, String marketplaceResourceId, String marketplaceSource) {
         this.idProduto = idProduto;
@@ -33,5 +41,13 @@ public class ProductResponseDTO {
         this.usuario = usuario;
         this.marketplaceResourceId = marketplaceResourceId;
         this.marketplaceSource = marketplaceSource;
+        this.tipoRegistro = "PRODUTO";
+        this.statusVinculo = "NAO_VINCULADO";
+        this.produtoVinculadoId = idProduto;
+        this.produtoVinculadoNome = nomeDoProduto;
+        this.inventoryProductId = idProduto;
+        this.quantidadeAnunciosVinculados = 0;
+        this.permiteEscolherProduto = Boolean.FALSE;
+        this.permiteManterSeparado = Boolean.FALSE;
     }
 }

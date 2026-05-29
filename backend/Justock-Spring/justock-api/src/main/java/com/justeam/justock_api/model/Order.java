@@ -40,4 +40,7 @@ public class Order {
 
     @Column(name = "observacao")
     private String observacao;
+
+    @Column(name = "inventory_applied", nullable = false)
+    private Boolean inventoryApplied;
 }

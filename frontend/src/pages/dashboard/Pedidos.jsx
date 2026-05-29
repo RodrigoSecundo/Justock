@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { createPedido, getPedidos, updatePedido } from "../../utils/api";
+import { createPedido, getPedidos, getProdutos, updatePedido } from "../../utils/api";
 import { Calendar } from "primereact/calendar";
 import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/pedidos.css";
@@ -9,6 +9,7 @@ import { isPrimaryAdminUser } from "../../utils/auth";
 import DialogoReutilizavel from "../../components/common/DialogoReutilizavel";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
+import { InputNumber } from "primereact/inputnumber";
 import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
@@ -18,6 +19,14 @@ const MANUAL_ORDER_STATUS_OPTIONS = ["EM ANDAMENTO", "CANCELADO", "CONCLUÍDO"];
 const DEFAULT_MANUAL_ORDER_STATUS = MANUAL_ORDER_STATUS_OPTIONS[0];
 const MANUAL_PAYMENT_STATUS_OPTIONS = ["PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO"];
 const DEFAULT_MANUAL_PAYMENT_STATUS = "EM PROCESSAMENTO";
+
+const createEmptyOrderItem = () => ({
+  idProduto: null,
+  nomeDoProduto: "",
+  quantidade: 1,
+  precoUnitario: 0,
+  subtotal: 0,
+});
 
 const normalizeToDateOnly = (dateValue) => {
   if (!dateValue) return null;
@@ -40,8 +49,10 @@ const Pedidos = () => {
     pagamento: DEFAULT_MANUAL_PAYMENT_STATUS,
     status: DEFAULT_MANUAL_ORDER_STATUS,
     observacao: "",
+    itens: [createEmptyOrderItem()],
   });
   const [orders, setOrders] = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(null);
@@ -96,8 +107,32 @@ const Pedidos = () => {
     }
   };
 
+  const loadProducts = async () => {
+    try {
+      const data = await getProdutos();
+      const internalProducts = Array.isArray(data?.products)
+        ? data.products
+          .filter((product) => product.tipoRegistro === "PRODUTO"
+            || (product.tipoRegistro === "ANUNCIO"
+              && product.statusVinculo === "SEPARADO"
+              && product.inventoryProductId != null))
+          .map((product) => ({
+            ...product,
+            selectionId: product.inventoryProductId ?? product.id,
+            nomeExibicao: product.tipoRegistro === "ANUNCIO"
+              ? `${product.nome} (anúncio ML separado)`
+              : product.nome,
+          }))
+        : [];
+      setAvailableProducts(internalProducts);
+    } catch {
+      setAvailableProducts([]);
+    }
+  };
+
   useEffect(() => {
     loadOrders();
+    loadProducts();
   }, []);
 
   const today = normalizeToDateOnly(new Date());
@@ -125,7 +160,167 @@ const Pedidos = () => {
   const cloneOrderForModal = (order) => ({
     ...order,
     observacao: order?.observacao ?? "",
+    itens: Array.isArray(order?.itens) && order.itens.length > 0
+      ? order.itens.map((item) => ({
+        idProduto: item?.idProduto ?? null,
+        nomeDoProduto: item?.nomeDoProduto ?? "",
+        quantidade: Number(item?.quantidade ?? 0) || 0,
+        precoUnitario: Number(item?.precoUnitario ?? 0) || 0,
+        subtotal: Number(item?.subtotal ?? 0) || 0,
+      }))
+      : [createEmptyOrderItem()],
   });
+
+  const findProductById = (productId) => availableProducts.find((product) => product.selectionId === productId);
+
+  const calculateItemSubtotal = (itemDraft) => {
+    const quantity = Number(itemDraft?.quantidade ?? 0) || 0;
+    const unitPrice = Number(itemDraft?.precoUnitario ?? 0) || 0;
+    return quantity * unitPrice;
+  };
+
+  const calculateOrderTotal = (orderDraft) => (Array.isArray(orderDraft?.itens) ? orderDraft.itens : [])
+    .reduce((accumulator, item) => accumulator + calculateItemSubtotal(item), 0);
+
+  const buildOrderItemDraft = (productId, currentItem = {}) => {
+    const product = findProductById(productId);
+    const quantity = Number(currentItem?.quantidade ?? 1) || 1;
+    const unitPrice = Number(product?.precoValor ?? currentItem?.precoUnitario ?? 0) || 0;
+
+    return {
+      idProduto: product?.selectionId ?? productId ?? null,
+      nomeDoProduto: product?.nomeExibicao ?? product?.nome ?? currentItem?.nomeDoProduto ?? "",
+      quantidade: quantity,
+      precoUnitario: unitPrice,
+      subtotal: quantity * unitPrice,
+    };
+  };
+
+  const updateOrderItem = (setter, itemIndex, nextValues) => {
+    setter((currentOrder) => {
+      const nextItems = [...(currentOrder?.itens ?? [])];
+      const currentItem = nextItems[itemIndex] ?? createEmptyOrderItem();
+      nextItems[itemIndex] = {
+        ...currentItem,
+        ...nextValues,
+      };
+      nextItems[itemIndex].subtotal = calculateItemSubtotal(nextItems[itemIndex]);
+      return {
+        ...currentOrder,
+        itens: nextItems,
+      };
+    });
+  };
+
+  const handleItemProductChange = (setter, itemIndex, productId) => {
+    setter((currentOrder) => {
+      const nextItems = [...(currentOrder?.itens ?? [])];
+      nextItems[itemIndex] = buildOrderItemDraft(productId, nextItems[itemIndex]);
+      return {
+        ...currentOrder,
+        itens: nextItems,
+      };
+    });
+  };
+
+  const addOrderItem = (setter) => {
+    setter((currentOrder) => ({
+      ...currentOrder,
+      itens: [...(currentOrder?.itens ?? []), createEmptyOrderItem()],
+    }));
+  };
+
+  const removeOrderItem = (setter, itemIndex) => {
+    setter((currentOrder) => {
+      const currentItems = [...(currentOrder?.itens ?? [])];
+      const nextItems = currentItems.filter((_, index) => index !== itemIndex);
+      return {
+        ...currentOrder,
+        itens: nextItems.length > 0 ? nextItems : [createEmptyOrderItem()],
+      };
+    });
+  };
+
+  const normalizeOrderItemsForSubmit = (orderDraft) => {
+    const items = Array.isArray(orderDraft?.itens) ? orderDraft.itens : [];
+    const normalizedItems = items
+      .filter((item) => item?.idProduto != null && Number(item?.quantidade ?? 0) > 0)
+      .map((item) => ({
+        idProduto: item.idProduto,
+        quantidade: Number(item.quantidade ?? 0),
+        precoUnitario: Number(item.precoUnitario ?? 0),
+      }));
+
+    if (normalizedItems.length === 0) {
+      notifyError("Selecione ao menos um produto e quantidade para o pedido manual.");
+      return null;
+    }
+
+    return normalizedItems;
+  };
+
+  const renderOrderItemsEditor = (orderDraft, setter) => (
+    <div className="pedido-itens-editor">
+      <div className="pedido-itens-header">
+        <div className="pedido-itens-header-copy">
+          <strong>Produtos vendidos</strong>
+          <span>Selecione os produtos internos e informe a quantidade vendida.</span>
+        </div>
+        <Button
+          type="button"
+          label="Adicionar item"
+          icon="pi pi-plus"
+          size="small"
+          className="pedido-adicionar-item"
+          onClick={() => addOrderItem(setter)}
+        />
+      </div>
+      <div className="pedido-itens-lista">
+        {(orderDraft?.itens ?? []).map((item, index) => (
+          <div className="pedido-item-card" key={`${item.idProduto ?? "novo"}-${index}`}>
+            <div className="pedido-item-grid">
+              <div className="flex flex-column gap-2 pedido-item-campo pedido-item-campo-produto">
+                <label>Produto</label>
+                <Dropdown
+                  value={item.idProduto}
+                  onChange={(event) => handleItemProductChange(setter, index, event.value)}
+                  options={availableProducts.map((product) => ({ label: product.nomeExibicao, value: product.selectionId }))}
+                  placeholder="Selecione"
+                  className="w-full"
+                  appendTo="self"
+                  filter
+                />
+              </div>
+              <div className="flex flex-column gap-2 pedido-item-campo pedido-item-quantidade">
+                <label>Quantidade</label>
+                <InputNumber
+                  value={item.quantidade}
+                  onValueChange={(event) => updateOrderItem(setter, index, { quantidade: event.value ?? 0 })}
+                  min={1}
+                  useGrouping={false}
+                />
+              </div>
+              <div className="flex flex-column gap-2 pedido-item-campo pedido-item-preco">
+                <label>Preço unitário</label>
+                <InputText value={`R$ ${(Number(item.precoUnitario ?? 0)).toFixed(2).replace(".", ",")}`} readOnly />
+              </div>
+              <div className="flex flex-column gap-2 pedido-item-campo pedido-item-subtotal">
+                <label>Subtotal</label>
+                <InputText value={`R$ ${(calculateItemSubtotal(item)).toFixed(2).replace(".", ",")}`} readOnly />
+              </div>
+            </div>
+            <div className="pedido-item-actions">
+              <Button type="button" icon="pi pi-trash" severity="secondary" text onClick={() => removeOrderItem(setter, index)} aria-label="Remover item" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="pedido-total-box">
+        <span>Total calculado</span>
+        <strong>{`R$ ${calculateOrderTotal(orderDraft).toFixed(2).replace(".", ",")}`}</strong>
+      </div>
+    </div>
+  );
 
   const isDeliveryBeforeIssue = (issueDate, deliveryDate) => {
     const normalizedIssue = normalizeDate(issueDate);
@@ -260,6 +455,11 @@ const Pedidos = () => {
     }
 
     try {
+      const itens = normalizeOrderItemsForSubmit(editingOrder);
+      if (!itens) {
+        return;
+      }
+
       setIsUpdatingOrder(true);
       const updatedOrder = await updatePedido(editingOrder.id, {
         idPedidoMarketplace: editingOrder.idPedidoMarketplace ?? editingOrder.marketplace,
@@ -269,6 +469,7 @@ const Pedidos = () => {
         pagamento: editingOrder.pagamento,
         status: editingOrder.status,
         observacao: editingOrder.observacao,
+        itens,
       });
 
       await loadOrders();
@@ -295,6 +496,7 @@ const Pedidos = () => {
       pagamento: DEFAULT_MANUAL_PAYMENT_STATUS,
       status: DEFAULT_MANUAL_ORDER_STATUS,
       observacao: "",
+      itens: [createEmptyOrderItem()],
     });
     setAddOpen(true);
   };
@@ -307,6 +509,11 @@ const Pedidos = () => {
     }
 
     try {
+      const itens = normalizeOrderItemsForSubmit(newOrder);
+      if (!itens) {
+        return;
+      }
+
       setIsSavingOrder(true);
       const createdOrder = await createPedido({
         idPedidoMarketplace: 4,
@@ -315,6 +522,7 @@ const Pedidos = () => {
         pagamento: newOrder.pagamento,
         status: newOrder.status,
         observacao: newOrder.observacao,
+        itens,
       });
 
       await loadOrders();
@@ -529,6 +737,23 @@ const Pedidos = () => {
                 <span className="pedido-detalhe-label">Data de entrega</span>
                 <strong>{selectedOrder.dataEntrega || "-"}</strong>
               </div>
+              <div className="pedido-detalhe-card">
+                <span className="pedido-detalhe-label">Total</span>
+                <strong>{`R$ ${(Number(selectedOrder.valorTotal ?? 0)).toFixed(2).replace(".", ",")}`}</strong>
+              </div>
+            </div>
+
+            <div className="pedido-info-bloco">
+              <span className="pedido-detalhe-label">Itens do pedido</span>
+              <div className="pedido-itens-visualizacao">
+                {(selectedOrder.itens ?? []).length > 0 ? selectedOrder.itens.map((item, index) => (
+                  <div className="pedido-item-view" key={`${item.idProduto ?? "item"}-${index}`}>
+                    <strong>{item.nomeDoProduto || "Produto sem vínculo"}</strong>
+                    <span>{item.quantidade} un. x R$ {(Number(item.precoUnitario ?? 0)).toFixed(2).replace(".", ",")}</span>
+                    <span>{`Subtotal: R$ ${(Number(item.subtotal ?? 0)).toFixed(2).replace(".", ",")}`}</span>
+                  </div>
+                )) : <span className="text-600">Nenhum item vinculado a este pedido.</span>}
+              </div>
             </div>
 
             <div className="pedido-info-bloco">
@@ -551,7 +776,7 @@ const Pedidos = () => {
           onHide={closeEditModal}
           header={`Editar Pedido #${editingOrder.numeroPedido}`}
           position="right"
-          width="560px"
+          width="min(760px, 96vw)"
         >
           <div role="form" aria-label="Editar pedido" className="pedido-detalhe-dialog flex flex-column gap-3 p-2">
             <div className="pedido-detalhe-grid">
@@ -636,6 +861,7 @@ const Pedidos = () => {
                 autoResize
               />
             </div>
+            {renderOrderItemsEditor(editingOrder, setEditingOrder)}
             <div className="flex justify-content-end gap-2 mt-2">
               <Button label="Cancelar" severity="secondary" onClick={closeEditModal} />
               <Button label="Salvar" icon="pi pi-check" onClick={saveOrder} loading={isUpdatingOrder} disabled={isUpdatingOrder} />
@@ -650,7 +876,7 @@ const Pedidos = () => {
           onHide={cancelAdd}
           header="Novo Pedido"
           position="right"
-          width="480px"
+          width="min(760px, 96vw)"
         >
           <div role="form" aria-label="Adicionar pedido" className="flex flex-column gap-3 p-2">
             <div className="flex flex-column gap-2">
@@ -721,6 +947,7 @@ const Pedidos = () => {
                 placeholder="Digite uma observação para o vendedor..."
               />
             </div>
+            {renderOrderItemsEditor(newOrder, setNewOrder)}
             <div className="flex justify-content-end gap-2 mt-2">
               <Button label="Cancelar" severity="secondary" onClick={cancelAdd} />
               <Button label="Adicionar Pedido" icon="pi pi-check" onClick={confirmAdd} loading={isSavingOrder} disabled={isSavingOrder} />

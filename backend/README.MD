@@ -4,6 +4,13 @@ Backend da aplicação JusTock, construído com Spring Boot, Spring Security, JP
 
 ## Novidades recentes
 
+- Novo modelo `marketplace_listing` para anúncios do Mercado Livre, desacoplado do produto interno de estoque
+- Endpoints para vincular anúncio importado a produto interno existente e para voltar o anúncio ao modo separado
+- Itens de pedido manuais persistidos em tabela própria, com total calculado no backend
+- Reconciliação automática de estoque em pedidos manuais, inclusive reversão ao editar, cancelar ou excluir
+- Sincronização de estoque do Mercado Livre ajustada para pausar item ao zerar estoque e reativar no reabastecimento
+- Normalização de marca do ML ampliada com fallback por atributos, variações e título do anúncio
+- Migrations `V11` a `V15` adicionando anúncios, itens de pedido, controle de aplicação de estoque, consolidação de inventário legado e backfill de marcas
 - Endpoints de autenticação para login e cadastro integrados ao frontend
 - Endpoints para consultar e atualizar o perfil da conta autenticada
 - Resolução centralizada da conta atual com distinção entre conta principal e contas isoladas
@@ -65,7 +72,7 @@ Para rodar testes:
 
 - Banco atual: PostgreSQL / Supabase
 - Migrations gerenciadas com Flyway
-- O histórico atual do projeto vai até `V10`
+- O histórico atual do projeto vai até `V15`
 
 ## O que já está real no backend
 
@@ -105,6 +112,11 @@ Para rodar testes:
 - Produtos também podem ser importados em lote por `POST /api/products/importar`
 - A importação usa os mesmos campos obrigatórios do cadastro manual e aplica defaults compatíveis (`estado=ATIVO`, `quantidadeReservada=0`, `marcador=MANUAL`)
 - O fluxo de importação em lote é transacional para evitar gravação parcial
+- O catálogo agora mistura produtos internos com anúncios persistidos em `marketplace_listing`
+- O produto interno continua sendo a fonte principal da verdade para estoque compartilhado
+- Anúncios podem ser vinculados manualmente a um produto existente por `POST /api/products/anuncios/{listingId}/vincular`
+- Anúncios também podem voltar ao modo separado por `POST /api/products/anuncios/{listingId}/manter-separado`
+- Quando um anúncio fica separado, o backend mantém um produto sombra com marcador `ANUNCIO_ESTOQUE` para controlar o estoque próprio desse anúncio
 - Produtos sincronizados de marketplace não podem ser editados ou excluídos manualmente via API do Justock
 - Produtos sincronizados do Mercado Livre são identificados por `marketplace_source`, `marketplace_resource_id` e marcador `ML`
 - Criação, importação, edição, exclusão e sincronização de produtos alimentam os eventos do dashboard
@@ -112,6 +124,11 @@ Para rodar testes:
 ### Pedidos
 
 - Leituras e gravações usam o contexto resolvido da conta autenticada
+- Pedidos manuais persistem itens em tabela própria (`estoque_pedido`) com produto, quantidade, preço unitário e subtotal
+- O valor total do pedido é calculado no backend a partir da soma dos subtotais dos itens
+- O estoque dos itens é aplicado automaticamente quando o pedido manual não está cancelado
+- Ao editar itens, cancelar ou excluir o pedido, o backend reverte o ajuste de estoque já aplicado antes de recalcular o estado final
+- Somente produtos internos e anúncios separados com estoque próprio podem ser usados em pedidos manuais
 - Pedidos manuais seguem validações de data e status
 - Pedidos sincronizados de marketplace não podem ser editados ou excluídos manualmente via API do Justock
 - Pedidos do Mercado Livre recebem observação automática com o número externo do marketplace
@@ -140,8 +157,11 @@ Para rodar testes:
 - Upsert de produtos e pedidos por `marketplace_resource_id`
 - Limpeza de registros antigos ao trocar a conta conectada e executar nova sincronização
 - Registro de payload bruto de webhook em `eventos_webhook`
-- Extração de marca por atributos do item
+- Persistência dedicada de anúncios em `marketplace_listing`
+- Extração e normalização de marca por atributos, variações e inferência pelo título
 - Normalização de categoria do item com `category_id` do ML e fallback por heurística no título
+- Pausa automática do anúncio quando o estoque compartilhado chega a zero, em vez de tentar publicar `available_quantity=0`
+- Reativação automática do anúncio ao voltar a haver estoque positivo
 - Resumo de conexão com totais de pedidos e inventário para a tela `Conexões`
 - Resolução do usuário de dashboard a partir da conta autenticada antes de consultar status, sincronizar ou desconectar
 
@@ -180,6 +200,8 @@ Para rodar testes:
 - `GET /api/products/visualizar/{id}`
 - `POST /api/products/cadastrar`
 - `POST /api/products/importar`
+- `POST /api/products/anuncios/{listingId}/vincular`
+- `POST /api/products/anuncios/{listingId}/manter-separado`
 - `PUT /api/products/atualizar/{id}`
 - `DELETE /api/products/deletar/{id}`
 

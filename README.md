@@ -13,6 +13,15 @@ Hoje o sistema opera em modo híbrido: parte dos dados vem do backend real e par
 ## Novidades recentes
 
 As mudanças mais relevantes registradas neste estado do projeto são:
+- Catálogo de produtos reorganizado para usar estoque centralizado como fonte principal da verdade
+- Novo modelo `marketplace_listing` para anúncios de marketplace, separado do produto interno que controla estoque
+- Vínculo e desvínculo manual de anúncios do Mercado Livre com produtos internos já cadastrados
+- Colapso visual de anúncios já vinculados na mesma linha do produto interno na tela `Produtos`
+- Pedidos manuais agora trabalham com itens explícitos e calculam total a partir desses itens
+- Reconciliação automática de estoque em pedidos manuais, inclusive reversão ao cancelar ou editar itens
+- Sincronização de estoque do Mercado Livre corrigida para pausar anúncio ao zerar estoque e reativar no reabastecimento
+- Normalização de marca do Mercado Livre ampliada com fallback por atributos, variações e inferência pelo título
+- Backfill Flyway para normalizar marcas antigas persistidas como `N/A`
 - Autenticação do frontend conectada ao backend real com login e cadastro por API
 - Cadastro público exposto na rota `/cadastro`, inclusive a partir do modal de planos da home
 - Rotas privadas do painel protegidas contra acesso direto sem sessão válida
@@ -23,7 +32,6 @@ As mudanças mais relevantes registradas neste estado do projeto são:
 - Dashboard principal com `Atividade Recente` e `Alertas` vindos do backend real
 - Notificações reais na barra superior, com contador, marcação como visualizada e reaproveitamento dos alertas de estoque
 - Registro persistente de eventos do dashboard para ações de produtos, pedidos, sincronizações e mudanças de configuração/tema
-- Importação de estoque em `Produtos` com modal próprio, download de modelos `.xlsx` e `.csv`, validação integral do arquivo e envio em lote
 - Estados vazios para contas novas em dashboard, relatórios e assinatura
 - Ajustes visuais de tema escuro para dashboard, relatórios, assinatura, produtos e pedidos
 - O link `ver mais >` do gráfico principal do dashboard agora redireciona para `Produtos`
@@ -98,11 +106,11 @@ Comportamentos visuais recentes do frontend:
 ### Produtos
 
 - CRUD manual usa backend real e fica associado ao contexto da conta autenticada
-- Importação de estoque usa backend real e aceita apenas arquivos `.xlsx` e `.csv`
-- A importação valida o arquivo inteiro antes de salvar qualquer item no banco
-- O modelo ignora a primeira linha como cabeçalho e exige as colunas `Categoria`, `Marca`, `Nome do Produto`, `Estoque (Inteiro)`, `Preço` e `Código de Barras`
-- Linhas vazias, colunas ausentes ou campos inválidos fazem a importação inteira ser recusada
-- Importações concluídas também alimentam `Atividade Recente` no dashboard
+- O estoque interno continua sendo a fonte principal da verdade para produtos próprios e anúncios vinculados
+- Anúncios do Mercado Livre agora são persistidos como `marketplace_listing`, sem duplicar automaticamente um produto principal no catálogo
+- Quando um anúncio é vinculado a um produto interno, ele passa a compartilhar o mesmo estoque desse produto
+- Quando o anúncio é mantido separado, o sistema conserva um produto sombra de estoque com marcador `ANUNCIO_ESTOQUE`
+- A tela `Produtos` colapsa anúncios já vinculados dentro da linha do produto interno e mantém visíveis apenas os anúncios ainda não vinculados
 - Produtos sincronizados do Mercado Livre ficam identificados como origem de marketplace
 - Produtos de marketplace não podem ser editados nem excluídos manualmente, a UI mantém os botões visivelmente bloqueados e exibe erro ao clicar
 - Para contas que não são a principal, as ações manuais de produtos ficam ocultas na interface atual
@@ -110,6 +118,10 @@ Comportamentos visuais recentes do frontend:
 ### Pedidos
 
 - CRUD manual usa backend real e respeita o contexto da conta autenticada
+- Pedidos manuais agora salvam itens explícitos com produto, quantidade, preço unitário e subtotal
+- O valor total do pedido é calculado no backend a partir da soma dos subtotais dos itens
+- O estoque dos itens é aplicado automaticamente em pedidos manuais não cancelados e revertido quando necessário em edição, cancelamento ou exclusão
+- Produtos internos e anúncios separados com estoque próprio podem ser usados em pedidos manuais
 - Validações manuais ativas:
   - Data de emissão obrigatória e não futura
   - Data de entrega opcional, mas nunca anterior à emissão nem futura
@@ -132,8 +144,11 @@ A integração com Mercado Livre já suporta:
 - Registro de webhooks recebidos
 - Upsert por `marketplace_resource_id`
 - Remoção de dados antigos quando a conta compartilhada é trocada e uma nova sincronização roda
-- Normalização de marca por atributos do item
+- Persistência dedicada de anúncios em `marketplace_listing`
+- Vínculo manual de anúncios a produtos internos do Justock
+- Normalização de marca por atributos do item, variações e inferência pelo título
 - Normalização de categoria por `category_id` do ML com fallback por heurística no nome do produto
+- Pausa automática do anúncio quando o estoque compartilhado chega a zero, com reativação no reabastecimento
 
 Detalhes operacionais importantes:
 - O projeto mantém um usuário interno compartilhado do Justock para a conta principal (`mercadolivre.shared.usuario-id`)
@@ -143,6 +158,7 @@ Detalhes operacionais importantes:
 - A primeira sincronização automática roda 2 minutos após subir o backend
 - As próximas sincronizações automáticas rodam a cada 15 minutos
 - Sincronizações do Mercado Livre também alimentam a atividade recente e os alertas do dashboard quando produtos ou pedidos são criados/atualizados
+- O backfill Flyway atual do backend vai até `V15`, incluindo consolidação de inventário legado do ML e normalização de marcas antigas
 
 ### Fluxo de testes homologado
 
@@ -264,18 +280,6 @@ Valores esperados:
 VITE_API_BASE_URL=http://localhost:3001
 VITE_BACKEND_API_BASE_URL=http://localhost:8080
 ```
-
-## Importação de estoque
-
-O fluxo atual de importação em `Produtos` funciona assim:
-
-- O usuário pode baixar modelos prontos em `.xlsx` e `.csv`
-- O upload aceita apenas `.xlsx` e `.csv`
-- O frontend lê o arquivo localmente, reconhece o cabeçalho do modelo e valida todo o conteúdo antes de enviar
-- A primeira linha é sempre tratada como cabeçalho e não entra na importação
-- Se qualquer linha estiver vazia ou com campo obrigatório faltando, nada é salvo
-- O backend recebe o lote completo em `POST /api/products/importar` e persiste em transação, evitando importação parcial
-- Após sucesso, a atividade recente do dashboard recebe um evento resumido de importação concluída
 
 Se `frontend/.env.local` não existir, o frontend agora usa fallback automático:
 - Em ambiente local: `http://localhost:3001` e `http://localhost:8080`

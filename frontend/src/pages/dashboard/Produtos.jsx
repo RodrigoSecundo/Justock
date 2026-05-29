@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import { createProduto, deleteProduto, getProdutos, importProdutos, updateProduto } from "../../utils/api";
+import { createProduto, deleteProduto, getProdutos, importProdutos, manterAnuncioSeparado, updateProduto, vincularAnuncioMarketplace } from "../../utils/api";
 import "../../styles/pages/dashboard/dashboard.css";
 import "../../styles/pages/dashboard/produtos.css";
 import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
@@ -648,6 +648,153 @@ const ModalImportarEstoque = ({ isOpen, onClose, onImport, isImporting }) => {
   );
 };
 
+const ModalVincularAnuncio = ({ isOpen, onClose, listing, availableProducts, onConfirm, isSaving }) => {
+  const [selectedProductId, setSelectedProductId] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedProductId(null);
+      return;
+    }
+    setSelectedProductId(listing?.produtoVinculadoId ?? null);
+  }, [isOpen, listing]);
+
+  const options = availableProducts.map((product) => ({
+    label: `${product.nome} (${product.codigoBarras || "Sem código"})`,
+    value: product.id,
+  }));
+
+  const handleConfirm = async () => {
+    if (!selectedProductId || !listing) return;
+    const linked = await onConfirm(listing, selectedProductId);
+    if (linked) {
+      onClose();
+    }
+  };
+
+  return (
+    <DialogoReutilizavel
+      visible={isOpen}
+      onHide={onClose}
+      header="Escolher Produto"
+      position="top"
+      width="min(640px, 94vw)"
+      className="modal-vincular-anuncio"
+      contentClassName="modal-vincular-anuncio-content"
+      style={{ minHeight: "30rem" }}
+    >
+      <div className="flex flex-column gap-3 p-2">
+        <div className="produto-vinculo-resumo">
+          <span className="produto-vinculo-label">Anúncio importado</span>
+          <strong>{listing?.nome || "-"}</strong>
+          <span className="produto-vinculo-meta">Código identificado: {listing?.codigoBarras || "N/A"}</span>
+        </div>
+        <div className="flex flex-column gap-2">
+          <label htmlFor="produto-vinculo-select">Produto interno</label>
+          <Dropdown
+            inputId="produto-vinculo-select"
+            value={selectedProductId}
+            onChange={(event) => setSelectedProductId(event.value)}
+            options={options}
+            placeholder="Selecione um produto já cadastrado"
+            className="w-full"
+            filter
+            showClear
+            scrollHeight="320px"
+          />
+        </div>
+        <div className="flex justify-content-end gap-2 mt-2">
+          <Button type="button" label="Cancelar" severity="secondary" onClick={onClose} disabled={isSaving} />
+          <Button type="button" label="Vincular" icon="pi pi-check" onClick={handleConfirm} disabled={!selectedProductId || isSaving} loading={isSaving} />
+        </div>
+      </div>
+    </DialogoReutilizavel>
+  );
+};
+
+const ModalDesvincularAnuncio = ({ isOpen, onClose, product, onConfirm, isSaving }) => {
+  const linkedListings = Array.isArray(product?.linkedListings) ? product.linkedListings : [];
+  const linkedCount = linkedListings.length;
+
+  const handleConfirm = async () => {
+    if (!product || linkedCount === 0) return;
+    const unlinked = await onConfirm(product);
+    if (unlinked) {
+      onClose();
+    }
+  };
+
+  return (
+    <DialogoReutilizavel
+      visible={isOpen}
+      onHide={isSaving ? () => {} : onClose}
+      header={linkedCount === 1 ? "Desvincular anúncio" : "Desvincular anúncios"}
+      position="top"
+      width="min(560px, 94vw)"
+      closable={!isSaving}
+      dismissableMask={!isSaving}
+      className="modal-desvincular-anuncio"
+    >
+      <div className="desvincular-anuncio-modal">
+        <div className="produto-vinculo-resumo">
+          <span className="produto-vinculo-label">Produto interno</span>
+          <strong>{product?.nome || "-"}</strong>
+          <span className="produto-vinculo-meta">
+            {linkedCount === 1 ? "O anúncio abaixo voltará a ficar separado." : `${linkedCount} anúncio(s) voltarão a ficar separados.`}
+          </span>
+        </div>
+
+        <div className="desvincular-anuncio-lista">
+          {linkedListings.map((listing) => (
+            <div key={listing.id} className="desvincular-anuncio-item">
+              <span className="desvincular-anuncio-nome">{listing.nome}</span>
+              <span className="desvincular-anuncio-codigo">Código: {listing.codigoBarras || "N/A"}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-content-end gap-2 mt-2">
+          <Button type="button" label="Cancelar" severity="secondary" onClick={onClose} disabled={isSaving} />
+          <Button type="button" label={linkedCount === 1 ? "Desvincular" : "Desvincular todos"} severity="danger" icon="pi pi-unlink" onClick={handleConfirm} loading={isSaving} disabled={isSaving} />
+        </div>
+      </div>
+    </DialogoReutilizavel>
+  );
+};
+
+function buildVisibleProductRows(sourceProducts) {
+  const internalProducts = (Array.isArray(sourceProducts) ? sourceProducts : [])
+    .filter((product) => product.tipoRegistro === "PRODUTO")
+    .map((product) => ({
+      ...product,
+      linkedListings: [],
+    }));
+
+  const productById = new Map(internalProducts.map((product) => [product.id, product]));
+  const visibleListings = [];
+
+  for (const product of Array.isArray(sourceProducts) ? sourceProducts : []) {
+    if (product.tipoRegistro !== "ANUNCIO") {
+      continue;
+    }
+
+    if (product.produtoVinculadoId != null) {
+      const linkedProduct = productById.get(product.produtoVinculadoId);
+      if (linkedProduct) {
+        linkedProduct.linkedListings = [...linkedProduct.linkedListings, product];
+        continue;
+      }
+    }
+
+    visibleListings.push({
+      ...product,
+      statusVinculo: "NAO_VINCULADO",
+    });
+  }
+
+  return [...internalProducts, ...visibleListings];
+}
+
 const Produtos = () => {
   const itemsPerPage = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -663,6 +810,12 @@ const Produtos = () => {
   const [isImportingProducts, setIsImportingProducts] = useState(false);
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
+  const [linkingListingId, setLinkingListingId] = useState(null);
+  const [unlinkingProductId, setUnlinkingProductId] = useState(null);
+  const [selectedListing, setSelectedListing] = useState(null);
+  const [selectedUnlinkProduct, setSelectedUnlinkProduct] = useState(null);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false);
   const canManageProducts = isPrimaryAdminUser();
 
   const sortProducts = useCallback((list) => {
@@ -689,7 +842,7 @@ const Produtos = () => {
   }, [sortField, sortOrder]);
 
   useEffect(() => {
-    setFilteredProducts(sortProducts(products));
+    setFilteredProducts(sortProducts(buildVisibleProductRows(products)));
   }, [products, sortProducts]);
 
   const loadProducts = async () => {
@@ -810,8 +963,128 @@ const Produtos = () => {
     }
   };
 
+  const openLinkModal = (listing) => {
+    setSelectedListing(listing);
+    setIsLinkModalOpen(true);
+  };
+
+  const closeLinkModal = () => {
+    setIsLinkModalOpen(false);
+    setSelectedListing(null);
+  };
+
+  const openUnlinkModal = (product) => {
+    setSelectedUnlinkProduct(product);
+    setIsUnlinkModalOpen(true);
+  };
+
+  const closeUnlinkModal = () => {
+    if (unlinkingProductId != null) {
+      return;
+    }
+    setIsUnlinkModalOpen(false);
+    setSelectedUnlinkProduct(null);
+  };
+
+  const handleLinkListing = async (listing, productId) => {
+    try {
+      setLinkingListingId(listing.id);
+      await vincularAnuncioMarketplace(listing.id, productId);
+      await loadProducts();
+      notifySuccess("Anúncio vinculado com sucesso.");
+      return true;
+    } catch (error) {
+      notifyError(error?.message || "Não foi possível vincular o anúncio ao produto.");
+      return false;
+    } finally {
+      setLinkingListingId(null);
+    }
+  };
+
+  const handleUnlinkProduct = async (product) => {
+    const linkedListings = Array.isArray(product?.linkedListings) ? product.linkedListings : [];
+    if (linkedListings.length === 0) {
+      return false;
+    }
+
+    try {
+      setUnlinkingProductId(product.id);
+      await Promise.all(linkedListings.map((listing) => manterAnuncioSeparado(listing.id)));
+      await loadProducts();
+      notifySuccess(linkedListings.length === 1 ? "Anúncio desvinculado com sucesso." : "Anúncios desvinculados com sucesso.");
+      return true;
+    } catch (error) {
+      notifyError(error?.message || "Não foi possível desfazer o vínculo do anúncio.");
+      return false;
+    } finally {
+      setUnlinkingProductId(null);
+    }
+  };
+
+  const availableInternalProducts = products.filter((product) => product.tipoRegistro === "PRODUTO");
+
+  const renderProductName = (rowData) => (
+    <div className="produto-nome-cell">
+      <span>{rowData.nome}</span>
+      {rowData.tipoRegistro === "ANUNCIO" && <span className="produto-badge produto-badge-ml">MERCADO LIVRE</span>}
+      {rowData.tipoRegistro === "PRODUTO" && rowData.quantidadeAnunciosVinculados > 0 && (
+        <span className="produto-badge produto-badge-linked">{rowData.quantidadeAnunciosVinculados} anúncio(s)</span>
+      )}
+    </div>
+  );
+
+  const renderLinkStatus = (rowData) => {
+    if (rowData.tipoRegistro === "PRODUTO") {
+      const linkedListings = Array.isArray(rowData.linkedListings) ? rowData.linkedListings : [];
+      const linkedCount = linkedListings.length;
+      const hasLinks = linkedCount > 0;
+      return (
+        <div className={`produto-vinculo-cell ${hasLinks ? "produto-vinculo-actions produto-vinculo-linked-layout" : "produto-vinculo-centered-layout"}`.trim()}>
+          <span className={`produto-vinculo-status ${hasLinks ? "is-linked" : "is-unlinked"}`.trim()}>
+            {hasLinks ? "Vinculado" : "Não vinculado"}
+          </span>
+          {hasLinks ? (
+            <>
+              <small>{linkedCount === 1 ? linkedListings[0]?.nome || "1 anúncio compartilhando o estoque" : `${linkedCount} anúncio(s) compartilhando o estoque`}</small>
+              {canManageProducts ? (
+                <div className="produto-vinculo-buttons">
+                  <Button
+                    type="button"
+                    label={linkedCount === 1 ? "Desvincular" : "Desvincular todos"}
+                    severity="secondary"
+                    outlined
+                    size="small"
+                    onClick={() => openUnlinkModal(rowData)}
+                    loading={unlinkingProductId === rowData.id}
+                    disabled={unlinkingProductId === rowData.id}
+                  />
+                </div>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <div className="produto-vinculo-cell produto-vinculo-actions produto-vinculo-centered-layout produto-vinculo-listing-layout">
+        <span className="produto-vinculo-status is-unlinked">Não vinculado</span>
+        <small>Escolha um produto interno para compartilhar o mesmo estoque.</small>
+        <div className="produto-vinculo-buttons">
+          <Button
+            type="button"
+            label="Vincular produto"
+            size="small"
+            onClick={() => openLinkModal(rowData)}
+            disabled={linkingListingId === rowData.id}
+          />
+        </div>
+      </div>
+    );
+  };
+
   const applyFilters = () => {
-    let filtered = products;
+    let filtered = buildVisibleProductRows(products);
 
     if (filters.categoria !== "Todos os Categorias") {
       filtered = filtered.filter(product => product.categoria === filters.categoria);
@@ -841,7 +1114,7 @@ const Produtos = () => {
       categoria: "Todos os Categorias",
       preco: "Todos os preços"
     });
-    setFilteredProducts(sortProducts(products));
+    setFilteredProducts(sortProducts(buildVisibleProductRows(products)));
   };
 
   const handleSort = (e) => {
@@ -914,6 +1187,7 @@ const Produtos = () => {
           <div className="produtos-table-container" {...srProps(srOpt, { role: 'region', 'aria-label': 'Tabela de produtos' })}>
             <DataTable
               value={filteredProducts}
+              dataKey="rowKey"
               paginator
               rows={itemsPerPage}
               className="w-full tabela-produtos"
@@ -922,15 +1196,11 @@ const Produtos = () => {
               sortOrder={sortOrder}
               onSort={handleSort}
             >
-              <Column field="id" header="ID" sortable />
+              <Column field="displayId" header="ID" sortable />
               <Column field="categoria" header="Categoria" sortable />
               <Column field="marca" header="Marca" sortable />
-              <Column field="nome" header="Nome do Produto" sortable body={(rowData) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                   {rowData.nome}
-                   {rowData.marcador === 'ML' && <span style={{ fontSize: '0.7rem', padding: '2px 5px', backgroundColor: '#ffe600', color: '#2d3277', border: '1px solid #d4c000', borderRadius: '4px', fontWeight: 'bold'}}>MERCADO LIVRE</span>}
-                </div>
-              )} />
+              <Column field="nome" header="Nome do Produto" sortable body={renderProductName} />
+              <Column field="statusVinculo" header="Vinculação" body={renderLinkStatus} style={{ width: '20rem' }} />
               <Column field="estoque" header="Estoque" sortable />
               <Column field="preco" header="Preço" sortable />
               <Column field="codigoBarras" header="Código de Barras" />
@@ -938,7 +1208,7 @@ const Produtos = () => {
                 header=""
                 style={{ width: '6rem', textAlign: 'center' }}
                 body={(product) => (
-                  canManageProducts ? <div className="flex gap-1 justify-content-center">
+                  canManageProducts && product.tipoRegistro === "PRODUTO" ? <div className="flex gap-1 justify-content-center">
                     <Button
                       icon="pi pi-pencil"
                       className={`p-button-sm p-button-rounded p-button-text btn-acao-editar ${product.isReadOnly ? 'btn-acao-bloqueada' : ''}`.trim()}
@@ -994,6 +1264,21 @@ const Produtos = () => {
         product={editProduct}
         onSave={handleSaveEdit}
         isSaving={isUpdatingProduct}
+      />
+      <ModalVincularAnuncio
+        isOpen={isLinkModalOpen}
+        onClose={closeLinkModal}
+        listing={selectedListing}
+        availableProducts={availableInternalProducts}
+        onConfirm={handleLinkListing}
+        isSaving={linkingListingId != null}
+      />
+      <ModalDesvincularAnuncio
+        isOpen={isUnlinkModalOpen}
+        onClose={closeUnlinkModal}
+        product={selectedUnlinkProduct}
+        onConfirm={handleUnlinkProduct}
+        isSaving={unlinkingProductId != null}
       />
     </div>
   );

@@ -1,7 +1,9 @@
 package com.justeam.justock_api.dto;
 
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class OrderResponseDTO {
@@ -15,8 +17,11 @@ public class OrderResponseDTO {
     private String marketplaceResourceId;
     private String marketplaceSource;
     private String observacao;
+    private Boolean inventoryApplied;
+    private BigDecimal valorTotal;
+    private List<OrderItemResponseDTO> itens;
 
-    public OrderResponseDTO(int idPedido, Integer idPedidoMarketplace, Integer usuarioMarketplaceId, LocalDate dataEntrega, LocalDate dataEmissao, String statusPagamento, String statusPedido, String marketplaceResourceId, String marketplaceSource, String observacao) {
+    public OrderResponseDTO(int idPedido, Integer idPedidoMarketplace, Integer usuarioMarketplaceId, LocalDate dataEntrega, LocalDate dataEmissao, String statusPagamento, String statusPedido, String marketplaceResourceId, String marketplaceSource, String observacao, Boolean inventoryApplied, BigDecimal valorTotal, List<OrderItemResponseDTO> itens) {
         this.idPedido = idPedido;
         this.idPedidoMarketplace = idPedidoMarketplace;
         this.usuarioMarketplaceId = usuarioMarketplaceId;
@@ -27,5 +32,8 @@ public class OrderResponseDTO {
         this.marketplaceResourceId = marketplaceResourceId;
         this.marketplaceSource = marketplaceSource;
         this.observacao = observacao;
+        this.inventoryApplied = inventoryApplied;
+        this.valorTotal = valorTotal;
+        this.itens = itens;
     }
 }

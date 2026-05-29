@@ -237,9 +237,23 @@ function mapBackendProduct(product) {
   const precoValor = parseCurrencyToNumber(preco);
   const marketplaceSource = product?.marketplaceSource ?? null;
   const marketplaceResourceId = product?.marketplaceResourceId ?? null;
+  const tipoRegistro = product?.tipoRegistro ?? ((marketplaceSource || marketplaceResourceId) ? "ANUNCIO" : "PRODUTO");
+  const statusVinculo = product?.statusVinculo ?? "NAO_VINCULADO";
+  const produtoVinculadoId = product?.produtoVinculadoId ?? null;
+  const produtoVinculadoNome = product?.produtoVinculadoNome ?? null;
+  const inventoryProductId = product?.inventoryProductId ?? id;
+  const quantidadeAnunciosVinculados = Number(product?.quantidadeAnunciosVinculados ?? 0) || 0;
+  const permiteEscolherProduto = Boolean(product?.permiteEscolherProduto);
+  const permiteManterSeparado = Boolean(product?.permiteManterSeparado);
+  const rowKey = `${tipoRegistro}-${id}`;
+  const displayId = tipoRegistro === "ANUNCIO"
+    ? `ML-${id}`
+    : String(id);
 
   return {
     id,
+    rowKey,
+    displayId,
     categoria,
     marca,
     nome,
@@ -253,7 +267,15 @@ function mapBackendProduct(product) {
     usuario: Number(product?.usuario ?? 1) || 1,
     marketplaceSource,
     marketplaceResourceId,
-    isReadOnly: marketplaceSource === "MERCADO_LIVRE" || Boolean(marketplaceResourceId) || String(product?.marcador ?? "").toUpperCase() === "ML",
+    tipoRegistro,
+    statusVinculo,
+    produtoVinculadoId,
+    produtoVinculadoNome,
+    inventoryProductId,
+    quantidadeAnunciosVinculados,
+    permiteEscolherProduto,
+    permiteManterSeparado,
+    isReadOnly: tipoRegistro === "ANUNCIO" || marketplaceSource === "MERCADO_LIVRE" || Boolean(marketplaceResourceId) || String(product?.marcador ?? "").toUpperCase() === "ML",
   };
 }
 
@@ -261,6 +283,17 @@ function mapBackendOrder(order) {
   const marketplaceSource = order?.marketplaceSource ?? null;
   const marketplaceResourceId = order?.marketplaceResourceId ?? null;
   const displayNumber = order?.idPedido || 0;
+  const itens = Array.isArray(order?.itens)
+    ? order.itens.map((item) => ({
+      idProduto: Number(item?.idProduto ?? 0) || null,
+      nomeDoProduto: item?.nomeDoProduto ?? "-",
+      quantidade: Number(item?.quantidade ?? 0) || 0,
+      precoUnitario: parseCurrencyToNumber(item?.precoUnitario ?? 0),
+      subtotal: parseCurrencyToNumber(item?.subtotal ?? 0),
+      idItemMarketplace: item?.idItemMarketplace ?? null,
+      itemStatus: item?.itemStatus ?? null,
+    }))
+    : [];
 
   return {
     id: order?.idPedido ?? 0,
@@ -274,6 +307,9 @@ function mapBackendOrder(order) {
     marketplaceSource,
     marketplaceResourceId,
     observacao: order?.observacao ?? "",
+    inventoryApplied: Boolean(order?.inventoryApplied),
+    valorTotal: parseCurrencyToNumber(order?.valorTotal ?? 0),
+    itens,
     isReadOnly: marketplaceSource === "MERCADO_LIVRE",
   };
 }
@@ -284,7 +320,9 @@ export async function getDashboardResumo() {
     getMercadoLivreStatus(),
   ]);
 
-  const products = Array.isArray(productsData) ? productsData : [];
+  const products = Array.isArray(productsData)
+    ? productsData.filter((product) => (product?.tipoRegistro ?? "PRODUTO") !== "ANUNCIO")
+    : [];
   const totalFromDatabase = products.reduce((acc, product) => {
     const quantity = Number(product?.quantidade ?? product?.estoque ?? 0);
     return acc + (Number.isNaN(quantity) ? 0 : quantity);
@@ -309,7 +347,9 @@ export async function getDashboardResumo() {
 
 export async function getDashboardInventoryOverview() {
   const productsData = await fetchBackend(`/api/products/`).catch(() => []);
-  const products = Array.isArray(productsData) ? productsData : [];
+  const products = Array.isArray(productsData)
+    ? productsData.filter((product) => (product?.tipoRegistro ?? "PRODUTO") !== "ANUNCIO")
+    : [];
 
   const categoryCounts = products.reduce((acc, product) => {
     const categoryName = String(product?.categoria ?? product?.category ?? "").trim();
@@ -415,6 +455,26 @@ export async function getProdutos() {
   return { products };
 }
 
+export async function vincularAnuncioMarketplace(listingId, productId) {
+  const data = await fetchBackend(`/api/products/anuncios/${listingId}/vincular`, {
+    method: "POST",
+    body: { idProduto: productId },
+  });
+
+  emitDashboardDataChanged({ source: "listing-linked", listingId, productId });
+  return mapBackendProduct(data);
+}
+
+export async function manterAnuncioSeparado(listingId) {
+  const data = await fetchBackend(`/api/products/anuncios/${listingId}/manter-separado`, {
+    method: "POST",
+    body: {},
+  });
+
+  emitDashboardDataChanged({ source: "listing-separated", listingId });
+  return mapBackendProduct(data);
+}
+
 export async function createProduto(productInput) {
   const payload = {
     categoria: productInput?.categoria ?? "",
@@ -517,6 +577,13 @@ export async function createPedido(orderInput) {
     statusPagamento: normalizedPaymentStatus,
     statusPedido: normalizedStatus,
     observacao: orderInput?.observacao ?? "",
+    itens: Array.isArray(orderInput?.itens)
+      ? orderInput.itens.map((item) => ({
+        idProduto: item?.idProduto,
+        quantidade: Number(item?.quantidade ?? 0),
+        precoUnitario: parseCurrencyToNumber(item?.precoUnitario ?? 0),
+      }))
+      : [],
   };
 
   const created = await fetchBackend(`/api/Order/cadastrar`, {
@@ -546,6 +613,13 @@ export async function updatePedido(orderId, orderInput) {
     statusPagamento: normalizedPaymentStatus,
     statusPedido: normalizedStatus,
     observacao: orderInput?.observacao ?? "",
+    itens: Array.isArray(orderInput?.itens)
+      ? orderInput.itens.map((item) => ({
+        idProduto: item?.idProduto,
+        quantidade: Number(item?.quantidade ?? 0),
+        precoUnitario: parseCurrencyToNumber(item?.precoUnitario ?? 0),
+      }))
+      : null,
   };
 
   const updated = await fetchBackend(`/api/Order/atualizar/${orderId}`, {

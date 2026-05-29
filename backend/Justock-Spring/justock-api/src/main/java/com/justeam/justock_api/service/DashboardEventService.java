@@ -6,6 +6,7 @@ import com.justeam.justock_api.exception.ResourceNotFoundException;
 import com.justeam.justock_api.model.DashboardEvent;
 import com.justeam.justock_api.model.DashboardEventScope;
 import com.justeam.justock_api.model.DashboardEventType;
+import com.justeam.justock_api.model.MarketplaceListing;
 import com.justeam.justock_api.model.Order;
 import com.justeam.justock_api.model.Product;
 import com.justeam.justock_api.repository.DashboardEventRepository;
@@ -161,6 +162,17 @@ public class DashboardEventService {
                 Map.of("source", safeText(product.getMarketplaceSource())));
         refreshStockAlerts(product);
     }
+
+            public void recordSyncedMarketplaceListing(MarketplaceListing listing, boolean created) {
+            recordActivity(listing.getUsuario(), DashboardEventType.PRODUCT_SYNCED,
+                created ? "Anúncio sincronizado" : "Anúncio atualizado via integração",
+                created
+                    ? "Anúncio " + safeName(listing.getTitulo()) + " entrou via integração."
+                    : "Anúncio " + safeName(listing.getTitulo()) + " foi atualizado pela integração.",
+                "marketplace-listing",
+                String.valueOf(listing.getId()),
+                Map.of("source", safeText(listing.getMarketplaceSource())));
+            }
 
     public void recordSyncedOrder(Order order, boolean created) {
         Integer usuario = resolveOrderUsuario(order);

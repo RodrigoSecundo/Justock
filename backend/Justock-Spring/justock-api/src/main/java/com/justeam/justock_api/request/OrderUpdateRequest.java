@@ -1,6 +1,7 @@
 package com.justeam.justock_api.request;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class OrderUpdateRequest {
 
@@ -11,6 +12,7 @@ public class OrderUpdateRequest {
     private String statusPagamento;
     private String statusPedido;
     private String observacao;
+    private List<OrderItemRequest> itens;
 
     // Getters e Setters
     public Integer getIdPedidoMarketplace() { return idPedidoMarketplace; }
@@ -33,4 +35,7 @@ public class OrderUpdateRequest {
 
     public String getObservacao() { return observacao; }
     public void setObservacao(String observacao) { this.observacao = observacao; }
+
+    public List<OrderItemRequest> getItens() { return itens; }
+    public void setItens(List<OrderItemRequest> itens) { this.itens = itens; }
 }

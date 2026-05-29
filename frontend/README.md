@@ -4,6 +4,12 @@ Frontend da aplicação JusTock, construído com React + Vite. O projeto consome
 
 ## Novidades recentes
 
+- Tela `Produtos` reorganizada para mostrar um catálogo misto de produtos internos e anúncios do Mercado Livre
+- Anúncios já vinculados agora colapsam visualmente na linha do produto interno, evitando duplicidade aparente
+- Fluxo de vincular e desvincular anúncio agora usa diálogos do PrimeReact em vez de `confirm` nativo do navegador
+- Coluna `Vinculação` ganhou refinamento visual e suporte consistente a tema claro/escuro
+- Pedidos manuais agora trabalham com itens explícitos e refletem estoque real dos produtos selecionados
+- Tema escuro foi normalizado para diálogos e dropdowns do PrimeReact usados no dashboard
 - Login e cadastro agora usam o backend real via `/api/auth`
 - Cadastro público disponível em `/cadastro`, inclusive a partir do modal de planos da home
 - Rotas privadas do painel foram protegidas contra acesso direto sem autenticação
@@ -14,7 +20,6 @@ Frontend da aplicação JusTock, construído com React + Vite. O projeto consome
 - Dashboard deixou de compartilhar dados com contas não principais
 - Dashboard principal agora consome atividade recente e alertas reais do backend
 - Barra superior ganhou notificações reais com contador, lista visual e marcação como visualizada
-- Tela `Produtos` agora possui importação de estoque por `.xlsx` e `.csv` com download de modelos, validação completa e envio em lote
 - Relatórios e assinatura agora mostram estado vazio para contas novas
 - Tema escuro foi ajustado para dashboard, relatórios, assinatura, produtos e pedidos
 - O link `ver mais >` do gráfico principal do dashboard agora navega para `/produtos`
@@ -160,7 +165,6 @@ Ajustes recentes de experiência e tema:
 
 Os blocos do dashboard reagem automaticamente a mudanças vindas de:
 - criação, edição e exclusão de produtos
-- importação de estoque em lote
 - criação, edição e exclusão de pedidos
 - sincronização manual ou automática do Mercado Livre
 - salvamento de configurações e troca de tema
@@ -219,17 +223,19 @@ Foi corrigido um problema no backend que fazia os totais permanecerem zerados qu
 
 ### Produtos
 
-- A tela possui modal `Importar Estoque` com download dos modelos `.xlsx` e `.csv`
-- O upload aceita apenas `.xlsx` e `.csv`
-- O frontend valida o arquivo inteiro antes de enviar, ignorando a primeira linha como cabeçalho do modelo
-- Se existir linha vazia, coluna faltante ou campo inválido, a importação inteira é cancelada
-- Após sucesso, o dashboard recarrega a atividade recente automaticamente
 - Produtos sincronizados de marketplace aparecem identificados
+- O catálogo exibido em `Produtos` combina produto interno e anúncio de marketplace no mesmo grid
+- Quando um anúncio está vinculado, ele deixa de aparecer como linha duplicada separada e passa a ficar resumido dentro da linha do produto interno
+- Quando um anúncio não está vinculado, a UI exibe a ação `Vincular produto`
+- Quando um produto possui anúncios vinculados, a UI exibe o estado `Vinculado` e permite `Desvincular` por modal de confirmação
+- O estado visual `Não vinculado` e o badge do Mercado Livre foram refinados para manter contraste e consistência entre tema claro e escuro
 - Produtos de marketplace não podem ser editados ou excluídos manualmente
 - Para contas não principais, as ações manuais ficam ocultas na interface atual
 
 ### Pedidos
 
+- Pedidos manuais agora possuem itens explícitos e total derivado desses itens
+- O estoque dos produtos escolhidos é reconciliado automaticamente pelo backend, refletindo imediatamente na UI após salvar
 - Clique na linha abre modal de visualização vindo do topo
 - O lápis edita apenas pedidos manuais
 - Pedidos de marketplace exibem observação automática com o número externo
@@ -264,11 +270,6 @@ frontend/
 - `npm run preview`: visualiza build localmente
 - `npm run api`: sobe o `json-server` usando `db.json`
 - `npm run lint`: valida o código do frontend com ESLint 9
-
-## Dependências relevantes do fluxo atual
-
-- `primereact`: base dos componentes e modais do dashboard
-- `xlsx`: leitura de arquivos Excel no fluxo de importação de estoque
 
 ## Principais tecnologias
 

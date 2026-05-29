@@ -1,6 +1,7 @@
 package com.justeam.justock_api.controller;
 
 import com.justeam.justock_api.dto.ApiResponseDTO;
+import com.justeam.justock_api.dto.OrderItemResponseDTO;
 import com.justeam.justock_api.dto.OrderResponseDTO;
 import com.justeam.justock_api.model.Order;
 import com.justeam.justock_api.request.OrderCreateRequest;
@@ -59,7 +60,7 @@ public class OrderController {
     @PostMapping("/cadastrar")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<OrderResponseDTO> store(@Valid @RequestBody OrderCreateRequest request) {
-        Order order = orderService.createOrder(request);
+        Order order = orderService.createOrder(request, currentAccountService.getDashboardUserId());
         OrderResponseDTO dto = toDto(order);
         return new ApiResponseDTO<>(200, "Order cadastrado com sucesso!", dto);
     }
@@ -68,7 +69,7 @@ public class OrderController {
     @PutMapping("/atualizar/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<OrderResponseDTO> update(@PathVariable int id, @Valid @RequestBody OrderUpdateRequest request) {
-        Order order = orderService.updateOrder(id, request);
+        Order order = orderService.updateOrder(id, request, currentAccountService.getDashboardUserId());
         if (order == null) {
             return new ApiResponseDTO<>(404, "Order não encontrado!", null);
         }
@@ -80,7 +81,7 @@ public class OrderController {
     @DeleteMapping("/deletar/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponseDTO<Void> destroy(@PathVariable int id) {
-        boolean deleted = orderService.deleteOrder(id);
+        boolean deleted = orderService.deleteOrder(id, currentAccountService.getDashboardUserId());
         if (!deleted) {
             return new ApiResponseDTO<>(404, "Order não encontrado!", null);
         }
@@ -88,6 +89,7 @@ public class OrderController {
     }
 
     private OrderResponseDTO toDto(Order order) {
+        List<OrderItemResponseDTO> itens = orderService.listOrderItemResponses(order.getIdPedido());
         return new OrderResponseDTO(
                 order.getIdPedido(),
                 order.getIdPedidoMarketplace(),
@@ -98,6 +100,9 @@ public class OrderController {
                 order.getStatusPedido(),
                 order.getMarketplaceResourceId(),
                 order.getMarketplaceSource(),
-                order.getObservacao());
+                order.getObservacao(),
+                order.getInventoryApplied(),
+                orderService.calculateOrderTotal(order.getIdPedido()),
+                itens);
     }
 }

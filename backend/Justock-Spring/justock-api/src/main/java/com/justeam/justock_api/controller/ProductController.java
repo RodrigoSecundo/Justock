@@ -3,7 +3,9 @@ package com.justeam.justock_api.controller;
 import com.justeam.justock_api.dto.ApiResponseDTO;
 import com.justeam.justock_api.dto.ProductResponseDTO;
 import com.justeam.justock_api.exception.BadRequestException;
+import com.justeam.justock_api.model.MarketplaceListing;
 import com.justeam.justock_api.model.Product;
+import com.justeam.justock_api.request.MarketplaceListingLinkRequest;
 import com.justeam.justock_api.request.ProductCreateRequest;
 import com.justeam.justock_api.request.ProductUpdateRequest;
 import com.justeam.justock_api.service.CurrentAccountService;
@@ -34,10 +36,7 @@ public class ProductController {
     @PreAuthorize("isAuthenticated()")
     public ApiResponseDTO<List<ProductResponseDTO>> index() {
         Integer usuarioId = currentAccountService.getDashboardUserId();
-        List<ProductResponseDTO> products = productService.listProductsByUsuario(usuarioId)
-                .stream()
-            .map(p -> new ProductResponseDTO(p.getIdProduto(), p.getCategoria(), p.getMarca(), p.getNomeDoProduto(), p.getEstado(), p.getPreco(), p.getCodigoDeBarras(), p.getQuantidade(), p.getQuantidadeReservada(), p.getMarcador(), p.getUsuario(), p.getMarketplaceResourceId(), p.getMarketplaceSource()))
-                .collect(Collectors.toList());
+        List<ProductResponseDTO> products = productService.listCatalogByUsuario(usuarioId);
         return new ApiResponseDTO<>(200, "Produtos encontrados!", products);
     }
 
@@ -50,7 +49,7 @@ public class ProductController {
         if (product == null || !usuarioId.equals(product.getUsuario())) {
             return new ApiResponseDTO<>(404, "Produto não encontrado!", null);
         }
-        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
+        ProductResponseDTO dto = productService.toInternalProductDto(product, 0);
         return new ApiResponseDTO<>(200, "Produto encontrado!", dto);
     }
 
@@ -60,7 +59,7 @@ public class ProductController {
     public ApiResponseDTO<ProductResponseDTO> store(@Valid @RequestBody ProductCreateRequest request) {
         request.setUsuario(currentAccountService.getDashboardUserId());
         Product product = productService.createProduct(request);
-        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
+        ProductResponseDTO dto = productService.toInternalProductDto(product, 0);
         return new ApiResponseDTO<>(200, "Produto cadastrado com sucesso!", dto);
     }
 
@@ -77,7 +76,7 @@ public class ProductController {
 
         List<ProductResponseDTO> products = productService.createProducts(requests)
                 .stream()
-                .map(product -> new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource()))
+            .map(product -> productService.toInternalProductDto(product, 0))
                 .collect(Collectors.toList());
 
         return new ApiResponseDTO<>(200, "Produtos importados com sucesso!", products);
@@ -96,8 +95,27 @@ public class ProductController {
         if (product == null) {
             return new ApiResponseDTO<>(404, "Produto não encontrado!", null);
         }
-        ProductResponseDTO dto = new ProductResponseDTO(product.getIdProduto(), product.getCategoria(), product.getMarca(), product.getNomeDoProduto(), product.getEstado(), product.getPreco(), product.getCodigoDeBarras(), product.getQuantidade(), product.getQuantidadeReservada(), product.getMarcador(), product.getUsuario(), product.getMarketplaceResourceId(), product.getMarketplaceSource());
+        ProductResponseDTO dto = productService.toInternalProductDto(product, 0);
         return new ApiResponseDTO<>(200, "Produto atualizado!", dto);
+    }
+
+    @PostMapping("/anuncios/{listingId}/vincular")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponseDTO<ProductResponseDTO> linkListing(@PathVariable Long listingId, @RequestBody MarketplaceListingLinkRequest request) {
+        Integer usuarioId = currentAccountService.getDashboardUserId();
+        MarketplaceListing listing = productService.linkMarketplaceListing(listingId, request.getIdProduto(), usuarioId);
+        Product linkedProduct = request.getIdProduto() == null ? null : productService.findProduct(request.getIdProduto());
+        ProductResponseDTO dto = productService.toMarketplaceListingDto(listing, linkedProduct, null);
+        return new ApiResponseDTO<>(200, "Anúncio vinculado com sucesso!", dto);
+    }
+
+    @PostMapping("/anuncios/{listingId}/manter-separado")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponseDTO<ProductResponseDTO> keepListingSeparated(@PathVariable Long listingId) {
+        Integer usuarioId = currentAccountService.getDashboardUserId();
+        MarketplaceListing listing = productService.keepListingSeparated(listingId, usuarioId);
+        ProductResponseDTO dto = productService.toMarketplaceListingDto(listing, null, null);
+        return new ApiResponseDTO<>(200, "Anúncio mantido separado com sucesso!", dto);
     }
 
     // DELETE /api/products/deletar/{id}
