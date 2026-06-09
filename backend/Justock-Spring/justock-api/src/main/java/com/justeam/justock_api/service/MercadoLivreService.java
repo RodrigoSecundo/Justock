@@ -35,6 +35,8 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -47,6 +49,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class MercadoLivreService {
+
+    private static final String MERCADO_LIVRE_SOURCE = "MERCADO_LIVRE";
+    private static final Pattern MARKETPLACE_MAX_QUANTITY_PATTERN = Pattern.compile("max\\. value is (\\d+)", Pattern.CASE_INSENSITIVE);
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final String ACTIVE_ORDER_STATUS_FILTER = String.join(",",
@@ -171,9 +176,9 @@ public class MercadoLivreService {
         summary.put("connected", Boolean.TRUE);
         summary.put("sellerId", connection.getIdLoja());
 
-        summary.put("totalVendas", safeCount(() -> fetchTotalOrders(connection, false)));
-        summary.put("pedidosAtivos", safeCount(() -> fetchTotalOrders(connection, true)));
-        summary.put("totalInventario", safeCount(() -> fetchTotalInventory(connection)));
+        summary.put("totalVendas", safeCount(() -> fetchSellerCompletedSales(connection)));
+        summary.put("pedidosAtivos", safeCount(() -> fetchActiveListings(connection)));
+        summary.put("totalInventario", countSyncedInventoryQuantity(usuarioId));
 
         return summary;
     }
@@ -748,25 +753,97 @@ public class MercadoLivreService {
         headers.setBearerAuth(connection.getAccessToken());
         headers.setContentType(MediaType.APPLICATION_JSON);
         int safeQuantity = Math.max(quantity, 0);
-        Map<String, Object> payload = new LinkedHashMap<>();
-        if (safeQuantity <= 0) {
-            payload.put("status", "paused");
-        } else {
-            payload.put("available_quantity", safeQuantity);
-            if ((listing.getQuantidadeDisponivel() == null ? 0 : listing.getQuantidadeDisponivel()) <= 0) {
-                payload.put("status", "active");
+        int appliedQuantity = safeQuantity;
+
+        try {
+            updateMarketplaceListingQuantity(listing, headers, safeQuantity);
+        } catch (org.springframework.web.client.HttpClientErrorException exception) {
+            Integer marketplaceLimit = resolveMarketplaceQuantityLimit(exception.getResponseBodyAsString());
+            if (safeQuantity > 0 && marketplaceLimit != null && marketplaceLimit >= 0 && marketplaceLimit < safeQuantity) {
+                appliedQuantity = marketplaceLimit;
+                updateMarketplaceListingQuantity(listing, headers, appliedQuantity);
+            } else {
+                throw exception;
             }
         }
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
+        listing.setQuantidadeDisponivel(appliedQuantity);
+        marketplaceListingRepository.save(listing);
+    }
+
+    private void updateMarketplaceListingQuantity(MarketplaceListing listing, HttpHeaders headers, int quantity) {
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(buildMarketplaceQuantityPayload(quantity), headers);
         restTemplate.exchange(
                 "https://api.mercadolibre.com/items/" + listing.getMarketplaceResourceId(),
                 HttpMethod.PUT,
                 request,
                 Map.class);
+    }
 
-        listing.setQuantidadeDisponivel(safeQuantity);
-        marketplaceListingRepository.save(listing);
+    private Map<String, Object> buildMarketplaceQuantityPayload(int quantity) {
+        int safeQuantity = Math.max(quantity, 0);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        if (safeQuantity <= 0) {
+            payload.put("status", "paused");
+            return payload;
+        }
+
+        payload.put("available_quantity", safeQuantity);
+        payload.put("status", "active");
+        return payload;
+    }
+
+    private Integer resolveMarketplaceQuantityLimit(String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return null;
+        }
+
+        try {
+            Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
+            if (response == null) {
+                return parseMarketplaceQuantityLimit(responseBody);
+            }
+            Object causesValue = response.get("cause");
+            if (causesValue instanceof List<?> causes) {
+                for (Object causeValue : causes) {
+                    if (!(causeValue instanceof Map<?, ?> cause)) {
+                        continue;
+                    }
+
+                    Object code = cause.get("code");
+                    Object message = cause.get("message");
+                    if (!"item.available_quantity.invalid".equals(String.valueOf(code))) {
+                        continue;
+                    }
+
+                    Integer parsedLimit = parseMarketplaceQuantityLimit(String.valueOf(message));
+                    if (parsedLimit != null) {
+                        return parsedLimit;
+                    }
+                }
+            }
+        } catch (JsonProcessingException ignored) {
+            // Fall back to a regex scan when Mercado Livre returns an unexpected body.
+        }
+
+        return parseMarketplaceQuantityLimit(responseBody);
+    }
+
+    private Integer parseMarketplaceQuantityLimit(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+
+        Matcher matcher = MARKETPLACE_MAX_QUANTITY_PATTERN.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        try {
+            return Integer.valueOf(matcher.group(1));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 
     private void syncMarketplaceOrderItems(Order order, Map<String, Object> orderMap, Integer usuarioId, boolean inventoryWasApplied) {
@@ -1014,6 +1091,42 @@ public class MercadoLivreService {
         return extractPagingTotal(response.getBody());
     }
 
+    private int fetchActiveListings(UserMarketplace connection) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(connection.getAccessToken());
+        HttpEntity<String> request = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "https://api.mercadolibre.com/users/" + connection.getIdLoja() + "/items/search?status=active&limit=1",
+                HttpMethod.GET,
+                request,
+                Map.class);
+
+        return extractPagingTotal(response.getBody());
+    }
+
+    private int fetchSellerCompletedSales(UserMarketplace connection) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(connection.getAccessToken());
+        HttpEntity<String> request = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "https://api.mercadolibre.com/users/" + connection.getIdLoja(),
+                HttpMethod.GET,
+                request,
+                Map.class);
+
+        return extractCompletedSales(response.getBody());
+    }
+
+    private int countSyncedInventoryQuantity(Integer usuarioId) {
+        return marketplaceListingRepository.findByUsuarioAndMarketplaceSource(usuarioId, MERCADO_LIVRE_SOURCE)
+                .stream()
+                .map(MarketplaceListing::getQuantidadeDisponivel)
+                .filter(quantity -> quantity != null && quantity > 0)
+                .mapToInt(Integer::intValue)
+                .sum();
+    }
     private int fetchTotalOrders(UserMarketplace connection, boolean onlyActive) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(connection.getAccessToken());
@@ -1114,6 +1227,33 @@ public class MercadoLivreService {
         return 0;
     }
 
+    private int extractCompletedSales(Map body) {
+        if (body == null) {
+            return 0;
+        }
+
+        Object sellerReputationObj = body.get("seller_reputation");
+        if (!(sellerReputationObj instanceof Map<?, ?> sellerReputation)) {
+            return 0;
+        }
+
+        Object transactionsObj = sellerReputation.get("transactions");
+        if (!(transactionsObj instanceof Map<?, ?> transactions)) {
+            return 0;
+        }
+
+        Object completedObj = transactions.get("completed");
+        if (completedObj instanceof Number completedNumber) {
+            return completedNumber.intValue();
+        }
+
+        Object totalObj = transactions.get("total");
+        if (totalObj instanceof Number totalNumber) {
+            return totalNumber.intValue();
+        }
+
+        return 0;
+    }
     private int safeCount(CountSupplier supplier) {
         try {
             return supplier.get();

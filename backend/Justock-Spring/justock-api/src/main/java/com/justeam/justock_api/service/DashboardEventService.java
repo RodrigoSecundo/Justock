@@ -46,7 +46,6 @@ public class DashboardEventService {
     }
 
     public List<Map<String, Object>> getActiveAlerts(Integer usuario) {
-        reconcileInventoryAlerts(usuario);
         return dashboardEventRepository.findTop5ByUsuarioAndEventScopeAndResolvedAtIsNullOrderByCreatedAtDesc(usuario, DashboardEventScope.ALERT)
                 .stream()
                 .map(this::toFeedItem)
@@ -54,7 +53,6 @@ public class DashboardEventService {
     }
 
     public List<Map<String, Object>> getUnreadNotifications(Integer usuario) {
-        reconcileInventoryAlerts(usuario);
         return dashboardEventRepository.findTop5ByUsuarioAndEventScopeAndResolvedAtIsNullAndReadAtIsNullOrderByCreatedAtDesc(usuario, DashboardEventScope.ALERT)
                 .stream()
                 .map(this::toNotificationItem)
@@ -62,7 +60,6 @@ public class DashboardEventService {
     }
 
     public long getUnreadNotificationsCount(Integer usuario) {
-        reconcileInventoryAlerts(usuario);
         return dashboardEventRepository.countByUsuarioAndEventScopeAndResolvedAtIsNullAndReadAtIsNull(usuario, DashboardEventScope.ALERT);
     }
 

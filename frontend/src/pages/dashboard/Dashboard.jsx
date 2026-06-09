@@ -87,6 +87,40 @@ const Dashboard = () => {
     try { return getThemePref() === 'dark'; } catch { return false; }
   });
 
+  const loadInventoryOverview = (darkMode) => {
+    getDashboardInventoryOverview()
+      .then((data) => {
+        setInventoryMessage(data?.emptyMessage || "");
+        setChartData({
+          labels: (data && Array.isArray(data.labels)) ? data.labels : [],
+          datasets: [
+            {
+              label: "Quantidade",
+              data: (data && Array.isArray(data.values)) ? data.values : [],
+              backgroundColor: darkMode ? GREY_PALETTE : DEFAULT_PALETTE,
+              borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
+              borderSkipped: 'bottom',
+            },
+          ],
+        });
+      })
+      .catch(() => {
+        setInventoryMessage("");
+        setChartData({
+          labels: [],
+          datasets: [
+            {
+              label: "Quantidade",
+              data: [],
+              backgroundColor: darkMode ? GREY_PALETTE : DEFAULT_PALETTE,
+              borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
+              borderSkipped: 'bottom',
+            },
+          ],
+        });
+      });
+  };
+
   const loadRecentActivity = () => {
     getDashboardRecentActivity()
       .then((data) => {
@@ -113,25 +147,7 @@ const Dashboard = () => {
 
   // Carrega dados dependentes de tema (paleta) sempre que 'isDark' alterar
   useEffect(() => {
-    let cancelled = false;
-    getDashboardInventoryOverview()
-      .then((data) => {
-        if (cancelled) return;
-        setInventoryMessage(data?.emptyMessage || "");
-        setChartData({
-          labels: (data && Array.isArray(data.labels)) ? data.labels : [],
-          datasets: [
-            {
-              label: "Quantidade",
-              data: (data && Array.isArray(data.values)) ? data.values : [],
-              backgroundColor: isDark ? GREY_PALETTE : DEFAULT_PALETTE,
-              borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
-              borderSkipped: 'bottom',
-            },
-          ],
-        });
-      });
-    return () => { cancelled = true; };
+    loadInventoryOverview(isDark);
   }, [isDark]);
 
   useEffect(() => {
@@ -174,6 +190,7 @@ const Dashboard = () => {
     const unsubscribeDashboard = subscribeDashboardDataChanged(() => {
       loadRecentActivity();
       loadAlerts();
+      loadInventoryOverview(isDark);
       getDashboardResumo()
         .then((data) => {
           setTotalProducts(typeof data.total === "number" ? data.total : 0);
@@ -191,7 +208,7 @@ const Dashboard = () => {
       window.removeEventListener('jt:appearance-updated', onAppearance);
       unsubscribeDashboard();
     };
-  }, []);
+  }, [isDark]);
 
   const barOptions = useMemo(() => {
     const text = isDark ? '#e5eef7' : '#1a3a3a';

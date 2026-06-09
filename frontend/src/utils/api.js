@@ -6,6 +6,7 @@ const BACKEND_API_BASE_URL = getRequiredEnv("VITE_BACKEND_API_BASE_URL");
 const ORDER_STATUS_OPTIONS = ["EM ANDAMENTO", "CANCELADO", "CONCLUÍDO"];
 const PAYMENT_STATUS_OPTIONS = ["PROCESSADO", "EM PROCESSAMENTO", "CANCELADO", "NEGADO"];
 const DASHBOARD_CHANGED_EVENT = "jt:dashboard-data-changed";
+let dashboardProductsRequest = null;
 const MOCK_MARKETPLACE_CONNECTIONS = [
   {
     id: "amazon",
@@ -78,6 +79,7 @@ async function fetchMock(path) {
 }
 
 function emitDashboardDataChanged(detail = {}) {
+  dashboardProductsRequest = null;
   try {
     window.dispatchEvent(new CustomEvent(DASHBOARD_CHANGED_EVENT, { detail }));
   } catch {
@@ -92,6 +94,21 @@ export function subscribeDashboardDataChanged(callback) {
 
   window.addEventListener(DASHBOARD_CHANGED_EVENT, callback);
   return () => window.removeEventListener(DASHBOARD_CHANGED_EVENT, callback);
+}
+
+async function getDashboardProducts() {
+  if (!dashboardProductsRequest) {
+    dashboardProductsRequest = fetchBackend(`/api/products/`)
+      .catch(() => [])
+      .finally(() => {
+        dashboardProductsRequest = null;
+      });
+  }
+
+  const productsData = await dashboardProductsRequest;
+  return Array.isArray(productsData)
+    ? productsData.filter((product) => (product?.tipoRegistro ?? "PRODUTO") !== "ANUNCIO")
+    : [];
 }
 
 function formatBRL(value) {
@@ -316,13 +333,11 @@ function mapBackendOrder(order) {
 
 export async function getDashboardResumo() {
   const [productsData, mlStatus] = await Promise.all([
-    fetchBackend(`/api/products/`).catch(() => []),
+    getDashboardProducts(),
     getMercadoLivreStatus(),
   ]);
 
-  const products = Array.isArray(productsData)
-    ? productsData.filter((product) => (product?.tipoRegistro ?? "PRODUTO") !== "ANUNCIO")
-    : [];
+  const products = Array.isArray(productsData) ? productsData : [];
   const totalFromDatabase = products.reduce((acc, product) => {
     const quantity = Number(product?.quantidade ?? product?.estoque ?? 0);
     return acc + (Number.isNaN(quantity) ? 0 : quantity);
@@ -346,10 +361,7 @@ export async function getDashboardResumo() {
 }
 
 export async function getDashboardInventoryOverview() {
-  const productsData = await fetchBackend(`/api/products/`).catch(() => []);
-  const products = Array.isArray(productsData)
-    ? productsData.filter((product) => (product?.tipoRegistro ?? "PRODUTO") !== "ANUNCIO")
-    : [];
+  const products = await getDashboardProducts();
 
   const categoryCounts = products.reduce((acc, product) => {
     const categoryName = String(product?.categoria ?? product?.category ?? "").trim();
@@ -357,7 +369,8 @@ export async function getDashboardInventoryOverview() {
       return acc;
     }
 
-    acc.set(categoryName, (acc.get(categoryName) ?? 0) + 1);
+    const quantity = Number(product?.quantidade ?? product?.estoque ?? 0);
+    acc.set(categoryName, (acc.get(categoryName) ?? 0) + (Number.isNaN(quantity) ? 0 : quantity));
     return acc;
   }, new Map());
 
@@ -370,7 +383,7 @@ export async function getDashboardInventoryOverview() {
     })
     .slice(0, 4);
 
-  if (categories.length < 4) {
+  if (categories.length === 0) {
     return {
       labels: [],
       values: [],

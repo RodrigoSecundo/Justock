@@ -17,9 +17,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -32,6 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -383,5 +387,121 @@ class MercadoLivreServiceTest {
                 ArgumentCaptor<MarketplaceListing> listingCaptor = ArgumentCaptor.forClass(MarketplaceListing.class);
                 verify(marketplaceListingRepository).save(listingCaptor.capture());
                 assertEquals(3, listingCaptor.getValue().getQuantidadeDisponivel());
+        }
+
+        @Test
+        void syncManualInventoryForLinkedProductKeepsListingActiveWhenStockIncreasesAboveOne() {
+                UserMarketplace connection = new UserMarketplace();
+                connection.setUsuario(1);
+                connection.setMarketplaceId(1);
+                connection.setIdLoja("SELLER-1");
+                connection.setAccessToken("token");
+                connection.setRefreshToken("refresh");
+                connection.setTokenExpiration(LocalDateTime.now().plusHours(1));
+
+                Product product = new Product();
+                product.setIdProduto(42);
+                product.setUsuario(1);
+                product.setQuantidade(5);
+                product.setMarcador("MANUAL");
+
+                MarketplaceListing listing = new MarketplaceListing();
+                listing.setId(7L);
+                listing.setUsuario(1);
+                listing.setMarketplaceSource("MERCADO_LIVRE");
+                listing.setMarketplaceResourceId("MLB6616692878");
+                listing.setProdutoVinculadoId(42);
+                listing.setQuantidadeDisponivel(1);
+
+                when(userMarketplaceRepository.findFirstByUsuarioAndMarketplaceId(1, 1)).thenReturn(Optional.of(connection));
+                when(marketplaceListingRepository.findByUsuarioAndProdutoVinculadoId(1, 42)).thenReturn(List.of(listing));
+                when(restTemplate.exchange(
+                                eq("https://api.mercadolibre.com/items/MLB6616692878"),
+                                eq(HttpMethod.PUT),
+                                any(HttpEntity.class),
+                                eq(Map.class)))
+                                .thenReturn(new ResponseEntity<>(Map.of(), HttpStatus.OK));
+                when(marketplaceListingRepository.save(any(MarketplaceListing.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                mercadoLivreService.syncManualInventoryForProduct(product);
+
+                ArgumentCaptor<HttpEntity> requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+                verify(restTemplate).exchange(
+                                eq("https://api.mercadolibre.com/items/MLB6616692878"),
+                                eq(HttpMethod.PUT),
+                                requestCaptor.capture(),
+                                eq(Map.class));
+                @SuppressWarnings("unchecked")
+                Map<String, Object> payload = (Map<String, Object>) requestCaptor.getValue().getBody();
+                assertEquals(5, payload.get("available_quantity"));
+                assertEquals("active", payload.get("status"));
+
+                ArgumentCaptor<MarketplaceListing> listingCaptor = ArgumentCaptor.forClass(MarketplaceListing.class);
+                verify(marketplaceListingRepository).save(listingCaptor.capture());
+                assertEquals(5, listingCaptor.getValue().getQuantidadeDisponivel());
+        }
+
+        @Test
+        void syncManualInventoryForLinkedProductFallsBackToMarketplaceMaxQuantity() {
+                UserMarketplace connection = new UserMarketplace();
+                connection.setUsuario(1);
+                connection.setMarketplaceId(1);
+                connection.setIdLoja("SELLER-1");
+                connection.setAccessToken("token");
+                connection.setRefreshToken("refresh");
+                connection.setTokenExpiration(LocalDateTime.now().plusHours(1));
+
+                Product product = new Product();
+                product.setIdProduto(42);
+                product.setUsuario(1);
+                product.setQuantidade(5);
+                product.setMarcador("MANUAL");
+
+                MarketplaceListing listing = new MarketplaceListing();
+                listing.setId(7L);
+                listing.setUsuario(1);
+                listing.setMarketplaceSource("MERCADO_LIVRE");
+                listing.setMarketplaceResourceId("MLB6616692878");
+                listing.setProdutoVinculadoId(42);
+                listing.setQuantidadeDisponivel(1);
+
+                HttpClientErrorException invalidQuantity = HttpClientErrorException.create(
+                                HttpStatus.BAD_REQUEST,
+                                "Bad Request",
+                                HttpHeaders.EMPTY,
+                                "{\"cause\":[{\"code\":\"item.available_quantity.invalid\",\"message\":\"Available quantity max. value is 1 for category MLB1658\"}]}".getBytes(),
+                                null);
+
+                when(userMarketplaceRepository.findFirstByUsuarioAndMarketplaceId(1, 1)).thenReturn(Optional.of(connection));
+                when(marketplaceListingRepository.findByUsuarioAndProdutoVinculadoId(1, 42)).thenReturn(List.of(listing));
+                doThrow(invalidQuantity)
+                                .doReturn(new ResponseEntity<>(Map.of(), HttpStatus.OK))
+                                .when(restTemplate)
+                                .exchange(
+                                                eq("https://api.mercadolibre.com/items/MLB6616692878"),
+                                                eq(HttpMethod.PUT),
+                                                any(HttpEntity.class),
+                                                eq(Map.class));
+                when(marketplaceListingRepository.save(any(MarketplaceListing.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                mercadoLivreService.syncManualInventoryForProduct(product);
+
+                ArgumentCaptor<HttpEntity> requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+                verify(restTemplate, times(2)).exchange(
+                                eq("https://api.mercadolibre.com/items/MLB6616692878"),
+                                eq(HttpMethod.PUT),
+                                requestCaptor.capture(),
+                                eq(Map.class));
+                @SuppressWarnings("unchecked")
+                Map<String, Object> firstPayload = (Map<String, Object>) requestCaptor.getAllValues().get(0).getBody();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> secondPayload = (Map<String, Object>) requestCaptor.getAllValues().get(1).getBody();
+                assertEquals(5, firstPayload.get("available_quantity"));
+                assertEquals(1, secondPayload.get("available_quantity"));
+                assertEquals("active", secondPayload.get("status"));
+
+                ArgumentCaptor<MarketplaceListing> listingCaptor = ArgumentCaptor.forClass(MarketplaceListing.class);
+                verify(marketplaceListingRepository).save(listingCaptor.capture());
+                assertEquals(1, listingCaptor.getValue().getQuantidadeDisponivel());
         }
 }

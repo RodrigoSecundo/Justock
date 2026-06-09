@@ -4,9 +4,41 @@ import { notifyError, notifySuccess } from "../../utils/notify";
 import { useSrOptimized, srProps } from "../../utils/useA11y?v=20260514-6";
 import { getConexoes, getMercadoLivreAuthUrl, disconnectMercadoLivre, syncMercadoLivre } from "../../utils/api";
 
+const FALLBACK_MARKETPLACES = [
+  {
+    id: "mercado_livre",
+    name: "Mercado Livre",
+    connected: false,
+    totalVendas: 0,
+    pedidosAtivos: 0,
+    totalInventario: 0,
+    sellerId: null,
+    source: "fallback",
+  },
+  {
+    id: "amazon",
+    name: "Amazon",
+    connected: false,
+    totalVendas: 0,
+    pedidosAtivos: 0,
+    totalInventario: 0,
+    sellerId: null,
+    source: "fallback",
+  },
+  {
+    id: "shopee",
+    name: "Shopee",
+    connected: false,
+    totalVendas: 0,
+    pedidosAtivos: 0,
+    totalInventario: 0,
+    sellerId: null,
+    source: "fallback",
+  },
+];
 
 const Conexoes = () => {
-  const [marketplaces, setMarketplaces] = useState([]);
+  const [marketplaces, setMarketplaces] = useState(FALLBACK_MARKETPLACES);
   const [carregando, setCarregando] = useState(true);
   const [syncingMarketplace, setSyncingMarketplace] = useState(null);
   const [disconnectingMarketplace, setDisconnectingMarketplace] = useState(null);
@@ -22,7 +54,8 @@ const Conexoes = () => {
       setMarketplaces(Array.isArray(data?.marketplaces) ? data.marketplaces : []);
     } catch (err) {
       console.error(err);
-      setMarketplaces([]);
+      setMarketplaces(FALLBACK_MARKETPLACES);
+      notifyError("Não foi possível carregar o status das conexões agora. Você ainda pode tentar conectar novamente.");
     } finally {
       if (!silent) {
         setCarregando(false);
@@ -111,7 +144,7 @@ const Conexoes = () => {
                 {mkt.connected ? (
                   <div className="conexoes_dados">
                     <p {...srProps(srOpt, { 'aria-label': `Total de vendas ${mkt.totalVendas}` })}><strong>Total de vendas:</strong> {mkt.totalVendas}</p>
-                    <p {...srProps(srOpt, { 'aria-label': `Pedidos ativos ${mkt.pedidosAtivos}` })}><strong>Pedidos ativos:</strong> {mkt.pedidosAtivos}</p>
+                    <p {...srProps(srOpt, { 'aria-label': `Anúncios ativos ${mkt.pedidosAtivos}` })}><strong>Anúncios ativos:</strong> {mkt.pedidosAtivos}</p>
                     <p {...srProps(srOpt, { 'aria-label': `Quantidade em inventário ${mkt.totalInventario}` })}><strong>Quant. Inventário:</strong> {mkt.totalInventario}</p>
                     {mkt.sellerId && <p {...srProps(srOpt, { 'aria-label': `Conta conectada ${mkt.sellerId}` })}><strong>Conta:</strong> {mkt.sellerId}</p>}
                   </div>

@@ -30,16 +30,19 @@ public class ProductService {
     private final MarketplaceListingRepository marketplaceListingRepository;
     private final OrderItemRepository orderItemRepository;
     private final DashboardEventService dashboardEventService;
+    private final MercadoLivreService mercadoLivreService;
 
     public ProductService(
             ProductRepository productRepository,
             MarketplaceListingRepository marketplaceListingRepository,
             OrderItemRepository orderItemRepository,
-            DashboardEventService dashboardEventService) {
+            DashboardEventService dashboardEventService,
+            MercadoLivreService mercadoLivreService) {
         this.productRepository = productRepository;
         this.marketplaceListingRepository = marketplaceListingRepository;
         this.orderItemRepository = orderItemRepository;
         this.dashboardEventService = dashboardEventService;
+        this.mercadoLivreService = mercadoLivreService;
     }
 
     public List<Product> listAllProducts() {
@@ -170,6 +173,9 @@ public class ProductService {
             if (dto.getMarcador() != null) existingProduct.setMarcador(dto.getMarcador());
             if (dto.getUsuario() != null) existingProduct.setUsuario(dto.getUsuario());
             Product updatedProduct = productRepository.save(existingProduct);
+            if (dto.getQuantidade() != null) {
+                mercadoLivreService.syncManualInventoryForProduct(updatedProduct);
+            }
             dashboardEventService.recordProductUpdated(previousProduct, updatedProduct);
             return updatedProduct;
         }
