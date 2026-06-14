@@ -9,17 +9,22 @@ import com.justeam.justock_api.model.Order;
 import com.justeam.justock_api.model.Product;
 import com.justeam.justock_api.model.UserMarketplace;
 import com.justeam.justock_api.model.WebhookEvent;
+import com.justeam.justock_api.model.event.MercadoLivreWebhookReceivedEvent;
 import com.justeam.justock_api.repository.MarketplaceListingRepository;
 import com.justeam.justock_api.repository.OrderItemRepository;
 import com.justeam.justock_api.repository.OrderRepository;
 import com.justeam.justock_api.repository.ProductRepository;
 import com.justeam.justock_api.repository.UserMarketplaceRepository;
 import com.justeam.justock_api.repository.WebhookEventRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -46,6 +51,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @Service
 public class MercadoLivreService {
@@ -96,6 +102,18 @@ public class MercadoLivreService {
     @Value("${mercadolivre.shared.usuario-id:1}")
     private Integer sharedUsuarioId;
 
+    @Value("${mercadolivre.retry.max-attempts:3}")
+    private int retryMaxAttempts;
+
+    @Value("${mercadolivre.retry.initial-backoff-ms:500}")
+    private long retryInitialBackoffMs;
+
+    @Value("${mercadolivre.rate-limit.min-interval-ms:250}")
+    private long rateLimitMinIntervalMs;
+
+    private final Object rateLimitMonitor = new Object();
+    private long nextMarketplaceRequestAtMs = 0L;
+
     private final RestTemplate restTemplate;
     private final UserMarketplaceRepository userMarketplaceRepository;
     private final MarketplaceListingRepository marketplaceListingRepository;
@@ -105,6 +123,7 @@ public class MercadoLivreService {
     private final WebhookEventRepository webhookEventRepository;
     private final DashboardEventService dashboardEventService;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
     private final Map<String, String> pkceVerifierByState = new ConcurrentHashMap<>();
     private final Map<String, String> categoryNameCache = new ConcurrentHashMap<>();
 
@@ -115,7 +134,8 @@ public class MercadoLivreService {
             OrderRepository orderRepository,
             WebhookEventRepository webhookEventRepository,
             DashboardEventService dashboardEventService,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            ApplicationEventPublisher applicationEventPublisher) {
         this.restTemplate = restTemplate;
         this.userMarketplaceRepository = userMarketplaceRepository;
         this.marketplaceListingRepository = marketplaceListingRepository;
@@ -125,6 +145,7 @@ public class MercadoLivreService {
         this.webhookEventRepository = webhookEventRepository;
         this.dashboardEventService = dashboardEventService;
         this.objectMapper = objectMapper;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     public Integer getIntegrationUserId() {
@@ -218,8 +239,11 @@ public class MercadoLivreService {
         try {
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
-            ResponseEntity<Map> response = restTemplate.postForEntity("https://api.mercadolibre.com/oauth/token",
-                    request, Map.class);
+                ResponseEntity<Map> response = postForEntityWithRetry(
+                    "oauth-token",
+                    "https://api.mercadolibre.com/oauth/token",
+                    request,
+                    Map.class);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> data = response.getBody();
@@ -266,7 +290,8 @@ public class MercadoLivreService {
         HttpEntity<String> request = new HttpEntity<>(headers);
 
         String urlIds = "https://api.mercadolibre.com/users/" + um.getIdLoja() + "/items/search";
-        ResponseEntity<Map> searchResponse = restTemplate.exchange(urlIds, HttpMethod.GET, request, Map.class);
+        ResponseEntity<Map> searchResponse = exchangeWithRetry(urlIds, HttpMethod.GET, request, Map.class,
+            "inventory-search");
 
         if (searchResponse.getStatusCode().is2xxSuccessful() && searchResponse.getBody() != null) {
             List<String> itemsId = (List<String>) searchResponse.getBody().get("results");
@@ -278,8 +303,8 @@ public class MercadoLivreService {
                 for (List<String> chunk : partition(itemsId, 20)) {
                     String idsParam = String.join(",", chunk);
                     String urlItems = "https://api.mercadolibre.com/items?ids=" + idsParam;
-                    ResponseEntity<List> itemsResponse = restTemplate.exchange(urlItems, HttpMethod.GET, request,
-                            List.class);
+                        ResponseEntity<List> itemsResponse = exchangeWithRetry(urlItems, HttpMethod.GET, request,
+                            List.class, "inventory-items-batch");
 
                     if (itemsResponse.getStatusCode().is2xxSuccessful() && itemsResponse.getBody() != null) {
                         List<Map<String, Object>> itemsList = itemsResponse.getBody();
@@ -435,9 +460,25 @@ public class MercadoLivreService {
         webhookEvent.setReceivedAt(LocalDateTime.now());
         webhookEvent.setProcessed(Boolean.FALSE);
         webhookEvent.setProcessedAt(null);
-        webhookEvent.setError(null);
+        webhookEvent.setProcessingStartedAt(null);
+        webhookEvent.setAttemptCount(0);
+        webhookEvent.setError(marketplaceOpt.isPresent() ? null : "Usuario marketplace nao encontrado para o webhook recebido.");
 
-        webhookEventRepository.save(webhookEvent);
+        WebhookEvent savedEvent = webhookEventRepository.save(webhookEvent);
+        if (marketplaceOpt.isPresent()) {
+            applicationEventPublisher.publishEvent(
+                    new MercadoLivreWebhookReceivedEvent(savedEvent.getId(), marketplaceOpt.get().getUsuario()));
+        }
+    }
+
+    public Integer resolveUsuarioIdFromWebhookEvent(Integer usuarioMarketplaceId) {
+        if (usuarioMarketplaceId == null) {
+            return null;
+        }
+
+        return userMarketplaceRepository.findById(usuarioMarketplaceId)
+                .map(UserMarketplace::getUsuario)
+                .orElse(null);
     }
 
     @org.springframework.transaction.annotation.Transactional
@@ -773,11 +814,12 @@ public class MercadoLivreService {
 
     private void updateMarketplaceListingQuantity(MarketplaceListing listing, HttpHeaders headers, int quantity) {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(buildMarketplaceQuantityPayload(quantity), headers);
-        restTemplate.exchange(
+        exchangeWithRetry(
                 "https://api.mercadolibre.com/items/" + listing.getMarketplaceResourceId(),
                 HttpMethod.PUT,
                 request,
-                Map.class);
+            Map.class,
+            "listing-quantity-update");
     }
 
     private Map<String, Object> buildMarketplaceQuantityPayload(int quantity) {
@@ -986,21 +1028,36 @@ public class MercadoLivreService {
             }
 
             int currentQuantity = product.getQuantidade() == null ? 0 : product.getQuantidade();
-            int quantityDelta = (orderItem.getQuantidade() == null ? 0 : orderItem.getQuantidade()) * direction;
-            int nextQuantity = currentQuantity + quantityDelta;
-            if (nextQuantity < 0 && direction < 0 && isListingInventoryShadow(product)) {
-                currentQuantity += Math.abs(nextQuantity);
-                product.setQuantidade(currentQuantity);
-                productRepository.save(product);
-                nextQuantity = currentQuantity + quantityDelta;
-            }
-            if (nextQuantity < 0) {
-                throw new RuntimeException("Estoque insuficiente para sincronizar pedido do marketplace.");
+            int amount = orderItem.getQuantidade() == null ? 0 : orderItem.getQuantidade();
+            if (amount <= 0) {
+                continue;
             }
 
+            int nextQuantity = adjustInventoryAtomically(product, direction, amount, currentQuantity);
+
             product.setQuantidade(nextQuantity);
-            productRepository.save(product);
         }
+    }
+
+    private int adjustInventoryAtomically(Product product, int direction, int amount, int currentQuantity) {
+        if (direction < 0) {
+            int updatedRows = productRepository.decrementQuantityIfEnough(product.getIdProduto(), amount);
+            if (updatedRows == 0 && isListingInventoryShadow(product)) {
+                productRepository.incrementQuantity(product.getIdProduto(), amount);
+                updatedRows = productRepository.decrementQuantityIfEnough(product.getIdProduto(), amount);
+            }
+            if (updatedRows == 0) {
+                throw new RuntimeException("Estoque insuficiente para sincronizar pedido do marketplace.");
+            }
+        } else if (direction > 0) {
+            productRepository.incrementQuantity(product.getIdProduto(), amount);
+        } else {
+            return currentQuantity;
+        }
+
+        return productRepository.findById(product.getIdProduto())
+                .map(existing -> existing.getQuantidade() == null ? 0 : existing.getQuantidade())
+                .orElseThrow(() -> new RuntimeException("Produto vinculado ao pedido do marketplace não encontrado."));
     }
 
     private BigDecimal convertToBigDecimal(Object rawValue) {
@@ -1047,8 +1104,11 @@ public class MercadoLivreService {
 
         try {
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity("https://api.mercadolibre.com/oauth/token",
-                    request, Map.class);
+                ResponseEntity<Map> response = postForEntityWithRetry(
+                    "oauth-refresh-token",
+                    "https://api.mercadolibre.com/oauth/token",
+                    request,
+                    Map.class);
 
             if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
                 throw new RuntimeException("Resposta inválida ao renovar token do Mercado Livre.");
@@ -1082,11 +1142,12 @@ public class MercadoLivreService {
         headers.setBearerAuth(connection.getAccessToken());
         HttpEntity<String> request = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
+        ResponseEntity<Map> response = exchangeWithRetry(
                 "https://api.mercadolibre.com/users/" + connection.getIdLoja() + "/items/search?limit=1",
                 HttpMethod.GET,
                 request,
-                Map.class);
+            Map.class,
+            "inventory-total");
 
         return extractPagingTotal(response.getBody());
     }
@@ -1096,11 +1157,12 @@ public class MercadoLivreService {
         headers.setBearerAuth(connection.getAccessToken());
         HttpEntity<String> request = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
+        ResponseEntity<Map> response = exchangeWithRetry(
                 "https://api.mercadolibre.com/users/" + connection.getIdLoja() + "/items/search?status=active&limit=1",
                 HttpMethod.GET,
                 request,
-                Map.class);
+            Map.class,
+            "active-listings");
 
         return extractPagingTotal(response.getBody());
     }
@@ -1110,11 +1172,12 @@ public class MercadoLivreService {
         headers.setBearerAuth(connection.getAccessToken());
         HttpEntity<String> request = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
+        ResponseEntity<Map> response = exchangeWithRetry(
                 "https://api.mercadolibre.com/users/" + connection.getIdLoja(),
                 HttpMethod.GET,
                 request,
-                Map.class);
+            Map.class,
+            "seller-profile");
 
         return extractCompletedSales(response.getBody());
     }
@@ -1148,7 +1211,8 @@ public class MercadoLivreService {
                 .append(ACTIVE_ORDER_STATUS_FILTER);
         }
 
-        ResponseEntity<Map> response = restTemplate.exchange(url.toString(), HttpMethod.GET, request, Map.class);
+        ResponseEntity<Map> response = exchangeWithRetry(url.toString(), HttpMethod.GET, request, Map.class,
+            "orders-total");
         return extractPagingTotal(response.getBody());
     }
 
@@ -1182,7 +1246,8 @@ public class MercadoLivreService {
                 url.append("&order.status=").append(orderStatusFilter);
             }
 
-            ResponseEntity<Map> response = restTemplate.exchange(url.toString(), HttpMethod.GET, request, Map.class);
+                ResponseEntity<Map> response = exchangeWithRetry(url.toString(), HttpMethod.GET, request, Map.class,
+                    "orders-search");
             Map<String, Object> body = response.getBody();
             List<Map<String, Object>> batch = body == null ? List.of() : (List<Map<String, Object>>) body.getOrDefault("results", List.of());
             results.addAll(batch);
@@ -1199,11 +1264,12 @@ public class MercadoLivreService {
         headers.setBearerAuth(connection.getAccessToken());
         HttpEntity<String> request = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
+        ResponseEntity<Map> response = exchangeWithRetry(
                 "https://api.mercadolibre.com/orders/" + orderId,
                 HttpMethod.GET,
                 request,
-                Map.class);
+            Map.class,
+            "order-details");
 
         Map<String, Object> body = response.getBody();
         return body == null ? Map.of("id", orderId) : body;
@@ -1259,6 +1325,95 @@ public class MercadoLivreService {
             return supplier.get();
         } catch (Exception ignored) {
             return 0;
+        }
+    }
+
+    private <T> ResponseEntity<T> exchangeWithRetry(String url, HttpMethod method, HttpEntity<?> request,
+            Class<T> responseType, String operation) {
+        return executeWithRetry(operation, () -> restTemplate.exchange(url, method, request, responseType));
+    }
+
+    private <T> ResponseEntity<T> postForEntityWithRetry(String operation, String url, HttpEntity<?> request,
+            Class<T> responseType) {
+        return executeWithRetry(operation, () -> restTemplate.postForEntity(url, request, responseType));
+    }
+
+    private <T> ResponseEntity<T> executeWithRetry(String operation, Supplier<ResponseEntity<T>> supplier) {
+        int maxAttempts = Math.max(retryMaxAttempts, 1);
+        long backoffMs = Math.max(retryInitialBackoffMs, 0L);
+        RuntimeException lastFailure = null;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                awaitMarketplaceRateLimitSlot();
+                return supplier.get();
+            } catch (HttpClientErrorException exception) {
+                if (!shouldRetry(exception.getStatusCode())) {
+                    throw exception;
+                }
+                lastFailure = exception;
+            } catch (HttpServerErrorException | ResourceAccessException exception) {
+                lastFailure = exception;
+            }
+
+            if (attempt == maxAttempts) {
+                break;
+            }
+
+            sleepBackoff(backoffMs);
+            backoffMs = nextBackoff(backoffMs);
+        }
+
+        throw new RuntimeException("Falha ao executar operação Mercado Livre após retry: " + operation,
+                lastFailure);
+    }
+
+    private boolean shouldRetry(HttpStatusCode statusCode) {
+        if (statusCode == null) {
+            return false;
+        }
+
+        return statusCode.value() == 408 || statusCode.value() == 429 || statusCode.is5xxServerError();
+    }
+
+    private long nextBackoff(long currentBackoffMs) {
+        if (currentBackoffMs <= 0) {
+            return 500L;
+        }
+        return Math.min(currentBackoffMs * 2L, 8000L);
+    }
+
+    private void sleepBackoff(long backoffMs) {
+        if (backoffMs <= 0) {
+            return;
+        }
+
+        try {
+            Thread.sleep(backoffMs);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Retry interrompido durante backoff do Mercado Livre.", exception);
+        }
+    }
+
+    private void awaitMarketplaceRateLimitSlot() {
+        long minIntervalMs = Math.max(rateLimitMinIntervalMs, 0L);
+        if (minIntervalMs == 0L) {
+            return;
+        }
+
+        while (true) {
+            long waitMs;
+            synchronized (rateLimitMonitor) {
+                long now = System.currentTimeMillis();
+                if (now >= nextMarketplaceRequestAtMs) {
+                    nextMarketplaceRequestAtMs = now + minIntervalMs;
+                    return;
+                }
+                waitMs = nextMarketplaceRequestAtMs - now;
+            }
+
+            sleepBackoff(waitMs);
         }
     }
 

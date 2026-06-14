@@ -11,7 +11,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/mercadolivre")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class MercadoLivreController {
 
     private final MercadoLivreService mercadoLivreService;

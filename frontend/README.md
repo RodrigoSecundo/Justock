@@ -1,6 +1,6 @@
 # JusTock - Frontend
 
-Frontend da aplicação JusTock, construído com React + Vite. O projeto consome uma combinação de backend real e mock local via `json-server`.
+Frontend da aplicação JusTock, construído com React + Vite. O projeto consome o backend real nos fluxos centrais e inclui suporte local com `json-server` para cenários complementares de desenvolvimento.
 
 ## Novidades recentes
 
@@ -9,6 +9,7 @@ Frontend da aplicação JusTock, construído com React + Vite. O projeto consome
 - Fluxo de vincular e desvincular anúncio agora usa diálogos do PrimeReact em vez de `confirm` nativo do navegador
 - Coluna `Vinculação` ganhou refinamento visual e suporte consistente a tema claro/escuro
 - Pedidos manuais agora trabalham com itens explícitos e refletem estoque real dos produtos selecionados
+- Tela `Conexões` opera sobre uma integração Mercado Livre com retry, fila persistida de webhook e reprocessamento automático no backend
 - Tema escuro foi normalizado para diálogos e dropdowns do PrimeReact usados no dashboard
 - Login e cadastro agora usam o backend real via `/api/auth`
 - Cadastro público disponível em `/cadastro`, inclusive a partir do modal de planos da home
@@ -99,15 +100,12 @@ Fallback automático quando `.env.local` não existe:
 - Status e ações do Mercado Livre em Conexões
 - Dashboard principal, incluindo atividade recente, alertas e notificações
 
-### Ainda usando mock total ou parcial
+### Suporte local com `db.json`
 
 - Relatórios
 - Assinatura
 - Usuários
 - Amazon e Shopee em Conexões
-
-Observação:
-- `Relatórios` e `Assinatura` ainda vêm do mock, mas já respeitam o comportamento de conta principal versus conta nova por meio de estados vazios específicos
 
 ## Autenticação e rotas privadas
 
@@ -178,6 +176,7 @@ O frontend já implementa:
 - disparar sincronização manual de pedidos e produtos
 - desconectar a conta integrada
 - atualizar periodicamente a tela de Conexões sem reload manual
+- refletir uma integração backend com retry, reprocessamento persistido de webhook e controle local de ritmo nas chamadas ao ML
 
 Observações:
 - O callback OAuth do Mercado Livre entra no backend público exposto por túnel HTTP

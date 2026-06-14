@@ -35,6 +35,12 @@ public class WebhookEvent {
     @Column(name = "processed_at", nullable = true)
     private LocalDateTime processedAt;
 
+    @Column(name = "processing_started_at", nullable = true)
+    private LocalDateTime processingStartedAt;
+
+    @Column(name = "attempt_count", nullable = false)
+    private Integer attemptCount;
+
     @Column(name = "error", nullable = true)
     private String error;
 }

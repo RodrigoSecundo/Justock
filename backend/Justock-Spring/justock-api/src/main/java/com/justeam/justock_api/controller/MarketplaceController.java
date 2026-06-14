@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/Marketplace")
-@CrossOrigin(origins = "*")
 public class MarketplaceController {
 
     @Autowired

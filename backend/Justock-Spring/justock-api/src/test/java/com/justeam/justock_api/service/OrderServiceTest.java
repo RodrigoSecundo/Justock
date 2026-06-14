@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -72,7 +73,14 @@ class OrderServiceTest {
         List<OrderItem> persistedItems = new ArrayList<>();
 
         when(productRepository.findById(42)).thenReturn(Optional.of(product));
-        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(productRepository.decrementQuantityIfEnough(42, 1)).thenAnswer(invocation -> {
+            int currentQuantity = product.getQuantidade();
+            if (currentQuantity < 1) {
+                return 0;
+            }
+            product.setQuantidade(currentQuantity - 1);
+            return 1;
+        });
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             if (order.getIdPedido() == 0) {
@@ -106,6 +114,48 @@ class OrderServiceTest {
         assertEquals(101, savedItems.get(1).getId().getIdPedido());
         assertEquals(42, savedItems.get(0).getId().getIdProduto());
         assertEquals(42, savedItems.get(1).getId().getIdProduto());
+    }
+
+    @Test
+    void createOrderFailsWhenAtomicStockUpdateCannotReserveLastUnit() {
+        Product product = new Product();
+        product.setIdProduto(42);
+        product.setUsuario(1);
+        product.setCategoria("GPU");
+        product.setMarca("NVIDIA");
+        product.setNomeDoProduto("RTX 3060");
+        product.setEstado("ATIVO");
+        product.setPreco(BigDecimal.valueOf(1999.90));
+        product.setCodigoDeBarras("123");
+        product.setQuantidade(1);
+        product.setQuantidadeReservada(0);
+        product.setMarcador("MANUAL");
+
+        AtomicInteger nextOrderId = new AtomicInteger(100);
+        List<OrderItem> persistedItems = new ArrayList<>();
+
+        when(productRepository.findById(42)).thenReturn(Optional.of(product));
+        when(productRepository.decrementQuantityIfEnough(42, 1)).thenReturn(0);
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            if (order.getIdPedido() == 0) {
+                order.setIdPedido(nextOrderId.getAndIncrement());
+            }
+            return order;
+        });
+        when(orderItemRepository.save(any(OrderItem.class))).thenAnswer(invocation -> {
+            OrderItem item = invocation.getArgument(0);
+            persistedItems.add(item);
+            return item;
+        });
+        when(orderItemRepository.findByIdIdPedido(any(Integer.class))).thenAnswer(invocation -> {
+            Integer orderId = invocation.getArgument(0);
+            return persistedItems.stream()
+                    .filter(item -> item.getId() != null && orderId.equals(item.getId().getIdPedido()))
+                    .toList();
+        });
+
+        assertThrows(RuntimeException.class, () -> orderService.createOrder(buildManualOrderRequest(42), 1));
     }
 
     private OrderCreateRequest buildManualOrderRequest(Integer productId) {

@@ -21,7 +21,7 @@ public class MercadoLivreSyncScheduler {
     }
 
     @Scheduled(
-            fixedDelayString = "${mercadolivre.auto-sync.fixed-delay-ms:900000}",
+            fixedDelayString = "${mercadolivre.auto-sync.fixed-delay-ms:600000}",
             initialDelayString = "${mercadolivre.auto-sync.initial-delay-ms:120000}")
     public void syncMercadoLivrePeriodicamente() {
         if (!autoSyncEnabled) {

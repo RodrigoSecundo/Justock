@@ -405,15 +405,32 @@ public class OrderService {
             }
 
             int currentQuantity = product.getQuantidade() == null ? 0 : product.getQuantidade();
-            int delta = (item.getQuantidade() == null ? 0 : item.getQuantidade()) * direction;
-            int nextQuantity = currentQuantity + delta;
-            if (nextQuantity < 0) {
-                throw new BadRequestException("Estoque insuficiente para concluir o pedido manual.");
+            int amount = item.getQuantidade() == null ? 0 : item.getQuantidade();
+            if (amount <= 0) {
+                continue;
             }
 
+            int nextQuantity = adjustInventoryAtomically(product, direction, amount, currentQuantity);
+
             product.setQuantidade(nextQuantity);
-            productRepository.save(product);
             mercadoLivreService.syncManualInventoryForProduct(product);
         }
+    }
+
+    private int adjustInventoryAtomically(Product product, int direction, int amount, int currentQuantity) {
+        if (direction < 0) {
+            int updatedRows = productRepository.decrementQuantityIfEnough(product.getIdProduto(), amount);
+            if (updatedRows == 0) {
+                throw new BadRequestException("Estoque insuficiente para concluir o pedido manual.");
+            }
+        } else if (direction > 0) {
+            productRepository.incrementQuantity(product.getIdProduto(), amount);
+        } else {
+            return currentQuantity;
+        }
+
+        return productRepository.findById(product.getIdProduto())
+                .map(existing -> existing.getQuantidade() == null ? 0 : existing.getQuantidade())
+                .orElseThrow(() -> new BadRequestException("Produto do pedido não encontrado para ajuste de estoque."));
     }
 }

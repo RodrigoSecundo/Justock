@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.justeam.justock_api.model.MarketplaceListing;
 import com.justeam.justock_api.model.Product;
 import com.justeam.justock_api.model.UserMarketplace;
+import com.justeam.justock_api.model.WebhookEvent;
+import com.justeam.justock_api.model.event.MercadoLivreWebhookReceivedEvent;
 import com.justeam.justock_api.repository.MarketplaceListingRepository;
 import com.justeam.justock_api.repository.OrderItemRepository;
 import com.justeam.justock_api.repository.OrderRepository;
@@ -16,18 +18,22 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -70,8 +76,17 @@ class MercadoLivreServiceTest {
     @Mock
     private ObjectMapper objectMapper;
 
+        @Mock
+        private ApplicationEventPublisher applicationEventPublisher;
+
     @InjectMocks
     private MercadoLivreService mercadoLivreService;
+
+        @org.junit.jupiter.api.BeforeEach
+        void configureRetryDefaults() {
+                ReflectionTestUtils.setField(mercadoLivreService, "retryMaxAttempts", 3);
+                ReflectionTestUtils.setField(mercadoLivreService, "retryInitialBackoffMs", 0L);
+        }
 
     @Test
     void syncInventoryUsesMarketplaceBarcodeInsteadOfItemId() {
@@ -114,6 +129,7 @@ class MercadoLivreServiceTest {
         when(marketplaceListingRepository.findByUsuarioAndMarketplaceSourceAndMarketplaceResourceId(1, "MERCADO_LIVRE", "MLB123"))
                 .thenReturn(Optional.empty());
         when(marketplaceListingRepository.findByUsuarioAndMarketplaceSource(1, "MERCADO_LIVRE")).thenReturn(List.of());
+        when(productRepository.findByUsuario(1)).thenReturn(List.of());
         when(marketplaceListingRepository.save(any(MarketplaceListing.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         int processed = mercadoLivreService.syncInventory(1);
@@ -166,6 +182,7 @@ class MercadoLivreServiceTest {
                 when(marketplaceListingRepository.findByUsuarioAndMarketplaceSourceAndMarketplaceResourceId(1, "MERCADO_LIVRE", "MLB123"))
                                 .thenReturn(Optional.empty());
                 when(marketplaceListingRepository.findByUsuarioAndMarketplaceSource(1, "MERCADO_LIVRE")).thenReturn(List.of());
+                when(productRepository.findByUsuario(1)).thenReturn(List.of());
                 when(marketplaceListingRepository.save(any(MarketplaceListing.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
                 int processed = mercadoLivreService.syncInventory(1);
@@ -216,6 +233,7 @@ class MercadoLivreServiceTest {
         when(marketplaceListingRepository.findByUsuarioAndMarketplaceSourceAndMarketplaceResourceId(1, "MERCADO_LIVRE", "MLB999"))
                 .thenReturn(Optional.empty());
         when(marketplaceListingRepository.findByUsuarioAndMarketplaceSource(1, "MERCADO_LIVRE")).thenReturn(List.of());
+        when(productRepository.findByUsuario(1)).thenReturn(List.of());
         when(marketplaceListingRepository.save(any(MarketplaceListing.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         int processed = mercadoLivreService.syncInventory(1);
@@ -503,5 +521,102 @@ class MercadoLivreServiceTest {
                 ArgumentCaptor<MarketplaceListing> listingCaptor = ArgumentCaptor.forClass(MarketplaceListing.class);
                 verify(marketplaceListingRepository).save(listingCaptor.capture());
                 assertEquals(1, listingCaptor.getValue().getQuantidadeDisponivel());
+        }
+
+        @Test
+        void syncManualInventoryRetriesTransientMarketplaceFailure() {
+                UserMarketplace connection = new UserMarketplace();
+                connection.setUsuario(1);
+                connection.setMarketplaceId(1);
+                connection.setIdLoja("SELLER-1");
+                connection.setAccessToken("token");
+                connection.setRefreshToken("refresh");
+                connection.setTokenExpiration(LocalDateTime.now().plusHours(1));
+
+                Product product = new Product();
+                product.setIdProduto(42);
+                product.setUsuario(1);
+                product.setQuantidade(2);
+                product.setMarcador("MANUAL");
+
+                MarketplaceListing listing = new MarketplaceListing();
+                listing.setId(7L);
+                listing.setUsuario(1);
+                listing.setMarketplaceSource("MERCADO_LIVRE");
+                listing.setMarketplaceResourceId("MLB6616692878");
+                listing.setProdutoVinculadoId(42);
+                listing.setQuantidadeDisponivel(1);
+
+                HttpServerErrorException transientFailure = HttpServerErrorException.create(
+                                HttpStatus.SERVICE_UNAVAILABLE,
+                                "Service Unavailable",
+                                HttpHeaders.EMPTY,
+                                "temporarily unavailable".getBytes(),
+                                null);
+
+                when(userMarketplaceRepository.findFirstByUsuarioAndMarketplaceId(1, 1)).thenReturn(Optional.of(connection));
+                when(marketplaceListingRepository.findByUsuarioAndProdutoVinculadoId(1, 42)).thenReturn(List.of(listing));
+                doThrow(transientFailure)
+                                .doReturn(new ResponseEntity<>(Map.of(), HttpStatus.OK))
+                                .when(restTemplate)
+                                .exchange(
+                                                eq("https://api.mercadolibre.com/items/MLB6616692878"),
+                                                eq(HttpMethod.PUT),
+                                                any(HttpEntity.class),
+                                                eq(Map.class));
+                when(marketplaceListingRepository.save(any(MarketplaceListing.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                mercadoLivreService.syncManualInventoryForProduct(product);
+
+                verify(restTemplate, times(2)).exchange(
+                                eq("https://api.mercadolibre.com/items/MLB6616692878"),
+                                eq(HttpMethod.PUT),
+                                any(HttpEntity.class),
+                                eq(Map.class));
+        }
+
+        @Test
+        void registerWebhookEventQueuesKnownUserForAsyncProcessing() {
+                UserMarketplace connection = new UserMarketplace();
+                connection.setUsuario(1);
+                connection.setUsuarioMarketplaceId(10);
+                connection.setMarketplaceId(1);
+                connection.setIdLoja("SELLER-1");
+                connection.setAccessToken("token");
+                connection.setRefreshToken("refresh");
+                connection.setTokenExpiration(LocalDateTime.now().plusHours(1));
+
+                when(userMarketplaceRepository.findFirstByIdLojaAndMarketplaceId("SELLER-1", 1)).thenReturn(Optional.of(connection));
+                AtomicInteger generatedId = new AtomicInteger(99);
+                when(webhookEventRepository.save(any())).thenAnswer(invocation -> {
+                        WebhookEvent event = invocation.getArgument(0);
+                        if (event.getId() == 0) {
+                                event.setId(generatedId.get());
+                        }
+                        return event;
+                });
+
+                mercadoLivreService.registerWebhookEvent(Map.of("user_id", "SELLER-1", "topic", "orders_v2"));
+
+                ArgumentCaptor<WebhookEvent> eventCaptor = ArgumentCaptor.forClass(WebhookEvent.class);
+                verify(webhookEventRepository).save(eventCaptor.capture());
+                assertFalse(Boolean.TRUE.equals(eventCaptor.getValue().getProcessed()));
+                assertEquals(null, eventCaptor.getValue().getProcessedAt());
+
+                ArgumentCaptor<MercadoLivreWebhookReceivedEvent> publishedEvent = ArgumentCaptor.forClass(MercadoLivreWebhookReceivedEvent.class);
+                verify(applicationEventPublisher).publishEvent(publishedEvent.capture());
+                assertEquals(99, publishedEvent.getValue().webhookEventId());
+                assertEquals(1, publishedEvent.getValue().usuarioId());
+        }
+
+        @Test
+        void registerWebhookEventStoresErrorWhenMarketplaceUserIsUnknown() {
+                when(webhookEventRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+                mercadoLivreService.registerWebhookEvent(Map.of("user_id", "UNKNOWN", "topic", "orders_v2"));
+
+                ArgumentCaptor<WebhookEvent> eventCaptor = ArgumentCaptor.forClass(WebhookEvent.class);
+                verify(webhookEventRepository).save(eventCaptor.capture());
+                assertEquals("Usuario marketplace nao encontrado para o webhook recebido.", eventCaptor.getValue().getError());
         }
 }

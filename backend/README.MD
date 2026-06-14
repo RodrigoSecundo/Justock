@@ -9,8 +9,10 @@ Backend da aplicação JusTock, construído com Spring Boot, Spring Security, JP
 - Itens de pedido manuais persistidos em tabela própria, com total calculado no backend
 - Reconciliação automática de estoque em pedidos manuais, inclusive reversão ao editar, cancelar ou excluir
 - Sincronização de estoque do Mercado Livre ajustada para pausar item ao zerar estoque e reativar no reabastecimento
+- Integração do Mercado Livre fortalecida com retry, backoff exponencial e throttling local entre chamadas externas
+- Fila persistida de webhook com reprocessamento automático e controle de tentativas
 - Normalização de marca do ML ampliada com fallback por atributos, variações e título do anúncio
-- Migrations `V11` a `V15` adicionando anúncios, itens de pedido, controle de aplicação de estoque, consolidação de inventário legado e backfill de marcas
+- Migrations `V11` a `V18` adicionando anúncios, itens de pedido, controle de aplicação de estoque, consolidação de inventário legado, backfill de marcas e controle persistido da fila de webhook
 - Endpoints de autenticação para login e cadastro integrados ao frontend
 - Endpoints para consultar e atualizar o perfil da conta autenticada
 - Resolução centralizada da conta atual com distinção entre conta principal e contas isoladas
@@ -72,7 +74,7 @@ Para rodar testes:
 
 - Banco atual: PostgreSQL / Supabase
 - Migrations gerenciadas com Flyway
-- O histórico atual do projeto vai até `V15`
+- O histórico atual do projeto vai até `V18`
 
 ## O que já está real no backend
 
@@ -154,9 +156,13 @@ Para rodar testes:
 - Endpoint para desconectar a conta integrada
 - Sincronização manual de produtos e pedidos
 - Sincronização automática periódica por agendamento (`@Scheduled`)
+- Retry com backoff exponencial para falhas transitórias da API externa
+- Throttling local configurável entre chamadas ao Mercado Livre
 - Upsert de produtos e pedidos por `marketplace_resource_id`
 - Limpeza de registros antigos ao trocar a conta conectada e executar nova sincronização
 - Registro de payload bruto de webhook em `eventos_webhook`
+- Processamento assíncrono do webhook recebido com atualização posterior do status do evento
+- Reprocessamento automático de webhooks pendentes com fila persistida no banco
 - Persistência dedicada de anúncios em `marketplace_listing`
 - Extração e normalização de marca por atributos, variações e inferência pelo título
 - Normalização de categoria do item com `category_id` do ML e fallback por heurística no título
@@ -164,11 +170,6 @@ Para rodar testes:
 - Reativação automática do anúncio ao voltar a haver estoque positivo
 - Resumo de conexão com totais de pedidos e inventário para a tela `Conexões`
 - Resolução do usuário de dashboard a partir da conta autenticada antes de consultar status, sincronizar ou desconectar
-
-### O que ainda não está implementado
-
-- Processamento assíncrono dos webhooks recebidos
-- Sincronização dos itens de pedido em `estoque_pedido`
 
 ### Endpoints do Mercado Livre
 
@@ -209,14 +210,19 @@ Para rodar testes:
 
 Por padrão:
 - primeira execução: 2 minutos após subir o backend
-- próximas execuções: a cada 15 minutos
+- próximas execuções: a cada 10 minutos
 
 Propriedades:
 
 ```properties
 mercadolivre.auto-sync.enabled=true
-mercadolivre.auto-sync.fixed-delay-ms=900000
+mercadolivre.auto-sync.fixed-delay-ms=600000
 mercadolivre.auto-sync.initial-delay-ms=120000
+mercadolivre.retry.max-attempts=3
+mercadolivre.retry.initial-backoff-ms=500
+mercadolivre.rate-limit.min-interval-ms=250
+mercadolivre.webhook.retry.fixed-delay-ms=30000
+mercadolivre.webhook.retry.initial-delay-ms=15000
 ```
 
 ### Configuração local esperada no `application-local.properties`
@@ -241,8 +247,13 @@ MERCADOLIVRE_REDIRECT_URI=https://seu-tunel.ngrok-free.dev/api/mercadolivre/call
 MERCADOLIVRE_FRONTEND_REDIRECT_URI=http://localhost:5173/conexoes
 MERCADOLIVRE_SHARED_USUARIO_ID=1
 MERCADOLIVRE_AUTO_SYNC_ENABLED=true
-MERCADOLIVRE_AUTO_SYNC_FIXED_DELAY_MS=900000
+MERCADOLIVRE_AUTO_SYNC_FIXED_DELAY_MS=600000
 MERCADOLIVRE_AUTO_SYNC_INITIAL_DELAY_MS=120000
+MERCADOLIVRE_RETRY_MAX_ATTEMPTS=3
+MERCADOLIVRE_RETRY_INITIAL_BACKOFF_MS=500
+MERCADOLIVRE_RATE_LIMIT_MIN_INTERVAL_MS=250
+MERCADOLIVRE_WEBHOOK_RETRY_FIXED_DELAY_MS=30000
+MERCADOLIVRE_WEBHOOK_RETRY_INITIAL_DELAY_MS=15000
 ```
 
 ### Observações práticas

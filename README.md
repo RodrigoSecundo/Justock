@@ -8,7 +8,7 @@ O projeto está dividido em duas aplicações:
 - Frontend React + Vite em `frontend/`
 - Backend Spring Boot em `backend/Justock-Spring/justock-api/`
 
-Hoje o sistema opera em modo híbrido: parte dos dados vem do backend real e parte ainda vem do mock local via `json-server`.
+Hoje o projeto combina backend real para os fluxos centrais e suporte local com `json-server` para cenários complementares de desenvolvimento.
 
 ## Novidades recentes
 
@@ -20,7 +20,10 @@ As mudanças mais relevantes registradas neste estado do projeto são:
 - Pedidos manuais agora trabalham com itens explícitos e calculam total a partir desses itens
 - Reconciliação automática de estoque em pedidos manuais, inclusive reversão ao cancelar ou editar itens
 - Sincronização de estoque do Mercado Livre corrigida para pausar anúncio ao zerar estoque e reativar no reabastecimento
+- Integração do Mercado Livre fortalecida com retry, backoff exponencial, throttling local e fila persistida de webhook
 - Normalização de marca do Mercado Livre ampliada com fallback por atributos, variações e inferência pelo título
+- Webhooks do Mercado Livre agora ficam persistidos com tentativas e reprocessamento automático em segundo plano
+- CORS do backend alinhado a origens configuráveis por ambiente
 - Backfill Flyway para normalizar marcas antigas persistidas como `N/A`
 - Autenticação do frontend conectada ao backend real com login e cadastro por API
 - Cadastro público exposto na rota `/cadastro`, inclusive a partir do modal de planos da home
@@ -53,16 +56,13 @@ Estas áreas já usam o backend Spring + PostgreSQL/Supabase:
 - Integração com Mercado Livre
 - Dashboard principal, incluindo atividade recente, alertas e notificações
 
-### Mock local (`frontend/db.json`)
+### Suporte local com `frontend/db.json`
 
-Estas áreas ainda dependem total ou parcialmente do mock:
+O repositório também inclui base local para cenários de desenvolvimento em:
 - Relatórios
 - Assinatura
 - Usuários
 - Amazon e Shopee em Conexões
-
-Observação importante:
-- `Relatórios` e `Assinatura` ainda usam mock, mas agora já distinguem o comportamento da conta principal e de contas novas, inclusive com estados vazios controlados
 
 ## Autenticação e sessão
 
@@ -141,7 +141,9 @@ A integração com Mercado Livre já suporta:
 - Renovação de token por `refresh_token`
 - Sincronização manual de produtos e pedidos
 - Sincronização automática periódica no backend
-- Registro de webhooks recebidos
+- Registro de webhooks recebidos com processamento assíncrono
+- Reprocessamento persistido de webhook com controle de tentativas
+- Intervalo mínimo local entre chamadas externas ao Mercado Livre
 - Upsert por `marketplace_resource_id`
 - Remoção de dados antigos quando a conta compartilhada é trocada e uma nova sincronização roda
 - Persistência dedicada de anúncios em `marketplace_listing`
@@ -156,9 +158,9 @@ Detalhes operacionais importantes:
 - Fora essa conta principal, os demais usuários usam o próprio contexto de dashboard e integração
 - A conta conectada do Mercado Livre pode ser trocada
 - A primeira sincronização automática roda 2 minutos após subir o backend
-- As próximas sincronizações automáticas rodam a cada 15 minutos
+- As próximas sincronizações automáticas rodam a cada 10 minutos
 - Sincronizações do Mercado Livre também alimentam a atividade recente e os alertas do dashboard quando produtos ou pedidos são criados/atualizados
-- O backfill Flyway atual do backend vai até `V15`, incluindo consolidação de inventário legado do ML e normalização de marcas antigas
+- O histórico Flyway atual do backend vai até `V18`, incluindo consolidação de inventário legado, normalização de marcas e controle persistido da fila de webhook
 
 ### Fluxo de testes homologado
 

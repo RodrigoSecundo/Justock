@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/WebhookEvent")
-@CrossOrigin(origins = "*")
 public class WebhookEventController {
 
     @Autowired
